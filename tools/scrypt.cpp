@@ -244,7 +244,7 @@ static inline void xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
 	B[15] += x15;
 }
 
-void scrypt_1024_1_1_256_sp_generic(const char *input, char *output, char *scratchpad)
+void scrypt_1024_1_1_256_sp_generic(const char *input, char *output, char *scratchpad, StepFunction const& step)
 {
 	uint8_t B[128];
 	uint32_t X[32];
@@ -253,15 +253,21 @@ void scrypt_1024_1_1_256_sp_generic(const char *input, char *output, char *scrat
 
 	V = (uint32_t *)(((uintptr_t)(scratchpad) + 63) & ~ (uintptr_t)(63));
 
+	memset(V, 0, 1024 * 32 * 4);
+
 	PBKDF2_SHA256((const uint8_t *)input, 80, (const uint8_t *)input, 80, 1, B, 128);
 
 	for (k = 0; k < 32; k++)
 		X[k] = le32dec(&B[4 * k]);
 
+	unsigned stepNr = 0;
+	step(stepNr++, reinterpret_cast<char*>(&X[0]), reinterpret_cast<char*>(V));
+
 	for (i = 0; i < 1024; i++) {
 		memcpy(&V[i * 32], X, 128);
 		xor_salsa8(&X[0], &X[16]);
 		xor_salsa8(&X[16], &X[0]);
+		step(stepNr++, reinterpret_cast<char*>(&X[0]), reinterpret_cast<char*>(V));
 	}
 	for (i = 0; i < 1024; i++) {
 		j = 32 * (X[16] & 1023);
@@ -269,6 +275,7 @@ void scrypt_1024_1_1_256_sp_generic(const char *input, char *output, char *scrat
 			X[k] ^= V[j + k];
 		xor_salsa8(&X[0], &X[16]);
 		xor_salsa8(&X[16], &X[0]);
+		step(stepNr++, reinterpret_cast<char*>(&X[0]), reinterpret_cast<char*>(V));
 	}
 
 	for (k = 0; k < 32; k++)
