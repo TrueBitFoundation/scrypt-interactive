@@ -1,0 +1,52 @@
+pragma solidity ^0.4.0;
+
+import {ScryptFramework} from "./scryptFramework.sol";
+ 
+
+contract ScryptRunner is ScryptFramework {
+    function initMemory(State memory state) pure internal {
+        state.fullMemory = new uint[](4 * 1024);
+    }
+
+    function run(bytes input, uint upToStep) pure returns (bytes proof) {
+        State memory s = inputToState(input);
+        Proofs memory proofs;
+        for (uint i = 0; i + 1 < upToStep; i++)
+            runStep(s, i, proofs);
+        proofs.generateProofs = true;
+        runStep(s, i + 1, proofs);
+        return proofs.proofs;
+    }
+
+    function readMemory(State memory state, uint index, Proofs memory /*proofs*/) pure internal returns (uint a, uint b, uint c, uint d) {
+        require(index < 1024);
+        uint pos = 4 * index;
+        uint[] memory fullMem = state.fullMemory;
+        assembly {
+            pos := add(pos, 0x20)
+            a := mload(add(fullMem, pos))
+            pos := add(pos, 0x20)
+            b := mload(add(fullMem, pos))
+            pos := add(pos, 0x20)
+            c := mload(add(fullMem, pos))
+            pos := add(pos, 0x20)
+            d := mload(add(fullMem, pos))
+        }
+    }
+    function writeMemory(State memory state, uint index, uint[4] values, Proofs memory /*proofs*/) pure internal {
+        require(index < 1024);
+        uint pos = 4 * index;
+        uint[] memory fullMem = state.fullMemory;
+        var (a, b, c, d) = (values[0], values[1], values[2], values[3]);
+        assembly {
+            pos := add(pos, 0x20)
+            mstore(add(fullMem, pos), a)
+            pos := add(pos, 0x20)
+            mstore(add(fullMem, pos), b)
+            pos := add(pos, 0x20)
+            mstore(add(fullMem, pos), c)
+            pos := add(pos, 0x20)
+            mstore(add(fullMem, pos), d)
+        }
+    }
+}

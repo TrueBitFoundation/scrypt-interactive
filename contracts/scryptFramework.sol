@@ -1,7 +1,5 @@
 pragma solidity ^0.4.0;
 
-import {Verifier} from "./verify.sol";
- 
 contract ScryptFramework {
     
     // The state object, can be used in both generating and verifying mode.
@@ -67,87 +65,6 @@ contract ScryptFramework {
             ]);
         }
     }
-}
-
-contract ScryptRunner is ScryptFramework {
-    function initMemory(State memory state) pure internal {
-        state.fullMemory = new uint[](4 * 1024);
-    }
-
-    function run(bytes input, uint upToStep) pure returns (bytes proof) {
-        State memory s = inputToState(input);
-        Proofs memory proofs;
-        for (uint i = 0; i + 1 < upToStep; i++)
-            runStep(s, i, proofs);
-        proofs.generateProofs = true;
-        runStep(s, i + 1, proofs);
-        return proofs.proofs;
-    }
-
-    function readMemory(State memory state, uint index, Proofs memory /*proofs*/) pure internal returns (uint a, uint b, uint c, uint d) {
-        require(index < 1024);
-        uint pos = 4 * index;
-        uint[] memory fullMem = state.fullMemory;
-        assembly {
-            pos := add(pos, 0x20)
-            a := mload(add(fullMem, pos))
-            pos := add(pos, 0x20)
-            b := mload(add(fullMem, pos))
-            pos := add(pos, 0x20)
-            c := mload(add(fullMem, pos))
-            pos := add(pos, 0x20)
-            d := mload(add(fullMem, pos))
-        }
-    }
-    function writeMemory(State memory state, uint index, uint[4] values, Proofs memory /*proofs*/) pure internal {
-        require(index < 1024);
-        uint pos = 4 * index;
-        uint[] memory fullMem = state.fullMemory;
-        var (a, b, c, d) = (values[0], values[1], values[2], values[3]);
-        assembly {
-            pos := add(pos, 0x20)
-            mstore(add(fullMem, pos), a)
-            pos := add(pos, 0x20)
-            mstore(add(fullMem, pos), b)
-            pos := add(pos, 0x20)
-            mstore(add(fullMem, pos), c)
-            pos := add(pos, 0x20)
-            mstore(add(fullMem, pos), d)
-        }
-    }
-}
-
-contract ScryptVerifier is ScryptFramework, Verifier {
-    function initMemory(State memory state) pure internal {
-        state.memoryHash = bytes32(0); // @TODO correct empty memory hash
-    }
-
-
-    function unpackState(bytes value) pure internal returns (State memory s, bool err) {
-        if (value.length != 32 * 5)
-            return (s, true);
-        for (uint i = 0; i < 4; i ++) {
-            uint v;
-            assembly { v := mload(add(add(value, 0x20), mul(i, 0x20))) }
-            s.vars[i] = v;
-        }
-        bytes32 memoryHash;
-        assembly { memoryHash := mload(add(add(value, 0x20), mul(4, 0x20))) }
-        s.memoryHash = memoryHash;
-    }
-
-    function stateHash(State memory state) pure internal returns (bytes32) {
-        return sha3(state.vars, state.memoryHash);
-    }
-
-    function isInitiallyValid(VerificationSession storage session) internal returns (bool) {
-        if (session.highStep != 2049)
-            return false;
-        if (session.lowHash != stateHash(inputToState(session.input)))
-            return false;
-        return true;
-    }
-
 }
 
 library Salsa8 {
@@ -227,8 +144,9 @@ library Salsa8 {
         return [a, b, c, d];
     }
 }
+
 library KeyDeriv {
-    function hmacsha256(bytes key, bytes message) pure returns (bytes32) {
+    function hmacsha256(bytes key, bytes message) pure internal returns (bytes32) {
         bytes32 keyl;
         bytes32 keyr;
         uint i;
@@ -245,7 +163,7 @@ library KeyDeriv {
         return sha256(fivec ^ keyl, fivec ^ keyr, sha256(threesix ^ keyl, threesix ^ keyr, message));
     }
     /// PBKDF2 restricted to c=1, hash = hmacsha256 and dklen being a multiple of 32 not larger than 128
-    function pbkdf2(bytes key, bytes salt, uint dklen) pure returns (uint[4] r) {
+    function pbkdf2(bytes key, bytes salt, uint dklen) pure internal returns (uint[4] r) {
         var message = new bytes(salt.length + 4);
         for (uint i = 0; i < salt.length; i++)
             message[i] = salt[i];
