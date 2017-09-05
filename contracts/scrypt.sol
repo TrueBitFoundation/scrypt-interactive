@@ -1,82 +1,166 @@
+pragma solidity ^0.4.0;
+
 import {Verifier} from "./verify.sol";
  
-contract ScryptVerifier is Verifier {
+contract ScryptFramework {
     
+    // The state object, can be used in both generating and verifying mode.
+    // In generating mode, only vars and fullMemory is used, in verifying
+    // mode only vars and memoryHash is used.
     struct State {
         uint[4] vars;
         bytes32 memoryHash;
+        uint[] fullMemory;
     }
-    struct MemoryWrite {
-        uint address;
-        uint[4] value;
+    // This is the witness data that is generated in generating mode
+    // and used for verification in verification mode.
+    struct Proofs {
+        bool generateProofs;
+        bytes proofs;
     }
 
-    function unpackState(bytes value) internal returns (State s, bool err) {
+    function inputToState(bytes memory input) pure internal returns (State memory state)
+    {
+        state.vars = KeyDeriv.pbkdf2(input, input, 128);
+        initMemory(state);
+    }
+
+    function finalStateToOutput(State memory state) pure internal returns (bytes memory output)
+    {
+        bytes memory val = uint4ToBytes(state.vars);
+        return uint4ToBytes(KeyDeriv.pbkdf2(val, val, 32));
+    }
+
+    function uint4ToBytes(uint[4] memory val) pure internal returns (bytes memory r)
+    {
+        r = new bytes(4 * 32);
+        var v = val[0];
+        assembly { mstore(add(r, 0x20), v) }
+        v = val[1];
+        assembly { mstore(add(r, 0x40), v) }
+        v = val[2];
+        assembly { mstore(add(r, 0x60), v) }
+        v = val[3];
+        assembly { mstore(add(r, 0x80), v) }
+    }
+
+    function initMemory(State memory state) pure internal;
+    function writeMemory(State memory state, uint index, uint[4] values, Proofs memory proofs) pure internal;
+    function readMemory(State memory state, uint index, Proofs memory proofs) pure internal returns (uint, uint, uint, uint);
+
+    // Runs a single step, modifying state
+    function runStep(State memory state, uint step, Proofs memory proofs) pure internal {
+        require(step < 2048);
+        if (step == 0) {
+            writeMemory(state, 0, state.vars, proofs);
+        } else if (step < 1024) {
+            state.vars = Salsa8.round(state.vars);
+            writeMemory(state, step, state.vars, proofs);
+        } else {
+            var readIndex = (state.vars[2] / 0x100000000000000000000000000000000000000000000000000000000) % 1024;
+            var (va, vb, vc, vd) = readMemory(state, readIndex, proofs);
+            state.vars = Salsa8.round([
+                state.vars[0] ^ va,
+                state.vars[1] ^ vb,
+                state.vars[2] ^ vc,
+                state.vars[3] ^ vd
+            ]);
+        }
+    }
+}
+
+contract ScryptRunner is ScryptFramework {
+    function initMemory(State memory state) pure internal {
+        state.fullMemory = new uint[](4 * 1024);
+    }
+
+    function run(bytes input, uint upToStep) pure returns (bytes proof) {
+        State memory s = inputToState(input);
+        Proofs memory proofs;
+        for (uint i = 0; i + 1 < upToStep; i++)
+            runStep(s, i, proofs);
+        proofs.generateProofs = true;
+        runStep(s, i + 1, proofs);
+        return proofs.proofs;
+    }
+
+    function readMemory(State memory state, uint index, Proofs memory /*proofs*/) pure internal returns (uint a, uint b, uint c, uint d) {
+        require(index < 1024);
+        uint pos = 4 * index;
+        uint[] memory fullMem = state.fullMemory;
+        assembly {
+            pos := add(pos, 0x20)
+            a := mload(add(fullMem, pos))
+            pos := add(pos, 0x20)
+            b := mload(add(fullMem, pos))
+            pos := add(pos, 0x20)
+            c := mload(add(fullMem, pos))
+            pos := add(pos, 0x20)
+            d := mload(add(fullMem, pos))
+        }
+    }
+    function writeMemory(State memory state, uint index, uint[4] values, Proofs memory /*proofs*/) pure internal {
+        require(index < 1024);
+        uint pos = 4 * index;
+        uint[] memory fullMem = state.fullMemory;
+        var (a, b, c, d) = (values[0], values[1], values[2], values[3]);
+        assembly {
+            pos := add(pos, 0x20)
+            mstore(add(fullMem, pos), a)
+            pos := add(pos, 0x20)
+            mstore(add(fullMem, pos), b)
+            pos := add(pos, 0x20)
+            mstore(add(fullMem, pos), c)
+            pos := add(pos, 0x20)
+            mstore(add(fullMem, pos), d)
+        }
+    }
+}
+
+contract ScryptVerifier is ScryptFramework, Verifier {
+    function initMemory(State memory state) pure internal {
+        state.memoryHash = bytes32(0); // @TODO correct empty memory hash
+    }
+
+
+    function unpackState(bytes value) pure internal returns (State memory s, bool err) {
         if (value.length != 32 * 5)
-            return (s, false);
+            return (s, true);
         for (uint i = 0; i < 4; i ++) {
             uint v;
             assembly { v := mload(add(add(value, 0x20), mul(i, 0x20))) }
             s.vars[i] = v;
         }
+        bytes32 memoryHash;
+        assembly { memoryHash := mload(add(add(value, 0x20), mul(4, 0x20))) }
+        s.memoryHash = memoryHash;
     }
 
-    function stateHash(State state) internal returns (bytes32) {
+    function stateHash(State memory state) pure internal returns (bytes32) {
         return sha3(state.vars, state.memoryHash);
     }
 
-    function isInitiallyValid(Session storage session) internal returns (bool) {
-        if (session.steps != 2048)
+    function isInitiallyValid(VerificationSession storage session) internal returns (bool) {
+        if (session.highStep != 2049)
             return false;
-        bytes32 emptyMemoryHash = 0; // TODO
-        var initialState = State([uint(0), uint(0), uint(0), uint(0)], emptyMemoryHash);
-        if (session.lowHash != stateHash(initialState))
+        if (session.lowHash != stateHash(inputToState(session.input)))
             return false;
         return true;
     }
 
-    function performStepVerificationSpecific(Session storage session, Transition transition) internal {
-        uint step = session.lowStep;
-        var (state, err) = unpackState(transition);
-        if (err) {
-            claimantConvicted(session.id);
-            return;
-        }
-        uint[4] vars;
-        if (step == 0) {
-            vars = KeyDeriv.pbkdf2(session.input, session.input, 128);
-            verify(transition, values, MemoryWrite(0, vars));
-        } else if (step < 1024) {
-            vars = Salsa8.round(state.vars);
-            verify(transition, vars, MemoryWrite(step, vars));
-        } else if (step < 2048) {
-            var readIndex = (c / 0x100000000000000000000000000000000000000000000000000000000) % 1024;
-            var (va, vb, vc, vd) = getMemory(transition, readIndex);
-            vars = Salsa8.round([vars[0] ^ va, vars[1] ^ vb, vars[2] ^ vc, vars[3] ^ vd]);
-            verify(transition, vars);
-        } else if (step == 2048) {
-            bytes memory val = new bytes(128);
-            val = (a, b, c, d);
-            var h = KeyDeriv.pbkdf2(val, val, 32);
-            verify(transition, State());
-            assertEqual(h, session.output);
-        } else {
-            claimantConvicted(session.id);
-        }
-    }
 }
 
 library Salsa8 {
     uint constant m0 = 0x100000000000000000000000000000000000000000000000000000000;
     uint constant m1 = 0x1000000000000000000000000000000000000000000000000;
-    uint constant m2 = 0x10000000000000000000000000000000000000000;
+    uint constant m2 = 0x010000000000000000000000000000000000000000;
     uint constant m3 = 0x100000000000000000000000000000000;
     uint constant m4 = 0x1000000000000000000000000;
     uint constant m5 = 0x10000000000000000;
     uint constant m6 = 0x100000000;
     uint constant m7 = 0x1;
     function quarter(uint32 y0, uint32 y1, uint32 y2, uint32 y3)
-        internal returns (uint32, uint32, uint32, uint32)
+        pure internal returns (uint32, uint32, uint32, uint32)
     {
         uint32 t;
         t = y0 + y3;
@@ -89,14 +173,14 @@ library Salsa8 {
         y0 = y0 ^ ((t * 2**18) | (t / 2**(32-18)));
         return (y0, y1, y2, y3);        
     }
-    function get(uint data, uint word) internal returns (uint32 x)
+    function get(uint data, uint word) pure internal returns (uint32 x)
     {
         return uint32(data / 2**(256 - word * 32 - 32));
     }
-    function put(uint x, uint word) internal returns (uint) {
+    function put(uint x, uint word) pure internal returns (uint) {
         return x * 2**(256 - word * 32 - 32);
     }
-    function rowround(uint first, uint second) internal returns (uint f, uint s)
+    function rowround(uint first, uint second) pure internal returns (uint f, uint s)
     {
         var (a,b,c,d) = quarter(uint32(first / m0), uint32(first / m1), uint32(first / m2), uint32(first / m3));
         f = (((((uint(a) * 2**32) | uint(b)) * 2 ** 32) | uint(c)) * 2**32) | uint(d);
@@ -107,7 +191,7 @@ library Salsa8 {
         (d,a,b,c) = quarter(uint32(second / m7), uint32(second / m4), uint32(second / m5), uint32(second / m6));
         s = (((((((s * 2**32) | uint(a)) * 2**32) | uint(b)) * 2 ** 32) | uint(c)) * 2**32) | uint(d);
     }
-    function columnround(uint first, uint second) internal returns (uint f, uint s)
+    function columnround(uint first, uint second) pure internal returns (uint f, uint s)
     {
         var (a,b,c,d) = quarter(uint32(first / m0), uint32(first / m4), uint32(second / m0), uint32(second / m4));
         f = (uint(a) * m0) | (uint(b) * m4);
@@ -122,7 +206,7 @@ library Salsa8 {
         f |= (uint(b) * m3) | (uint(c) * m7);
         s |= (uint(a) * m7) | (uint(d) * m3);
     }
-    function salsa20_8(uint _first, uint _second) internal returns (uint rfirst, uint rsecond) {
+    function salsa20_8(uint _first, uint _second) pure internal returns (uint rfirst, uint rsecond) {
         uint first = _first;
         uint second = _second;
         for (uint i = 0; i < 8; i += 2)
@@ -136,7 +220,7 @@ library Salsa8 {
             rsecond |= put(get(_second, i) + get(second, i), i);
         }
     }
-    function round(uint[4] values) constant returns (uint[4]) {
+    function round(uint[4] values) pure returns (uint[4]) {
         var (a, b, c, d) = (values[0], values[1], values[2], values[3]);
         (a, b) = salsa20_8(a ^ c, b ^ d);
         (c, d) = salsa20_8(a ^ c, b ^ d);
@@ -144,7 +228,7 @@ library Salsa8 {
     }
 }
 library KeyDeriv {
-    function hmacsha256(bytes key, bytes message) constant returns (bytes32) {
+    function hmacsha256(bytes key, bytes message) pure returns (bytes32) {
         bytes32 keyl;
         bytes32 keyr;
         uint i;
@@ -161,13 +245,13 @@ library KeyDeriv {
         return sha256(fivec ^ keyl, fivec ^ keyr, sha256(threesix ^ keyl, threesix ^ keyr, message));
     }
     /// PBKDF2 restricted to c=1, hash = hmacsha256 and dklen being a multiple of 32 not larger than 128
-    function pbkdf2(bytes key, bytes salt, uint dklen) constant returns (bytes32[4] r) {
-        var msg = new bytes(salt.length + 4);
+    function pbkdf2(bytes key, bytes salt, uint dklen) pure returns (uint[4] r) {
+        var message = new bytes(salt.length + 4);
         for (uint i = 0; i < salt.length; i++)
-            msg[i] = salt[i];
+            message[i] = salt[i];
         for (i = 0; i * 32 < dklen; i++) {
-            msg[msg.length - 1] = bytes1(uint8(i + 1));
-            r[i] = hmacsha256(key, msg);
+            message[message.length - 1] = bytes1(uint8(i + 1));
+            r[i] = uint(hmacsha256(key, message));
         }
     }
 }
