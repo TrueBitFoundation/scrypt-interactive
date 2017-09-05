@@ -1,7 +1,12 @@
-import {VerifierHelper} from "./verifierhelper.sol";
+pragma solidity ^0.4.0;
 
-contract Verifier is VerifierHelper {
-    uint constant responseTime = 1 hour;
+// Simple generic challenge-response computation verifier.
+//
+// @TODO:
+// * Multiple challangers (proposer should not win just because one challenger fails)
+// * Require "gas available" proof for timeout
+contract Verifier {
+    uint constant responseTime = 1 hours;
 
     struct VerificationSession {
         uint id;
@@ -13,7 +18,7 @@ contract Verifier is VerifierHelper {
         uint lastChallengerMessage;
         uint lowStep;
         bytes32 lowHash;
-        int medStep;
+        uint medStep;
         bytes32 medHash;
         uint highStep;
         bytes32 highHash;
@@ -27,7 +32,7 @@ contract Verifier is VerifierHelper {
     }
 
     function claimComputation(bytes _input, bytes _output, uint steps, bytes32 lowHash, bytes32 highHash) {
-        if (steps <= 2 || lowHash == 0 || highHash == 0) throw;
+        require(steps > 2 && lowHash != 0 && highHash != 0);
         sessions.push(VerificationSession({
             id: sessions.length,
             claimant: msg.sender,
@@ -38,12 +43,12 @@ contract Verifier is VerifierHelper {
             lastChallengerMessage: now,
             lowStep: 0,
             lowHash: lowHash,
-            medStep: lowStep,
-            medHash: lowHash,
+            medStep: 0,
+            medHash: 0,
             highStep: steps,
             highHash: highHash
         }));
-        if (!isInitiallyValid(sessions[sessions.length - 1])) throw;
+        require(isInitiallyValid(sessions[sessions.length - 1]));
         NewClaim(sessions.length - 1);
     }
     event NewClaim(uint sessionId);
@@ -52,17 +57,17 @@ contract Verifier is VerifierHelper {
     event ChallengerConvicted(uint sessionId);
     event ClaimantConvicted(uint sessionId);
 
-    modifier onlyClaimant(uint id) { if (msg.sender != sessions[id].claimant) throw; _ }
+    modifier onlyClaimant(uint id) { require(msg.sender == sessions[id].claimant); _; }
     modifier onlyChallenger(uint id) {
         var session = sessions[id];
         if (session.challenger == 0) session.challenger = msg.sender;
-        else if (msg.sender != session.challenger) throw;
-        _
+        else require(msg.sender != session.challenger);
+        _;
     }
 
     function query(uint session, uint step) onlyChallenger(session) {
         var s = sessions[session];
-        if (step <= s.lowStep || step >= s.highStep || step == s.medStep) throw;
+        require(step > s.lowStep && step < s.highStep && step != s.medStep);
         if (step < s.medStep) {
             s.highStep = s.medStep;
             s.highHash = s.medHash;
@@ -71,15 +76,17 @@ contract Verifier is VerifierHelper {
             s.lowHash = s.medHash;
         }
         s.medStep = step;
-        s.medHash = 0;
+        s.medHash = bytes32(0);
         sessions[session].lastChallengerMessage = now;
         NewQuery(session);
     }
 
     function respond(uint session, uint step, bytes32 hash) onlyClaimant(session) {
         var s = sessions[session];
-        if (step != s.medStep) throw;
+        // Require step to avoid replay problems
+        require(step == s.medStep);
         if (hash == 0) {
+            // Special "fold" signal
             challengerConvicted(session);
             return;
         }
@@ -97,14 +104,14 @@ contract Verifier is VerifierHelper {
         else if (step == s.medStep)
             lowHash = s.medHash;
         else
-            throw;
+            require(false);
         if (step + 1 == s.highStep)
             highHash = s.highHash;
         else if (step + 1 == s.medStep)
             highHash = s.medHash;
         else
-            throw;
-        if (lowHash == 0 || highHash == 0) throw;
+            require(false);
+        require(lowHash != 0 && highHash != 0);
         s.lowHash = lowHash;
         s.highHash = highHash;
         s.lowStep = step;
@@ -114,32 +121,38 @@ contract Verifier is VerifierHelper {
 
     function performStepVerification(uint session, bytes preValue, bytes postValue, bytes proofs) onlyClaimant(session) {
         var s = sessions[session];
-        if (s.lowStep + 1 != s.highStep) throw;
+        require(s.lowStep + 1 == s.highStep);
         if (sha3(preValue) != s.lowHash) claimantConvicted(session);
         if (sha3(postValue) != s.highHash) claimantConvicted(session);
         performStepVerificationSpecific(s, Transition(preValue, postValue, proofs));
     }
 
-    function performStepVerificationSpecific(Session storage session, bytes preValue, bytes postValue) internal;
-    function isInitiallyValid(Session storage session) internal returns (bool);
+    function performStepVerificationSpecific(VerificationSession storage session, Transition memory transition) internal;
+    function isInitiallyValid(VerificationSession storage session) internal returns (bool);
 
-    function timeout(uint session) {
-        var session = sessions[session];
-        if (!session.active) throw;
-        // TODO: we also have to keep a "last message" pointer
-        if (now > session.lastChallengerMessage + responseTime)
-            challengerConvicted();
-        if (now > session.lastClaimantMessage + responseTime)
-            claimantConvicted();
-        throw;
+    function timeout(uint sessionId) {
+        var session = sessions[sessionId];
+        require(session.claimant != 0);
+        if (
+            session.lastChallengerMessage > session.lastClaimantMessage &&
+            now > session.lastClaimantMessage + responseTime
+        )
+            claimantConvicted(sessionId);
+        else if (
+            session.lastClaimantMessage > session.lastChallengerMessage &&
+            now > session.lastChallengerMessage + responseTime
+        )
+            challengerConvicted(sessionId);
+        else
+            require(false);
     }
     
     function challengerConvicted(uint session) internal {
-        disable(sessions[session]);
+        disable(session);
         ChallengerConvicted(session);
     }
     function claimantConvicted(uint session) internal {
-        disable(sessions[session]);
+        disable(session);
         ClaimantConvicted(session);
     }
     function disable(uint session) internal {
