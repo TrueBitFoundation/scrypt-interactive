@@ -137,7 +137,7 @@ library Salsa8 {
             rsecond |= put(get(_second, i) + get(second, i), i);
         }
     }
-    function round(uint[4] values) pure returns (uint[4]) {
+    function round(uint[4] values) pure internal returns (uint[4]) {
         var (a, b, c, d) = (values[0], values[1], values[2], values[3]);
         (a, b) = salsa20_8(a ^ c, b ^ d);
         (c, d) = salsa20_8(a ^ c, b ^ d);
