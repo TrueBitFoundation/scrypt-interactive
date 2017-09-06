@@ -1,0 +1,20 @@
+{
+  "name": "scrypt-interactive",
+  "version": "0.1.0",
+  "description": "Interactive Scrypt computation verification",
+  "scripts": {
+    "lint": "standard",
+    "test": "tape ./test/index.js"
+  },
+  "author": "chriseth",
+  "license": "MIT",
+  "dependencies": {
+    "web3": "^1.0.0-beta.18"
+  },
+  "devDependencies": {
+    "semistandard": "^8.0.0",
+    "tape": "^4.5.1",
+    "tape-spawn": "^1.4.2",
+    "solc": "^0.4.16"
+  }
+}
