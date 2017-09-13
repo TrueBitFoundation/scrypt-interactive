@@ -56,11 +56,12 @@ int main(int argc, char *argv[])
 	std::ostringstream std_input;
 	std_input << std::cin.rdbuf();
 	std::string indata = std_input.str();
+	indata = std::string(80, 'X');
 
 	char out[32];
 	char scratchpad[SCRYPT_SCRATCHPAD_SIZE];
 
-	unsigned wantedStep = 2030;
+	unsigned wantedStep = 0;
 
 	std::vector<uint8_t> data;
 	data.resize(4 * 32 + 131072);
@@ -69,6 +70,11 @@ int main(int argc, char *argv[])
 			memcpy(data.data(), X, 4 * 32);
 			memcpy(data.data() + 4 * 32, V, 131072);
 			std::cout << "Root hash at step " << std::dec << i << ": " << toHex(merkleHash(data.begin(), data.end())) << std::endl;
+			std::cout << "Internal state: " << std::endl;
+			std::cout << "    " << toHex(std::vector<uint8_t>(data.begin() + 0x00, data.begin() + 0x20)) << std::endl;
+			std::cout << "    " << toHex(std::vector<uint8_t>(data.begin() + 0x20, data.begin() + 0x40)) << std::endl;
+			std::cout << "    " << toHex(std::vector<uint8_t>(data.begin() + 0x40, data.begin() + 0x60)) << std::endl;
+			std::cout << "    " << toHex(std::vector<uint8_t>(data.begin() + 0x60, data.begin() + 0x80)) << std::endl;
 		}
 		//std::cout << std::dec << i << std::endl;
 	});

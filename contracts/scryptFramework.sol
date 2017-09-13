@@ -49,11 +49,9 @@ contract ScryptFramework {
     // Runs a single step, modifying state
     function runStep(State memory state, uint step, Proofs memory proofs) pure internal {
         require(step < 2048);
-        if (step == 0) {
-            writeMemory(state, 0, state.vars, proofs);
-        } else if (step < 1024) {
-            state.vars = Salsa8.round(state.vars);
+        if (step < 1024) {
             writeMemory(state, step, state.vars, proofs);
+            state.vars = Salsa8.round(state.vars);
         } else {
             var readIndex = (state.vars[2] / 0x100000000000000000000000000000000000000000000000000000000) % 1024;
             var (va, vb, vc, vd) = readMemory(state, readIndex, proofs);

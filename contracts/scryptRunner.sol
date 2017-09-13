@@ -11,12 +11,14 @@ contract ScryptRunner is ScryptFramework {
     function run(bytes input, uint upToStep) pure returns (uint[4] vars, bytes proof) {
         State memory s = inputToState(input);
         Proofs memory proofs;
-        for (uint i = 0; i < upToStep; i++) {
+        for (uint i = 0; i + 1 < upToStep; i++) {
             runStep(s, i, proofs);
         }
         proofs.generateProofs = true;
-        if (upToStep < 2048) {
-            runStep(s, upToStep, proofs);
+        if (upToStep == 0) {
+            // do nothing
+        } else if (upToStep < 2048) {
+            runStep(s, upToStep - 1, proofs);
         } else {
             proofs.proofs = finalStateToOutput(s);
         }
