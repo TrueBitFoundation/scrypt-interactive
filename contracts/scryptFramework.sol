@@ -15,6 +15,7 @@ contract ScryptFramework {
     struct Proofs {
         bool generateProofs;
         bytes proofs;
+        uint readIndex;
     }
 
     function inputToState(bytes memory input) pure internal returns (State memory state)
@@ -54,7 +55,9 @@ contract ScryptFramework {
             state.vars = Salsa8.round(state.vars);
         } else {
             var readIndex = (state.vars[2] / 0x100000000000000000000000000000000000000000000000000000000) % 1024;
+            proofs.readIndex = readIndex;
             var (va, vb, vc, vd) = readMemory(state, readIndex, proofs);
+            proofs.readIndex = state.vars[0] ^ va;
             state.vars = Salsa8.round([
                 state.vars[0] ^ va,
                 state.vars[1] ^ vb,
@@ -144,6 +147,14 @@ library Salsa8 {
 }
 
 library KeyDeriv {
+    uint constant m0 = 0x100000000000000000000000000000000000000000000000000000000;
+    uint constant m1 = 0x1000000000000000000000000000000000000000000000000;
+    uint constant m2 = 0x010000000000000000000000000000000000000000;
+    uint constant m3 = 0x100000000000000000000000000000000;
+    uint constant m4 = 0x1000000000000000000000000;
+    uint constant m5 = 0x10000000000000000;
+    uint constant m6 = 0x100000000;
+    uint constant m7 = 0x1;
     function hmacsha256(bytes key, bytes message) pure internal returns (bytes32) {
         bytes32 keyl;
         bytes32 keyr;
@@ -169,5 +180,28 @@ library KeyDeriv {
             message[message.length - 1] = bytes1(uint8(i + 1));
             r[i] = uint(hmacsha256(key, message));
         }
+        // Convert little-endian to big-endian
+        r[0] = endianConvert256bit(r[0]);
+        r[1] = endianConvert256bit(r[1]);
+        r[2] = endianConvert256bit(r[2]);
+        r[3] = endianConvert256bit(r[3]);
+    }
+    function endianConvert256bit(uint x) pure internal returns (uint) {
+        return
+            endianConvert32bit(x / m0) * m0 +
+            endianConvert32bit(x / m1) * m1 +
+            endianConvert32bit(x / m2) * m2 +
+            endianConvert32bit(x / m3) * m3 +
+            endianConvert32bit(x / m4) * m4 +
+            endianConvert32bit(x / m5) * m5 +
+            endianConvert32bit(x / m6) * m6 +
+            endianConvert32bit(x / m7) * m7;
+    }
+    function endianConvert32bit(uint x) pure internal returns (uint) {
+        return
+            (x & 0xff) * 0x1000000 +
+            (x & 0xff00) * 0x100 +
+            (x & 0xff0000) / 0x100 +
+            (x & 0xff000000) / 0x1000000;
     }
 }

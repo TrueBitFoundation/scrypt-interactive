@@ -8,10 +8,11 @@ contract ScryptRunner is ScryptFramework {
         state.fullMemory = new uint[](4 * 1024);
     }
 
-    function run(bytes input, uint upToStep) pure returns (uint[4] vars, bytes proof) {
+    function run(bytes input, uint upToStep) pure returns (uint[4] vars, bytes proof, uint readIndex) {
         State memory s = inputToState(input);
         Proofs memory proofs;
         for (uint i = 0; i + 1 < upToStep; i++) {
+            // Counting for "runStep" starts at "upToStep == 1"
             runStep(s, i, proofs);
         }
         proofs.generateProofs = true;
@@ -27,6 +28,7 @@ contract ScryptRunner is ScryptFramework {
         vars[2] = s.vars[2];
         vars[3] = s.vars[3];
         proof = proofs.proofs;
+        readIndex = proofs.readIndex;
     }
 
     function readMemory(State memory state, uint index, Proofs memory /*proofs*/) pure internal returns (uint a, uint b, uint c, uint d) {

@@ -53,9 +53,9 @@ std::vector<uint8_t> merkleHash(std::vector<uint8_t>::const_iterator begin, std:
 
 int main(int argc, char *argv[])
 {
-	std::ostringstream std_input;
-	std_input << std::cin.rdbuf();
-	std::string indata = std_input.str();
+	// std::ostringstream std_input;
+	// std_input << std::cin.rdbuf();
+	std::string indata;// = std_input.str();
 	indata = std::string(80, 'X');
 
 	char out[32];
@@ -67,10 +67,14 @@ int main(int argc, char *argv[])
 	data.resize(4 * 32 + 131072);
 	scrypt_1024_1_1_256_sp_generic(indata.data(), &out[0], scratchpad, [&](unsigned i, char* X, char* V) {
 		if (true || i == wantedStep) {
+			uint32_t const* x = reinterpret_cast<uint32_t const*>(X);
 			memcpy(data.data(), X, 4 * 32);
 			memcpy(data.data() + 4 * 32, V, 131072);
 			std::cout << "Root hash at step " << std::dec << i << ": " << toHex(merkleHash(data.begin(), data.end())) << std::endl;
 			std::cout << "Internal state: " << std::endl;
+			for (int ii = 0; ii < 32; ii++)
+				std::cout << std::hex << x[ii] << " - ";
+			std::cout << std::endl;
 			std::cout << "    " << toHex(std::vector<uint8_t>(data.begin() + 0x00, data.begin() + 0x20)) << std::endl;
 			std::cout << "    " << toHex(std::vector<uint8_t>(data.begin() + 0x20, data.begin() + 0x40)) << std::endl;
 			std::cout << "    " << toHex(std::vector<uint8_t>(data.begin() + 0x40, data.begin() + 0x60)) << std::endl;

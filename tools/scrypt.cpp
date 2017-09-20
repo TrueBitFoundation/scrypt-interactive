@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <iostream>
 extern "C" {
 #include <openssl/sha.h>
 }
@@ -270,9 +271,12 @@ void scrypt_1024_1_1_256_sp_generic(const char *input, char *output, char *scrat
 		step(stepNr++, reinterpret_cast<char*>(&X[0]), reinterpret_cast<char*>(V));
 	}
 	for (i = 0; i < 1024; i++) {
+		std::cout << std::hex << (X[16] & 1023) << std::endl;
 		j = 32 * (X[16] & 1023);
+		std::cout << std::hex << V[j] << std::endl;
 		for (k = 0; k < 32; k++)
 			X[k] ^= V[j + k];
+		step(stepNr, reinterpret_cast<char*>(&X[0]), reinterpret_cast<char*>(V));
 		xor_salsa8(&X[0], &X[16]);
 		xor_salsa8(&X[16], &X[0]);
 		step(stepNr++, reinterpret_cast<char*>(&X[0]), reinterpret_cast<char*>(V));
