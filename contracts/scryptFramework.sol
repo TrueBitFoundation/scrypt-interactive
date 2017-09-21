@@ -5,6 +5,9 @@ contract ScryptFramework {
     // In generating mode, only vars and fullMemory is used, in verifying
     // mode only vars and memoryHash is used.
     struct State {
+        // We need the input as part of the state because it is required
+        // for the final step. We could move it to memory to shorten the state size.
+        bytes input;
         uint[4] vars;
         bytes32 memoryHash;
         uint[] fullMemory;
@@ -21,6 +24,7 @@ contract ScryptFramework {
 
     function inputToState(bytes memory input) pure internal returns (State memory state)
     {
+        state.input = input;
         state.vars = KeyDeriv.pbkdf2(input, input, 128);
         state.vars[0] = Salsa8.endianConvert256bit(state.vars[0]);
         state.vars[1] = Salsa8.endianConvert256bit(state.vars[1]);
@@ -36,7 +40,7 @@ contract ScryptFramework {
         state.vars[2] = Salsa8.endianConvert256bit(state.vars[2]);
         state.vars[3] = Salsa8.endianConvert256bit(state.vars[3]);
         bytes memory val = uint4ToBytes(state.vars);
-        return uint4ToBytes(KeyDeriv.pbkdf2(val, val, 32));
+        return uint4ToBytes(KeyDeriv.pbkdf2(state.input, val, 32));
     }
 
     function uint4ToBytes(uint[4] memory val) pure internal returns (bytes memory r)
