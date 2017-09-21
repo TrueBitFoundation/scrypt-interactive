@@ -96,6 +96,7 @@ async function test() {
         })
     }
     console.log("Contract deployed at " + runner.options.address)
+    var error = false
     var input = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
     for (var i of [0, 1, 1024, 1025, 2048]) {
         var result = await runner.methods.run(input, i).call({
@@ -108,12 +109,18 @@ async function test() {
                 console.log(web3.utils.numberToHex(result.vars[1]))
                 console.log(web3.utils.numberToHex(result.vars[2]))
                 console.log(web3.utils.numberToHex(result.vars[3]))
+                error = true
             }
         }
     }
     result = await runner.methods.run(input, 2049).call({from: account})
-    console.log("Proof after step 2049:")
-    console.log(result.proof)
+    if (result.proof != "0xda26bdbab79be8f5162c4ca87cc52d6f926fb21461b9fb1c88bf19180cb5c246000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000") {
+        console.log("Invalid result after step 2049: " + result.proof)
+        error = true
+    }
+    if (!error) {
+        console.log("success")
+    }
 }
 
 test()
