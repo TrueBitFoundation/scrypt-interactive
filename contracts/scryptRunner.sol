@@ -48,7 +48,7 @@ contract ScryptRunner is ScryptFramework {
             d := mload(add(fullMem, pos))
         }
     }
-    function writeMemory(State memory state, uint index, uint[4] values, Proofs memory /*proofs*/) pure internal {
+    function writeMemory(State memory state, uint index, uint[4] values, Proofs memory proofs) pure internal {
         require(index < 1024);
         uint pos = 0x20 * 4 * index;
         uint[] memory fullMem = state.fullMemory;
@@ -63,5 +63,38 @@ contract ScryptRunner is ScryptFramework {
             pos := add(pos, 0x20)
             mstore(add(fullMem, pos), d)
         }
+        if (proofs.generateProofs) {
+            proofs.proofs = generateMemoryProof(state.fullMemory, index);
+        }
+    }
+    // Generate a proof that shows that the memory root hash was updated correctly.
+    // This assumes that index is multiplied by four.
+    // Returns a list of hashes of siblings.
+    // Since we know that memory is only written in sequence, this might be
+    // optimized, but we keep it general for now.
+    function generateMemoryProof(uint[] fullMem, uint index) internal pure returns (bytes) {
+        uint access = index;
+        bytes32[] memory siblings = new bytes32[](12);
+        bytes32[] memory hashes = new bytes32[](1024);
+        for (uint i = 0; i < 1024; i++)
+            hashes[i] = keccak256(fullMem[4 * i], fullMem[4 * i + 1], fullMem[4 * i + 2], fullMem[4 * i + 3]);
+        uint numHashes = 1024;
+        for (uint step = 0; step < 12; step++) {
+            siblings[step] = hashes[access ^ 1];
+            access /= 2;
+            numHashes /= 2;
+            for (i = 0; i < numHashes; i++) {
+                hashes[i] = keccak256(hashes[2 * i], hashes[2 * i + 1]);
+            }
+        }
+        uint size = siblings.length;
+        bytes memory proof = new bytes(32 * size);
+        assembly {
+            for { let j := 0 } lt(j, size) { j := add(j, 1) } {
+                let offset := mul(0x20, add(1, j))
+                mstore(add(proof, offset), mload(add(siblings, offset)))
+            }
+        }
+        return proof;
     }
 }
