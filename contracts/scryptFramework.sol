@@ -16,10 +16,8 @@ contract ScryptFramework {
     // and used for verification in verification mode.
     struct Proofs {
         bool generateProofs;
-        bytes proofs;
-        uint readIndex;
-        uint[4] vars;
-        uint[4] read;
+        bool verificationError;
+        bytes32[] proof;
     }
 
     function inputToState(bytes memory input) pure internal returns (State memory state)
@@ -68,10 +66,7 @@ contract ScryptFramework {
             state.vars = Salsa8.round(state.vars);
         } else {
             var readIndex = (state.vars[2] / 0x100000000000000000000000000000000000000000000000000000000) % 1024;
-            proofs.readIndex = readIndex;
             var (va, vb, vc, vd) = readMemory(state, readIndex, proofs);
-            proofs.vars = state.vars;
-            proofs.read = [va, vb, vc, vd];
             state.vars = Salsa8.round([
                 state.vars[0] ^ va,
                 state.vars[1] ^ vb,
