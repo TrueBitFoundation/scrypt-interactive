@@ -83,7 +83,7 @@ var expectations = {
     ]
 }
 
-async function test() {
+async function deployIfNeeded() {
     var block = await web3.eth.getBlockNumber()
     console.log("At block " + block)
     var runner
@@ -92,13 +92,18 @@ async function test() {
     } else {
         runner = await new web3.eth.Contract(runnerABI).deploy({data: runnerCode}).send({
             from: account,
-            gas: 2000000
+            gas: 4000000
         })
     }
     console.log("Contract deployed at " + runner.options.address)
+    return runner
+}
+
+async function test() {
+    var runner = await deployIfNeeded()
     var error = false
     var input = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
-    for (var i of [0, 1, 1024, 1025, 2048]) {
+    for (var i of [0, 1, 1024, 1025, 1111, 2048]) {
         var result = await runner.methods.run(input, i).call({
             from: account
         })
@@ -123,18 +128,12 @@ async function test() {
     }
 }
 
-test()
+async function tryStuff() {
+    var runner = await deployIfNeeded()
+    var error = false
+    var input = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
+    console.log(await runner.methods.run(input, 1).call({from: account}))
+}
 
-// //var runner = new web3.eth.Contract()
-
-
-// // tape('Run', function (t) {
-// //   t.test('run', function (st) {
-// //       solc.com
-
-// //     var spt = spawn(st, './solcjs --version')
-// //     spt.stdout.match(RegExp(pkg.version + '(-[^a-zA-A0-9.+]+)?(\\+[^a-zA-Z0-9.-]+)?'))
-// //     spt.end()
-// //   })
-
-// // })
+//test()
+tryStuff();
