@@ -30,7 +30,7 @@ contract ScryptVerifier is ScryptFramework /*, Verifier*/ {
     // }
 
     // This can be called on steps that are not the first or the last step.
-    function verifyInnerStep(uint step, uint[4] preVars, bytes32 preMemory, uint[4] postVars, bytes32 postMemory, bytes32[] proof) pure public returns (bool) {
+    function verifyInnerStep(uint step, uint[4] preVars, bytes32 preMemory, uint[4] postVars, bytes32 postMemory, bytes32[] proof) pure public returns (uint8) {
         require(step > 0 && step < 2049);
         State memory state;
         state.vars = preVars;
@@ -40,14 +40,15 @@ contract ScryptVerifier is ScryptFramework /*, Verifier*/ {
 
         runStep(state, step, proofs);
 
+        uint8 res = 0;
         if (proofs.verificationError)
-            return false;
+            res += 1;
         for (uint i = 0; i < 4; i++)
             if (state.vars[i] != postVars[i])
-                return false;
+                res += 10;
         if (state.memoryHash != postMemory)
-            return false;
-        return true;
+            res += 100;
+        return res;
     }
 
     function initMemory(State memory state) pure internal {
