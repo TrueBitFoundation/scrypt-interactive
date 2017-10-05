@@ -127,7 +127,7 @@ async function deployContract(c_code, c_abi, c_addr, b_account, c_gas, bool_log)
     return contract
 }
 
-async function test() {
+async function testStepValues() {
     var runner = await deployIfNeeded()
     var error = false
     var input = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
@@ -156,6 +156,33 @@ async function test() {
     }
 }
 
+async function verifyInnerStepTest() {
+    var runner = await deployContract(runnerCode, runnerABI, contractAddr_runner, account, 4000000, true)
+    var verifier =  await deployContract(verifierCode, verifierABI, contractAddr_verifier, account, 4000000, true)
+    var anyError = false
+    var input = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
+    for (var step of [2, 8, 100, 1023, 1024, 1025, 1026, 2000]) {
+        var pre = await runner.methods.run(input, step - 1).call({from: account})
+        var post = await runner.methods.run(input, step).call({from: account})
+        var error = await verifier.methods.verifyInnerStep(step, pre.vars, pre.memoryHash, post.vars, post.memoryHash, post.proof).call({from: account})
+        if (error != 0) {
+            anyError = true
+            console.log("Verification failed for step " + step)
+            console.log(pre)
+            console.log(post)
+            console.log(error)
+        }
+    }
+    if (!anyError) {
+        console.log("success")
+    }
+}
+
+async function test() {
+    await testStepValues()
+    await verifyInnerStepTest()
+}
+
 async function tryStuff() {
     var runner =  await deployIfNeeded()
     var error = false
@@ -163,21 +190,6 @@ async function tryStuff() {
     console.log(await runner.methods.run(input, 1).call({from: account}))
 }
 
-async function verifyInnerStepTest() {
-    var runner = await deployContract(runnerCode, runnerABI, contractAddr_runner, account, 4000000, true)
-    var verifier =  await deployContract(verifierCode, verifierABI, contractAddr_verifier, account, 4000000, true)
-    var error = false
-    var input = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
-    var res7 = await runner.methods.run(input, 7).call({from: account})
-    console.log(res7)
-    var res8 = await runner.methods.run(input, 8).call({from: account})
-    console.log(res8)
-    error = await verifier.methods.verifyInnerStep(8, res7.vars, res7.memoryHash, res8.vars, res8.memoryHash, res8.proof).call({from: account})
-    console.log(error)
-    if (error == 0) console.log("verify success")
-    else console.log("verify failed")
-}
-
-//test()
+test()
 //tryStuff();
-verifyInnerStepTest()
+//verifyInnerStepTest()

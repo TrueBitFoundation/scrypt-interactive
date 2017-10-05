@@ -38,7 +38,7 @@ contract ScryptVerifier is ScryptFramework /*, Verifier*/ {
         Proofs memory proofs;
         proofs.proof = proof;
 
-        runStep(state, step, proofs);
+        runStep(state, step - 1, proofs);
 
         uint8 res = 0;
         if (proofs.verificationError)

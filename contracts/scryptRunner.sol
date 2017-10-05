@@ -26,8 +26,8 @@ contract ScryptRunner is ScryptFramework {
         return (s.vars, s.memoryHash, proofs.proof, output);
     }
 
-    // The proof for reading memory consists of a list of proof from
-    // leaf to root plus the four values read from memory.
+    // The proof for reading memory consists of the values read from memory
+    // plus a list of hashes from leaf to root.
     function readMemory(State memory state, uint index, Proofs memory proofs) pure internal returns (uint a, uint b, uint c, uint d) {
         require(index < 1024);
         uint pos = 0x20 * 4 * index;
@@ -43,19 +43,15 @@ contract ScryptRunner is ScryptFramework {
             d := mload(add(fullMem, pos))
         }
         if (proofs.generateProofs) {
-            bytes32[] memory proof;
-            (proof, state.memoryHash) = generateMemoryProof(state.fullMemory, index);
-            proofs.proof = new bytes32[](proof.length + 4);
-            for (uint i = 0; i < proof.length; i++)
-                proofs.proof[i] = proof[i];
-            proofs.proof[proof.length + 0] = bytes32(a);
-            proofs.proof[proof.length + 1] = bytes32(b);
-            proofs.proof[proof.length + 2] = bytes32(c);
-            proofs.proof[proof.length + 3] = bytes32(d);
+            (proofs.proof, state.memoryHash) = generateMemoryProof(state.fullMemory, index);
+            proofs.proof[0] = bytes32(a);
+            proofs.proof[1] = bytes32(b);
+            proofs.proof[2] = bytes32(c);
+            proofs.proof[3] = bytes32(d);
         }
     }
-    // The proof for writing to memory consists of a list of proof
-    // from leaf to root.
+    // The proof for writing to memory consists of the four old values in
+    // memory followed by a list of hashes from leaf to root.
     function writeMemory(State memory state, uint index, uint[4] values, Proofs memory proofs) pure internal {
         require(index < 1024);
         uint pos = 0x20 * 4 * index;
@@ -96,13 +92,11 @@ contract ScryptRunner is ScryptFramework {
     function generateMemoryProof(uint[] fullMem, uint index) internal pure returns (bytes32[] proof, bytes32) {
         uint access = index;
         proof = new bytes32[](14);
-        proof[0] = bytes32(fullMem[4 * i]);
-        proof[1] = bytes32(fullMem[4 * i + 1]);
-        proof[2] = bytes32(fullMem[4 * i + 2]);
-        proof[3] = bytes32(fullMem[4 * i + 3]);
+        // the first four values will later be changed to either the old value
+        // (for writes) or the read value (for reads)
         bytes32[] memory hashes = new bytes32[](1024);
         for (uint i = 0; i < 1024; i++)
-            hashes[i] = keccak256(proof[0], proof[1], proof[2], proof[3]);
+            hashes[i] = keccak256(fullMem[4 * i + 0], fullMem[4 * i + 1], fullMem[4 * i + 2], fullMem[4 * i + 3]);
         uint numHashes = 1024;
         for (uint step = 4; step < proof.length; step++) {
             proof[step] = hashes[access ^ 1];
