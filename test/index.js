@@ -50,13 +50,13 @@ then use `geth attach ipc:///tmp/ethereum_dev_mode/geth.ipc` with
 var account = personal.newAccount('')
 account
 // and copy the account to below
-personal.unlockAccount(account)
+personal.unlockAccount(account, '', 1000000)
 miner.setEtherbase(account)
 miner.start()
 */
 // Needs to be done every time: personal.unlockAccount(account)
 
-var account = "0xf112b79862eb777e7e7fa96028094ef2ac97ab36"
+var account = "0x292248f34a6e929dd4820535b41219ba81d79255"
 // Remove if not deployed yet
 var contractAddr_runner = 0//'0xfa7bE2e5aEA20CEE4384b109a91f26EdF5338a68'
 var contractAddr_verifier = 0
@@ -131,7 +131,7 @@ async function testStepValues() {
     var runner = await deployIfNeeded()
     var error = false
     var input = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
-    for (var i of [0, 1, 1024, 1025, 1111, 2048]) {
+    for (var i of [0, 1, 1024, 1025, 2048]) {
         var result = await runner.methods.run(input, i).call({
             from: account
         })
