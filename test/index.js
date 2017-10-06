@@ -86,7 +86,23 @@ account
 // and copy the account to below
 personal.unlockAccount(account, '', 1000000)
 miner.setEtherbase(account)
-miner.start()
+var mining_threads = 1
+
+function checkWork() {
+    if (eth.pendingTransactions.length > 0) {
+        if (eth.mining) return;
+        console.log("== Pending transactions! Mining...");
+        miner.start(mining_threads);
+    } else {
+        miner.stop();
+        console.log("== No transactions! Mining stopped.");
+    }
+}
+
+eth.filter("latest", function(err, block) { checkWork(); });
+eth.filter("pending", function(err, block) { checkWork(); });
+
+checkWork();
 */
 // Needs to be done every time: personal.unlockAccount(account)
 
