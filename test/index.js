@@ -52,7 +52,7 @@ account
 // and copy the account to below
 personal.unlockAccount(account, '', 1000000)
 miner.setEtherbase(account)
-miner.start(n)
+miner.start()
 */
 // Needs to be done every time: personal.unlockAccount(account)
 
