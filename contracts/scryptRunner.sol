@@ -26,14 +26,14 @@ contract ScryptRunner is ScryptFramework {
     *
       * @return the state variables, the memoryHash, the merkle proof and the output byte array
     */
-    function run(bytes input, uint upToStep) pure public returns (uint[4] vars, bytes32 memoryHash, bytes32[] proof, bytes output) {
+    function run(bytes input, uint upToStep) pure public returns (bytes32 stateHash, uint[4] vars, bytes32 memoryHash, bytes32[] proof, bytes output) {
         State memory s = inputToState(input);
         Proofs memory proofs;
         if (upToStep > 0) {
             uint internalStep = upToStep - 1;
             for (uint i = 0; i < internalStep; i++) {
                 runStep(s, i, proofs);
-            }
+            }   
             proofs.generateProofs = true;
             if (internalStep < 2048) {
                 runStep(s, internalStep, proofs);
@@ -41,7 +41,7 @@ contract ScryptRunner is ScryptFramework {
                 output = finalStateToOutput(s);
             }
         }
-        return (s.vars, s.memoryHash, proofs.proof, output);
+        return (hashState(s), s.vars, s.memoryHash, proofs.proof, output);
     }
 
     // The proof for reading memory consists of the values read from memory

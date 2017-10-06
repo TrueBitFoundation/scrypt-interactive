@@ -24,6 +24,10 @@ contract ScryptFramework {
         bytes32[] proof;
     }
 
+    function hashState(State memory state) pure internal returns (bytes32) {
+        return keccak256(state.memoryHash, state.vars, state.input);
+    }
+
     /**
       * @dev populates a State struct instance
     *
@@ -39,6 +43,8 @@ contract ScryptFramework {
         state.vars[1] = Salsa8.endianConvert256bit(state.vars[1]);
         state.vars[2] = Salsa8.endianConvert256bit(state.vars[2]);
         state.vars[3] = Salsa8.endianConvert256bit(state.vars[3]);
+        // This is the root hash of empty memory.
+        state.memoryHash = bytes32(0x93b69c64407d65fb222caeb0b7c23ca69fc00f3edb84381093ccb4fe21beab9d);
         initMemory(state);
     }
 

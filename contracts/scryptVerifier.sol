@@ -75,8 +75,6 @@ contract ScryptVerifier is ScryptFramework /*, Verifier*/ {
       * @return none
     */
     function initMemory(State memory state) pure internal {
-        // This is the root hash of empty memory.
-        state.memoryHash = bytes32(0x93b69c64407d65fb222caeb0b7c23ca69fc00f3edb84381093ccb4fe21beab9d);
     }
 
     /**
