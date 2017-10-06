@@ -44,6 +44,32 @@ contract ScryptRunner is ScryptFramework {
         return (hashState(s), s.vars, s.memoryHash, proofs.proof, output);
     }
 
+    function getState(bytes input, uint step) public pure returns (bytes _state) {
+        if (step == 0) {
+            return input;
+        }
+        State memory s = inputToState(input);
+        s.input = input;
+        Proofs memory proofs;
+        if (step == 1) {
+            return encodeState(s);
+        }
+        for (uint i = 0; i < step - 2; i++) {
+            if (i + 1 == step - 2) {
+                proofs.generateProofs = true;
+            }
+            runStep(s, i, proofs);
+        }
+        if (step < 2050) {
+            return encodeState(s);
+        }
+        return finalStateToOutput(s);
+    }
+
+    function getStateHash(bytes input, uint step) public pure returns (bytes32) {
+        return keccak256(getState(input, step));
+    }
+
     // The proof for reading memory consists of the values read from memory
     // plus a list of hashes from leaf to root.
     /**

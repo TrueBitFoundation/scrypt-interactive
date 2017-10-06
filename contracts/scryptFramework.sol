@@ -27,6 +27,23 @@ contract ScryptFramework {
     function hashState(State memory state) pure internal returns (bytes32) {
         return keccak256(state.memoryHash, state.vars, state.input);
     }
+    function encodeState(State memory state) pure internal returns (bytes r) {
+        r = new bytes(0x20 * 4 + 0x20 + input.length);
+        var vars = state.vars;
+        var memoryHash = state.memoryHash;
+        bytes memory input = state.input;
+        uint inputLen = state.input.length;
+        assembly {
+            mstore(add(r, 0x20), mload(add(vars, 0x00)))
+            mstore(add(r, 0x40), mload(add(vars, 0x20)))
+            mstore(add(r, 0x60), mload(add(vars, 0x40)))
+            mstore(add(r, 0x80), mload(add(vars, 0x60)))
+            mstore(add(r, 0xa0), memoryHash)
+            for { let i := 0 } lt(i, inputLen) { i := add(i, 0x20) } {
+                mstore(add(r, add(0xc0, i)), mload(add(input, add(0x20, i))))
+            }
+        }
+    }
 
     /**
       * @dev populates a State struct instance
