@@ -1,0 +1,60 @@
+dist: trusty
+sudo: required
+language: node_js
+node_js:
+  - "7.6"
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      before_install: 
+      - sudo add-apt-repository ppa:ethereum/ethereum -y
+      - sudo apt-get update
+      - sudo apt-get install build-essential -y
+
+install: 
+  - npm install
+  - curl -O https://storage.googleapis.com/golang/go1.7.3.linux-amd64.tar.gz
+  - sudo tar -C /usr/local -xzf go1.7.3.linux-amd64.tar.gz
+  - mkdir -p ~/go; echo "export GOPATH=$HOME/go" >> ~/.bashrc
+  - echo "export PATH=$PATH:$HOME/go/bin:/usr/local/go/bin" >> ~/.bashrc
+  - source ~/.bashrc
+  - git clone https://github.com/ethereum/go-ethereum
+  - sed -i 's/ctx, cancel = context\.WithTimeout(ctx, time\.Second\*5)/ctx, cancel = context\.WithTimeout(ctx, time\.Second\*500)/' ./go-ethereum/internal/ethapi/api.go
+  - travis_wait 40 make -C go-ethereum
+  - sudo cp ./go-ethereum/build/bin/geth /usr/local/bin/geth
+  - stty tostop
+  - sudo iptables -L
+  - sudo iptables -A INPUT -p tcp --dport 8545 -j ACCEPT
+  - sudo ufw allow 8545
+  - sudo iptables -L
+  - echo ilovescrypt > ./password.txt
+  - geth --password /home/travis/build/bloodstalker/scrypt-interactive/password.txt account new
+    #- geth --password /home/travis/build/bloodstalker/scrypt-interactive/password.txt account new
+  - cat ./password.txt
+  - geth account list
+  - ls
+  - pwd
+    #- geth --unlock 1
+  - primaccount=$(geth account list | gawk '{print $3}' | sed 's/{/"/'|sed 's/}/"/')
+  - echo $primaccount
+  - geth --verbosity 6 --dev --rpc --rpcapi admin,miner,eth,net,web3,personal --rpcaddr "localhost" --rpcport "8545" --port "30303" --datadir /tmp/ethereum_dev_mode &>/dev/null &
+  - geth --exec 'loadScript("./test/gethconfig.js")' attach http://127.0.0.1:8545
+    #- geth --verbosity 6 --exec "personal.unlockAccount(eth.accounts[0], \"ilovescrypt\", 3600)" --etherbase 0 --dev --rpc --rpcapi admin,miner,eth,net,web3,personal --rpcaddr "localhost" --rpcport "8545" --port "30303" --mine --minerthreads 2
+    #- nohup geth --unlock --dev --rpc --rpcapi admin,miner,eth,net,web3,personal --rpcaddr "localhost" --rpcport "8545" --port "30303" --mine --minerthreads 2 &>/dev/null &
+    #- nohup geth --etherbase 1 --dev --rpc --rpcapi admin,miner,eth,net,web3,personal --rpcaddr "localhost" --rpcport "8545" --port "30303" --mine --minerthreads 2 &>/dev/null &
+    #- geth --etherbase 1 --dev --rpc --rpcapi admin,miner,eth,net,web3,personal --rpcaddr "localhost" --rpcport "8545" --port "30303" --mine --minerthreads 2
+    #- nohup geth --etherbase 1 --dev --rpc --rpcapi admin,miner,eth,net,web3,personal --rpcaddr "localhost" --rpcport "8545" --port "30303" --mine --minerthreads 2 &>/dev/null &
+  - cat /$HOME/nohup.out || true
+  - cat ./go-ethereum/internal/ethapi/api.go
+  - ps -aux | grep geth
+  - pgrep geth || true
+  - sudo netstat -antp
+  - sudo netstat -antp | grep geth || true
+  - sleep 5
+
+script: 
+  - node ./test/index.js
+  - ps -aux | grep geth
+  - sudo netstat -antp | grep geth
