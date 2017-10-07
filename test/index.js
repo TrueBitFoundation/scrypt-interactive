@@ -56,11 +56,19 @@ miner.start()
 */
 // Needs to be done every time: personal.unlockAccount(account)
 
-var account = "0x292248f34a6e929dd4820535b41219ba81d79255"
 // Remove if not deployed yet
-var contractAddr_runner = 0//'0xfa7bE2e5aEA20CEE4384b109a91f26EdF5338a68'
-var contractAddr_verifier = 0
 var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'))
+var contractAddr_runner = 0
+var contractAddr_verifier = 0
+
+async function SetupGeth() {
+var account = await web3.eth.personal.newAccount('')
+console.log(account)
+await web3.eth.personal.unlockAccount(account, '', 1000000)
+await miner.setEtherbase(account)
+await web3.miner.start(2)
+//var account = "0x292248f34a6e929dd4820535b41219ba81d79255"
+}
 
 var expectations = {
     0: [
@@ -179,6 +187,7 @@ async function verifyInnerStepTest() {
 }
 
 async function test() {
+    await SetupGeth()
     await testStepValues()
     await verifyInnerStepTest()
 }

@@ -84,7 +84,7 @@ contract ScryptVerifier is ScryptFramework /*, Verifier*/ {
     *
       * @param state the State struct instance
       * @param index the offset
-      * @param proofs
+      * @param proofs the proofs
     *
       * @return 
     */
@@ -103,10 +103,10 @@ contract ScryptVerifier is ScryptFramework /*, Verifier*/ {
     /**
       * @dev 
     *
-      * @param state
-      * @param index
-      * @param values
-      * @param proofs
+      * @param state the stae struct
+      * @param index the index of fullMemory at which to write
+      * @param values the values to write
+      * @param proofs the write proofs
     *
       * @return 
     */
@@ -124,9 +124,9 @@ contract ScryptVerifier is ScryptFramework /*, Verifier*/ {
     /**
       * @dev 
     *
-      * @param state
-      * @param index
-      * @param proofs
+      * @param state the state vars
+      * @param index the index of fullMemory
+      * @param proofs the merkle proofs
     *
       * @return return whether the verification passed.
     */
@@ -147,8 +147,8 @@ contract ScryptVerifier is ScryptFramework /*, Verifier*/ {
     /**
       * @dev 
     *
-      * @param proof
-      * @param index
+      * @param proof something
+      * @param index something
     *
       * @return 
     */

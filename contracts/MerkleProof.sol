@@ -69,8 +69,6 @@ library BinaryMerkleProof {
     /**
       * @dev  a test for the functions inside this module.
     *
-      * @param none
-    *
       * @return returns a boolean value indicating whether the test was passed successfully.
     */
     function test() returns (bool) {
