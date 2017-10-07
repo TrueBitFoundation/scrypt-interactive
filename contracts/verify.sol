@@ -100,7 +100,7 @@ contract Verifier {
         bytes32 lowHash;
         bytes32 highHash;
         if (step == s.lowStep)
-            lowHash = s.lowHash;            
+            lowHash = s.lowHash;
         else if (step == s.medStep)
             lowHash = s.medHash;
         else
@@ -116,7 +116,7 @@ contract Verifier {
         s.highHash = highHash;
         s.lowStep = step;
         s.highStep = step + 1;
-        NewQuery(session);        
+        NewQuery(session);
     }
 
     function performStepVerification(uint session, bytes preValue, bytes postValue, bytes proofs) onlyClaimant(session) {

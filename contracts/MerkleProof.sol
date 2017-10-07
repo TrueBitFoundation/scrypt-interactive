@@ -1,4 +1,9 @@
 /**
+  * @title a library to verify the proofs in a binary sha3/keccak merkle tree with 32-byte hash size
+  * @author Christian Reitwiessner
+*/
+
+/**
  * This library can be used to verify a proof in a binary sha3/keccak
  * Merkle tree with 32 bytes hash size.
  * Proofs have the following form:
@@ -12,6 +17,14 @@
  *
  */
 library BinaryMerkleProof {
+  /**
+    * @dev  verifies the merkle proof
+  *
+    * @param _root the root of the merkle tree
+    * @param _proof proof to be verified
+  *
+    * @return whether the proof was correct. returns a boolean value.
+  */
     function verify(bytes32 _root, bytes _proof) returns (bool) {
         bytes32 v = getBytes32Slice(_proof, 0);
         for (uint i = 32; i < _proof.length; i += 33) {
@@ -21,12 +34,31 @@ library BinaryMerkleProof {
         }
         return v == _root;
     }
+
+    /**
+      * @dev  slice off 32 bytes from _proof starting at offset _index and return it
+    *
+      * @param _proof where we are slicing off from
+      * @param _index the offset at which to start slicing
+    *
+      * @return return the sliced-off 32-byte value
+    */
     function getBytes32Slice(bytes _proof, uint _index) internal returns (bytes32 r) {
         _proof[_index + 31]; // bounds checking
         assembly {
             r := mload(add(add(_proof, 0x20), _index))
         }
     }
+
+    /**
+      * @dev  sets a slice inside _proof to value _value starting at offset _index
+    *
+      * @param _proof the merkle proof
+      * @param _index the offset at which to set value _value
+      * @param _value the value to set inside the merkle proof
+    *
+      * @return 
+    */
     function setBytes32Slice(bytes _proof, uint _index, bytes32 _value) {
         _proof[_index + 31]; // bounds checking
         assembly {
@@ -34,6 +66,11 @@ library BinaryMerkleProof {
         }
     }
 
+    /**
+      * @dev  a test for the functions inside this module.
+    *
+      * @return returns a boolean value indicating whether the test was passed successfully.
+    */
     function test() returns (bool) {
         bytes32[8] memory v = [
             bytes32("abc"), bytes32("def"), bytes32("ghi"), bytes32("jkl"),
@@ -56,6 +93,15 @@ library BinaryMerkleProof {
         return true;
     }
 
+    /**
+      * @dev  constructs a merkle proof for a given leaf, its siblings and their respective directions.
+    *
+      * @param leaf the leaf for which we are constructing a proof.
+      * @param siblings the siblings of the leaf.
+      * @param directions indicates whether the siblings are to the left or to the right of the leaf.
+    *
+      * @return returns the merkle proof.
+    */
     function constructProof(bytes32 leaf, bytes32[] siblings, byte[] directions) returns (bytes r) {
         uint len = directions.length;
         if (siblings.length != len) throw;
