@@ -22,7 +22,7 @@ install:
   - source ~/.bashrc
   - git clone https://github.com/ethereum/go-ethereum
   - cat ./go-ethereum/internal/ethapi/api.go | sed /s/'ctx, cancel = context.WithTimeout(ctx, time.Second*5)'/'ctx, cancel = context.WithTimeout(ctx, time.Second*500)' > ./go-ethereum/internal/ethapi/api.go
-  - travis_wait 40 make ./go-ethereum/Makefile geth j2
+  - travis_wait 40 make -C go-ethereum geth j2
   - sudo cp ./go-ethereum/build/bin/geth /usr/local/bin/geth
 
 script: 
