@@ -1,0 +1,30 @@
+dist: trusty
+sudo: required
+language: node_js
+node_js:
+  - "7.3"
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      before_install: 
+      - sudo add-apt-repository ppa:ethereum/ethereum -y
+      - sudo apt-get update
+      - sudo apt-get install build-essential -y
+
+install: 
+  - npm install
+  - curl -O https://storage.googleapis.com/golang/go1.7.3.linux-amd64.tar.gz
+  - sudo tar -C /usr/local -xzf go1.7.3.linux-amd64.tar.gz
+  - mkdir -p ~/go; echo "export GOPATH=$HOME/go" >> ~/.bashrc
+  - echo "export PATH=$PATH:$HOME/go/bin:/usr/local/go/bin" >> ~/.bashrc
+  - source ~/.bashrc
+  - git clone https://github.com/ethereum/go-ethereum
+  - sed -i 's/ctx, cancel = context\.WithTimeout(ctx, time\.Second\*5)/ctx, cancel = context\.WithTimeout(ctx, time\.Second\*500)/' ./go-ethereum/internal/ethapi/api.go
+    
+  - travis_wait 40 make -C go-ethereum geth
+  - sudo cp ./go-ethereum/build/bin/geth /usr/local/bin/geth
+
+script: 
+  - node ./test/index.js
