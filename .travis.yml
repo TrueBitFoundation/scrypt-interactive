@@ -30,7 +30,7 @@ install:
   - sudo ufw allow 8545
   - sudo iptables -L
   - echo ilovescrypt > ./password.txt
-  - geth --datadir /tmp/ethereum_dev_mode --password /$TRAVIS_BUILD_DIR/scrypt-interactive/password.txt account new
+  - geth --datadir /tmp/ethereum_dev_mode --password $TRAVIS_BUILD_DIR/scrypt-interactive/password.txt account new
   - cat ./password.txt
   - geth account list
   - ls
