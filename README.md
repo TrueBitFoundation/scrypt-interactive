@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/TrueBitFoundation/scrypt-interactive.svg?branch=master)](https://travis-ci.org/TrueBitFoundation/scrypt-interactive)
+
 # Truebit Verification for Scrypt.
 
 ## Overview
