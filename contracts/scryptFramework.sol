@@ -9,11 +9,12 @@ contract ScryptFramework {
     // In generating mode, only vars and fullMemory is used, in verifying
     // mode only vars and memoryHash is used.
     struct State {
-        // We need the input as part of the state because it is required
-        // for the final step. We could move it to memory to shorten the state size.
-        bytes input;
         uint[4] vars;
         bytes32 memoryHash;
+        // We need the input as part of the state because it is required
+        // for the final step.
+        bytes32 inputHash;
+        // This is not available in verification mode.
         uint[] fullMemory;
     }
     // This is the witness data that is generated in generating mode
@@ -25,23 +26,20 @@ contract ScryptFramework {
     }
 
     function hashState(State memory state) pure internal returns (bytes32) {
-        return keccak256(state.memoryHash, state.vars, state.input);
+        return keccak256(state.memoryHash, state.vars, state.inputHash);
     }
     function encodeState(State memory state) pure internal returns (bytes r) {
-        r = new bytes(0x20 * 4 + 0x20 + input.length);
+        r = new bytes(0x20 * 4 + 0x20 + 0x20);
         var vars = state.vars;
         var memoryHash = state.memoryHash;
-        bytes memory input = state.input;
-        uint inputLen = state.input.length;
+        var inputHash = state.inputHash;
         assembly {
             mstore(add(r, 0x20), mload(add(vars, 0x00)))
             mstore(add(r, 0x40), mload(add(vars, 0x20)))
             mstore(add(r, 0x60), mload(add(vars, 0x40)))
             mstore(add(r, 0x80), mload(add(vars, 0x60)))
             mstore(add(r, 0xa0), memoryHash)
-            for { let i := 0 } lt(i, inputLen) { i := add(i, 0x20) } {
-                mstore(add(r, add(0xc0, i)), mload(add(input, add(0x20, i))))
-            }
+            mstore(add(r, 0xc0), inputHash)
         }
     }
 
@@ -54,7 +52,7 @@ contract ScryptFramework {
     */
     function inputToState(bytes memory input) pure internal returns (State memory state)
     {
-        state.input = input;
+        state.inputHash = keccak256(input);
         state.vars = KeyDeriv.pbkdf2(input, input, 128);
         state.vars[0] = Salsa8.endianConvert256bit(state.vars[0]);
         state.vars[1] = Salsa8.endianConvert256bit(state.vars[1]);
@@ -72,14 +70,28 @@ contract ScryptFramework {
     *
       * @return the output
     */
-    function finalStateToOutput(State memory state) pure internal returns (bytes memory output)
+    function finalStateToOutput(State memory state, bytes memory input) pure internal returns (bytes memory output)
     {
+        require(keccak256(input) == state.inputHash);
         state.vars[0] = Salsa8.endianConvert256bit(state.vars[0]);
         state.vars[1] = Salsa8.endianConvert256bit(state.vars[1]);
         state.vars[2] = Salsa8.endianConvert256bit(state.vars[2]);
         state.vars[3] = Salsa8.endianConvert256bit(state.vars[3]);
         bytes memory val = uint4ToBytes(state.vars);
-        return uint4ToBytes(KeyDeriv.pbkdf2(state.input, val, 32));
+        return uint4ToBytes(KeyDeriv.pbkdf2(input, val, 32));
+    }
+
+    function toBytes(bytes32[] memory b) pure internal returns (bytes memory r)
+    {
+        uint len = b.length * 0x20;
+        r = new bytes(len);
+        assembly {
+          let d := add(r, 0x20)
+          let s := add(b, 0x20)
+          for { let i := 0 } lt(i, len) { i := add(i, 0x20) } {
+            mstore(add(d, i), mload(add(s, i)))
+          }
+        }
     }
 
     /**

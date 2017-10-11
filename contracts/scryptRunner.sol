@@ -38,21 +38,20 @@ contract ScryptRunner is ScryptFramework {
             if (internalStep < 2048) {
                 runStep(s, internalStep, proofs);
             } else {
-                output = finalStateToOutput(s);
+                output = finalStateToOutput(s, input);
             }
         }
         return (hashState(s), s.vars, s.memoryHash, proofs.proof, output);
     }
 
-    function getState(bytes input, uint step) public pure returns (bytes _state) {
+    function getStateAndProof(bytes input, uint step) public pure returns (bytes _state, bytes _proof) {
         if (step == 0) {
-            return input;
+            return (input, _proof);
         }
         State memory s = inputToState(input);
-        s.input = input;
         Proofs memory proofs;
         if (step == 1) {
-            return encodeState(s);
+            return (encodeState(s), _proof);
         }
         for (uint i = 0; i < step - 2; i++) {
             if (i + 1 == step - 2) {
@@ -61,13 +60,14 @@ contract ScryptRunner is ScryptFramework {
             runStep(s, i, proofs);
         }
         if (step < 2050) {
-            return encodeState(s);
+            return (encodeState(s), toBytes(proofs.proof));
         }
-        return finalStateToOutput(s);
+        return (finalStateToOutput(s, input), input);
     }
 
     function getStateHash(bytes input, uint step) public pure returns (bytes32) {
-        return keccak256(getState(input, step));
+        var (state,) = getStateAndProof(input, step);
+        return keccak256(state);
     }
 
     // The proof for reading memory consists of the values read from memory

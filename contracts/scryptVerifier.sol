@@ -67,14 +67,7 @@ contract ScryptVerifier is ScryptFramework /*, Verifier*/ {
         return res;
     }
 
-    /**
-      * @dev add in the root hash of the empty memory to a State struct
-    *
-      * @param state the State struct instance
-    *
-      * @return none
-    */
-    function initMemory(State memory state) pure internal {
+    function initMemory(State memory) pure internal {
     }
 
     /**
