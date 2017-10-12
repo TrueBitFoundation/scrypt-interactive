@@ -22,6 +22,19 @@ function invokeCompiler(input) {
     }
 }
 
+function checkForErrors(results) {
+    var anyError = false
+    for (var e of results.errors) {
+        if (e.severity != 'warning') {
+            console.log(e.formattedMessage.red)
+            anyError = true
+        }
+    }
+    if (anyError) {
+        process.exit(1)        
+    }
+}
+
 function compile() {
     const solc = require('solc')
     function readFile(name) {
@@ -37,6 +50,7 @@ function compile() {
     }
 
     var results = JSON.parse(invokeCompiler(JSON.stringify(compilerInput_runner)))
+    checkForErrors(results)
     runnerCode = '0x' + results['contracts']['scryptRunner.sol']['ScryptRunner']['evm']['bytecode']['object']
     runnerABI = results['contracts']['scryptRunner.sol']['ScryptRunner']['abi']
     // console.log('var runnerCode = "' + runnerCode + '"')
@@ -50,6 +64,7 @@ function compile() {
         }
     }
     results = JSON.parse(invokeCompiler(JSON.stringify(compilerInput_verifier)))
+    checkForErrors(results)
     verifierCode = '0x' + results['contracts']['scryptVerifier.sol']['ScryptVerifier']['evm']['bytecode']['object']
     verifierABI = results['contracts']['scryptVerifier.sol']['ScryptVerifier']['abi']
     // console.log('var verifierCode = "' + verifierCode + '"')
@@ -184,7 +199,7 @@ async function testStepValues(account) {
     if (!error) {
         console.log("success".green)
     } else {
-      //process.exit(1)
+        process.exit(1)
     }
 }
 
