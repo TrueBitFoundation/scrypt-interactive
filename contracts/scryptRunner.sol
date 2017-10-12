@@ -19,7 +19,7 @@ contract ScryptRunner is ScryptFramework {
     }
 
     /**
-      * @dev run the verification
+      * @dev run scrypt up to a certain step - just used for testing
     *
       * @param input the input
       * @param upToStep which step to stop running at
@@ -38,26 +38,35 @@ contract ScryptRunner is ScryptFramework {
             if (internalStep < 2048) {
                 runStep(s, internalStep, proofs);
             } else {
+                require(s.inputHash == keccak256(input));
                 output = finalStateToOutput(s, input);
             }
         }
         return (hashState(s), s.vars, s.memoryHash, proofs.proof, output);
     }
 
-    function getStateAndProof(bytes input, uint step) public pure returns (bytes _state, bytes _proof) {
+    /**
+     * @dev run scrypt up to a certain step and return the state and proof.
+     *      The proof is the one required to get from the previous step to the given one.
+     */
+    function getStateAndProof(bytes input, uint step) public pure returns (bytes state, bytes proof) {
+        require(step <= 2050);
         if (step == 0) {
-            return (input, _proof);
+            return (input, proof);
         }
         State memory s = inputToState(input);
         Proofs memory proofs;
         if (step == 1) {
-            return (encodeState(s), _proof);
+            return (encodeState(s), proof);
         }
-        for (uint i = 0; i < step - 2; i++) {
-            if (i + 1 == step - 2) {
-                proofs.generateProofs = true;
+        {
+            uint maxStep = step <= 2049 ? step : 2049;
+            uint i = 2;
+            for (; i < maxStep; i++) {
+                runStep(s, i - 2, proofs);
             }
-            runStep(s, i, proofs);
+            proofs.generateProofs = true;
+            runStep(s, i - 2, proofs);
         }
         if (step < 2050) {
             return (encodeState(s), toBytes(proofs.proof));
@@ -65,7 +74,11 @@ contract ScryptRunner is ScryptFramework {
         return (finalStateToOutput(s, input), input);
     }
 
-    function getStateHash(bytes input, uint step) public pure returns (bytes32) {
+    /**
+     * @dev get the state hash of a specific step.
+     */
+    function getStateHash(bytes input, uint step) public pure returns (bytes32 stateHash) {
+        require(step <= 2050);
         var (state,) = getStateAndProof(input, step);
         return keccak256(state);
     }

@@ -25,6 +25,7 @@ contract ScryptFramework {
         bytes32[] proof;
     }
 
+    // Only used for testing.
     function hashState(State memory state) pure internal returns (bytes32) {
         return keccak256(state.memoryHash, state.vars, state.inputHash);
     }
@@ -41,6 +42,28 @@ contract ScryptFramework {
             mstore(add(r, 0xa0), memoryHash)
             mstore(add(r, 0xc0), inputHash)
         }
+    }
+    function decodeState(bytes memory encoded) pure internal returns (bool error, State memory state) {
+        if (encoded.length != 0x20 * 4 + 0x20 + 0x20) {
+            return (true, state);
+        }
+        var vars = state.vars;
+        bytes32 memoryHash;
+        bytes32 inputHash;
+        assembly {
+            mstore(add(vars, 0x00), mload(add(encoded, 0x20)))
+            mstore(add(vars, 0x20), mload(add(encoded, 0x40)))
+            mstore(add(vars, 0x40), mload(add(encoded, 0x60)))
+            mstore(add(vars, 0x60), mload(add(encoded, 0x80)))
+            memoryHash := mload(add(encoded, 0xa0))
+            inputHash := mload(add(encoded, 0xc0))
+        }
+        state.memoryHash = memoryHash;
+        state.inputHash = inputHash;
+        return (false, state);
+    }
+    function equal(bytes memory a, bytes memory b) pure returns (bool) {
+      return keccak256(a) == keccak256(b);
     }
 
     /**
@@ -59,7 +82,7 @@ contract ScryptFramework {
         state.vars[2] = Salsa8.endianConvert256bit(state.vars[2]);
         state.vars[3] = Salsa8.endianConvert256bit(state.vars[3]);
         // This is the root hash of empty memory.
-        state.memoryHash = bytes32(0x93b69c64407d65fb222caeb0b7c23ca69fc00f3edb84381093ccb4fe21beab9d);
+        state.memoryHash = bytes32(0xe82cea94884b1b895ea0742840a3b19249a723810fd1b04d8564d675b0a416f1);
         initMemory(state);
     }
 
@@ -78,7 +101,11 @@ contract ScryptFramework {
         state.vars[2] = Salsa8.endianConvert256bit(state.vars[2]);
         state.vars[3] = Salsa8.endianConvert256bit(state.vars[3]);
         bytes memory val = uint4ToBytes(state.vars);
-        return uint4ToBytes(KeyDeriv.pbkdf2(input, val, 32));
+        uint[4] memory values = KeyDeriv.pbkdf2(input, val, 32);
+        require(values[1] == 0 && values[2] == 0 && values[3] == 0);
+        output = new bytes(32);
+        uint val0 = values[0];
+        assembly { mstore(add(output, 0x20), val0) }
     }
 
     function toBytes(bytes32[] memory b) pure internal returns (bytes memory r)
@@ -91,6 +118,21 @@ contract ScryptFramework {
           for { let i := 0 } lt(i, len) { i := add(i, 0x20) } {
             mstore(add(d, i), mload(add(s, i)))
           }
+        }
+    }
+    function toArray(bytes memory b) pure internal returns (bool error, bytes32[] memory r)
+    {
+        if (b.length % 0x20 != 0) {
+            return (true, r);
+        }
+        uint len = b.length;
+        r = new bytes32[](b.length / 0x20);
+        assembly {
+            let d := add(r, 0x20)
+            let s := add(b, 0x20)
+            for { let i := 0 } lt(i, len) { i := add(i, 0x20) } {
+                mstore(add(d, i), mload(add(s, i)))
+            }
         }
     }
 
@@ -114,18 +156,19 @@ contract ScryptFramework {
         assembly { mstore(add(r, 0x80), v) }
     }
 
-    // forward declarations??
+    // Virtual functions to be implemented in either the runner/prover or the verifier.
     function initMemory(State memory state) pure internal;
     function writeMemory(State memory state, uint index, uint[4] values, Proofs memory proofs) pure internal;
     function readMemory(State memory state, uint index, Proofs memory proofs) pure internal returns (uint, uint, uint, uint);
 
     /**
-      * @dev runs a single step, modifying the state
-    *
+      * @dev runs a single step, modifying the state.
+      *      This in turn calls the virtual functions readMemory and writeMemory.
+      *
       * @param state the state structure
       * @param step which step to run
       * @param proofs the proofs structure
-    *
+      *
       * @return none
     */
     function runStep(State memory state, uint step, Proofs memory proofs) pure internal {
