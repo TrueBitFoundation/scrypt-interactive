@@ -8,6 +8,16 @@ import {ScryptFramework} from "./scryptFramework.sol";
   * @author Christian Reitwiessner
 */
 contract ScryptVerifier is ScryptFramework {
+  /**
+    * @dev verifies a step
+  *
+    * @param step the index of the step to verify
+    * @param preState the previous state's serialized State struct instance
+    * @param postState the current state's serialized State struct instance
+    * @param proof the merkle proof
+  *
+    * @return returns a boolean denoting the failure or success of the verification
+  */
     function verifyStep(uint step, bytes preState, bytes postState, bytes proof) pure returns (bool success) {
         State memory state;
         if (step == 0) {
@@ -40,13 +50,13 @@ contract ScryptVerifier is ScryptFramework {
     }
 
     /**
-      * @dev read the 
+      * @dev extracts the read result from the proof
     *
       * @param state the State struct instance
       * @param index the offset
       * @param proofs the proofs
     *
-      * @return 
+      * @return returns the read result
     */
     function readMemory(State memory state, uint index, Proofs memory proofs) pure internal returns (uint a, uint b, uint c, uint d) {
         require(index < 1024);
@@ -63,7 +73,7 @@ contract ScryptVerifier is ScryptFramework {
     /**
       * @dev 
     *
-      * @param state the stae struct
+      * @param state the state struct
       * @param index the index of fullMemory at which to write
       * @param values the values to write
       * @param proofs the write proofs

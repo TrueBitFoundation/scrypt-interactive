@@ -26,9 +26,24 @@ contract ScryptFramework {
     }
 
     // Only used for testing.
+    /**
+      * @dev hashes a state struct instance
+    *
+      * @param state the state struct instance to hash
+    *
+      * @return returns the hash
+    */
     function hashState(State memory state) pure internal returns (bytes32) {
         return keccak256(state.memoryHash, state.vars, state.inputHash);
     }
+
+    /**
+      * @dev serializes a State struct instance
+    *
+      * @param state the State struct instance to be serialized
+    *
+      * @return returns the serialized Struct instance
+    */
     function encodeState(State memory state) pure internal returns (bytes r) {
         r = new bytes(0x20 * 4 + 0x20 + 0x20);
         var vars = state.vars;
@@ -43,6 +58,14 @@ contract ScryptFramework {
             mstore(add(r, 0xc0), inputHash)
         }
     }
+
+    /**
+      * @dev de-serializes a State struct instance
+    *
+      * @param encoded the serialized State struct instance
+    *
+      * @return returns false if the input size is wrong and a State struct instance
+    */
     function decodeState(bytes memory encoded) pure internal returns (bool error, State memory state) {
         if (encoded.length != 0x20 * 4 + 0x20 + 0x20) {
             return (true, state);
@@ -62,6 +85,15 @@ contract ScryptFramework {
         state.inputHash = inputHash;
         return (false, state);
     }
+
+    /**
+      * @dev checks for equality of a and b's hash
+    *
+      * @param a the first equality operand
+      * @param b the second equality operand
+    *
+      * @return return true or false
+    */
     function equal(bytes memory a, bytes memory b) pure returns (bool) {
       return keccak256(a) == keccak256(b);
     }
@@ -108,6 +140,13 @@ contract ScryptFramework {
         assembly { mstore(add(output, 0x20), val0) }
     }
 
+    /**
+      * @dev casts a bytes32 array to a bytes array
+    *
+      * @param b the input
+    *
+      * @return returns the bytes array
+    */
     function toBytes(bytes32[] memory b) pure internal returns (bytes memory r)
     {
         uint len = b.length * 0x20;
@@ -120,6 +159,14 @@ contract ScryptFramework {
           }
         }
     }
+
+    /**
+      * @dev casts a bytes array into a bytes32 array
+    *
+      * @param b the input bytes array
+    *
+      * @return returns whether the input length module 0x20 is 0 and the bytes32 array
+    */
     function toArray(bytes memory b) pure internal returns (bool error, bytes32[] memory r)
     {
         if (b.length % 0x20 != 0) {

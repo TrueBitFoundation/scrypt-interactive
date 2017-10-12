@@ -212,7 +212,7 @@ async function testStepValues(runner, verifier, account) {
         })
         for (var j = 0; j < 4; j++) {
             if (expectations[i][j] != web3.utils.numberToHex(result.vars[j])) {
-                console.log("Invalid internal state at step " + i)
+                console.log(("Invalid internal state at step " + i).red)
                 console.log(web3.utils.numberToHex(result.vars[0]))
                 console.log(web3.utils.numberToHex(result.vars[1]))
                 console.log(web3.utils.numberToHex(result.vars[2]))
@@ -251,7 +251,7 @@ async function testRandomManipulatedProverVerifierCombination(prover, verifier, 
 {
     var input = randomHexString()
     var step = chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048, 2049])
-    console.log("Random manipulation test on step " + step)
+    console.log(("Random manipulation test on step " + step).cyan)
     var preState = (await prover.methods.getStateAndProof(input, step).call({from: account})).state;
     var postData = (await prover.methods.getStateAndProof(input, step + 1).call({from: account}))
     var postState = postData.state;
@@ -270,7 +270,7 @@ async function testRandomManipulatedProverVerifierCombination(prover, verifier, 
         proof = flipRandomNibble(proof);
     }
     if ((await verifier.methods.verifyStep(step, preState, postState, proof).call({from: account})) !== false) {
-        console.log("Verification of manipulated data succeeded:".red)
+        console.log("Verification of manipulated data succeeded:".green)
         console.log("input: " + input)
         console.log("step: " + step)
         console.log("Manipulated part: " + ['pre state', 'post state', 'proof'][which])
@@ -290,7 +290,7 @@ async function test(_account) {
     await testStepValues(runner, verifier, account)
     var input = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
     await testProverVerifierCombination(runner, verifier, account, input)
-    console.log("Trying random input")
+    console.log("Trying random input".green)
     for (var i = 0; i < 10; i++) {
         await testProverVerifierCombination(runner, verifier, account, randomHexString())
     }
