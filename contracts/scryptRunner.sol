@@ -19,29 +19,68 @@ contract ScryptRunner is ScryptFramework {
     }
 
     /**
-      * @dev run the verification
+      * @dev run scrypt up to a certain step - just used for testing
     *
       * @param input the input
       * @param upToStep which step to stop running at
     *
       * @return the state variables, the memoryHash, the merkle proof and the output byte array
     */
-    function run(bytes input, uint upToStep) pure public returns (uint[4] vars, bytes32 memoryHash, bytes32[] proof, bytes output) {
+    function run(bytes input, uint upToStep) pure public returns (bytes32 stateHash, uint[4] vars, bytes32 memoryHash, bytes32[] proof, bytes output) {
         State memory s = inputToState(input);
         Proofs memory proofs;
         if (upToStep > 0) {
             uint internalStep = upToStep - 1;
             for (uint i = 0; i < internalStep; i++) {
                 runStep(s, i, proofs);
-            }
+            }   
             proofs.generateProofs = true;
             if (internalStep < 2048) {
                 runStep(s, internalStep, proofs);
             } else {
-                output = finalStateToOutput(s);
+                require(s.inputHash == keccak256(input));
+                output = finalStateToOutput(s, input);
             }
         }
-        return (s.vars, s.memoryHash, proofs.proof, output);
+        return (hashState(s), s.vars, s.memoryHash, proofs.proof, output);
+    }
+
+    /**
+     * @dev run scrypt up to a certain step and return the state and proof.
+     *      The proof is the one required to get from the previous step to the given one.
+     */
+    function getStateAndProof(bytes input, uint step) public pure returns (bytes state, bytes proof) {
+        require(step <= 2050);
+        if (step == 0) {
+            return (input, proof);
+        }
+        State memory s = inputToState(input);
+        Proofs memory proofs;
+        if (step == 1) {
+            return (encodeState(s), proof);
+        }
+        {
+            uint maxStep = step <= 2049 ? step : 2049;
+            uint i = 2;
+            for (; i < maxStep; i++) {
+                runStep(s, i - 2, proofs);
+            }
+            proofs.generateProofs = true;
+            runStep(s, i - 2, proofs);
+        }
+        if (step < 2050) {
+            return (encodeState(s), toBytes(proofs.proof));
+        }
+        return (finalStateToOutput(s, input), input);
+    }
+
+    /**
+     * @dev get the state hash of a specific step.
+     */
+    function getStateHash(bytes input, uint step) public pure returns (bytes32 stateHash) {
+        require(step <= 2050);
+        var (state,) = getStateAndProof(input, step);
+        return keccak256(state);
     }
 
     // The proof for reading memory consists of the values read from memory
