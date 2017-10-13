@@ -7,7 +7,7 @@ const color = require('colors')
 const child_process = require('child_process')
 
 // Use the local (non-js) compiler or not.
-const useLocalSolc = true
+const useLocalSolc = false
 if (useLocalSolc) {
   console.log("using local solc".cyan)
 } else {
