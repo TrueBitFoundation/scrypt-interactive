@@ -4,20 +4,20 @@ import {ScryptFramework} from "./scryptFramework.sol";
 //import {Verifier} from "./verify.sol";
 
 /**
-  * @title
-  * @author Christian Reitwiessner
+* @title
+* @author Christian Reitwiessner
 */
 contract ScryptVerifier is ScryptFramework {
-  /**
+    /**
     * @dev verifies a step
-  *
+    *
     * @param step the index of the step to verify
     * @param preState the previous state's serialized State struct instance
-    * @param postState the current state's serialized State struct instance
+    * @param postState the next step's state's serialized State struct instance
     * @param proof the merkle proof
-  *
-    * @return returns a boolean denoting the failure or success of the verification
-  */
+    *
+    * @return returns true on success
+    */
     function verifyStep(uint step, bytes preState, bytes postState, bytes proof) pure returns (bool success) {
         State memory state;
         if (step == 0) {
@@ -50,13 +50,13 @@ contract ScryptVerifier is ScryptFramework {
     }
 
     /**
-      * @dev extracts the read result from the proof
+    * @dev extracts the read result from the proof and verifies the proof against the memory root hash
     *
-      * @param state the State struct instance
-      * @param index the offset
-      * @param proofs the proofs
+    * @param state the State struct instance
+    * @param index the offset
+    * @param proofs the proofs
     *
-      * @return returns the read result
+    * @return returns the read result
     */
     function readMemory(State memory state, uint index, Proofs memory proofs) pure internal returns (uint a, uint b, uint c, uint d) {
         require(index < 1024);
@@ -71,14 +71,14 @@ contract ScryptVerifier is ScryptFramework {
     }
 
     /**
-      * @dev 
+    * @dev extract the write result from the proof and verify the proof against the memory root hash
     *
-      * @param state the state struct
-      * @param index the index of fullMemory at which to write
-      * @param values the values to write
-      * @param proofs the write proofs
+    * @param state the state struct
+    * @param index the index of fullMemory at which to write
+    * @param values the values to write
+    * @param proofs the write proofs
     *
-      * @return 
+    * @return 
     */
     function writeMemory(State memory state, uint index, uint[4] values, Proofs memory proofs) pure internal {
         preCheckProof(state, index, proofs);
@@ -93,13 +93,13 @@ contract ScryptVerifier is ScryptFramework {
     }
 
     /**
-      * @dev 
+    * @dev 
     *
-      * @param state the state vars
-      * @param index the index of fullMemory
-      * @param proofs the merkle proofs
+    * @param state the state vars
+    * @param index the index of fullMemory
+    * @param proofs the merkle proofs
     *
-      * @return return whether the verification passed.
+    * @return return whether the verification passed.
     */
     function preCheckProof(State memory state, uint index, Proofs memory proofs) pure internal returns (bool) {
         require(index < 1024);
@@ -116,12 +116,12 @@ contract ScryptVerifier is ScryptFramework {
     }
 
     /**
-      * @dev 
+    * @dev 
     *
-      * @param proof something
-      * @param index something
+    * @param proof something
+    * @param index something
     *
-      * @return 
+    * @return 
     */
     function executeProof(bytes32[] proof, uint index) pure internal returns (bytes32) {
         bytes32 h = keccak256(proof[0], proof[1], proof[2], proof[3]);

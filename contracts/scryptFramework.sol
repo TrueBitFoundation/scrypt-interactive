@@ -1,8 +1,8 @@
 pragma solidity ^0.4.0;
 
 /**
-  * @title
-  * @author Christian Reitwiessner
+* @title
+* @author Christian Reitwiessner
 */
 contract ScryptFramework {
     // The state object, can be used in both generating and verifying mode.
@@ -27,22 +27,22 @@ contract ScryptFramework {
 
     // Only used for testing.
     /**
-      * @dev hashes a state struct instance
+    * @dev hashes a state struct instance
     *
-      * @param state the state struct instance to hash
+    * @param state the state struct instance to hash
     *
-      * @return returns the hash
+    * @return returns the hash
     */
     function hashState(State memory state) pure internal returns (bytes32) {
         return keccak256(state.memoryHash, state.vars, state.inputHash);
     }
 
     /**
-      * @dev serializes a State struct instance
+    * @dev serializes a State struct instance
     *
-      * @param state the State struct instance to be serialized
+    * @param state the State struct instance to be serialized
     *
-      * @return returns the serialized Struct instance
+    * @return returns the serialized Struct instance
     */
     function encodeState(State memory state) pure internal returns (bytes r) {
         r = new bytes(0x20 * 4 + 0x20 + 0x20);
@@ -60,11 +60,11 @@ contract ScryptFramework {
     }
 
     /**
-      * @dev de-serializes a State struct instance
+    * @dev de-serializes a State struct instance
     *
-      * @param encoded the serialized State struct instance
+    * @param encoded the serialized State struct instance
     *
-      * @return returns false if the input size is wrong and a State struct instance
+    * @return returns false if the input size is wrong and a State struct instance
     */
     function decodeState(bytes memory encoded) pure internal returns (bool error, State memory state) {
         if (encoded.length != 0x20 * 4 + 0x20 + 0x20) {
@@ -87,23 +87,23 @@ contract ScryptFramework {
     }
 
     /**
-      * @dev checks for equality of a and b's hash
+    * @dev checks for equality of a and b's hash
     *
-      * @param a the first equality operand
-      * @param b the second equality operand
+    * @param a the first equality operand
+    * @param b the second equality operand
     *
-      * @return return true or false
+    * @return return true or false
     */
     function equal(bytes memory a, bytes memory b) pure returns (bool) {
       return keccak256(a) == keccak256(b);
     }
 
     /**
-      * @dev populates a State struct instance
+    * @dev populates a State struct instance
     *
-      * @param input the input that is going to be put inside the State struct instance
+    * @param input the input that is going to be put inside the State struct instance
     *
-      * @return  returns a State struct instance
+    * @return  returns a State struct instance
     */
     function inputToState(bytes memory input) pure internal returns (State memory state)
     {
@@ -119,11 +119,11 @@ contract ScryptFramework {
     }
 
     /**
-      * @dev change the state to the output format
+    * @dev change the state to the output format
     *
-      * @param state the final state
+    * @param state the final state
     *
-      * @return the output
+    * @return the output
     */
     function finalStateToOutput(State memory state, bytes memory input) pure internal returns (bytes memory output)
     {
@@ -141,11 +141,11 @@ contract ScryptFramework {
     }
 
     /**
-      * @dev casts a bytes32 array to a bytes array
+    * @dev casts a bytes32 array to a bytes array
     *
-      * @param b the input
+    * @param b the input
     *
-      * @return returns the bytes array
+    * @return returns the bytes array
     */
     function toBytes(bytes32[] memory b) pure internal returns (bytes memory r)
     {
@@ -161,11 +161,11 @@ contract ScryptFramework {
     }
 
     /**
-      * @dev casts a bytes array into a bytes32 array
+    * @dev casts a bytes array into a bytes32 array
     *
-      * @param b the input bytes array
+    * @param b the input bytes array
     *
-      * @return returns whether the input length module 0x20 is 0 and the bytes32 array
+    * @return returns whether the input length module 0x20 is 0 and the bytes32 array
     */
     function toArray(bytes memory b) pure internal returns (bool error, bytes32[] memory r)
     {
@@ -184,11 +184,11 @@ contract ScryptFramework {
     }
 
     /**
-      * @dev convert a 4-member array into a byte stream
+    * @dev convert a 4-member array into a byte stream
     *
-      * @param val the input array that has 4 members
+    * @param val the input array that has 4 members
     *
-      * @return the byte stream
+    * @return the byte stream
     */
     function uint4ToBytes(uint[4] memory val) pure internal returns (bytes memory r)
     {
@@ -209,14 +209,14 @@ contract ScryptFramework {
     function readMemory(State memory state, uint index, Proofs memory proofs) pure internal returns (uint, uint, uint, uint);
 
     /**
-      * @dev runs a single step, modifying the state.
-      *      This in turn calls the virtual functions readMemory and writeMemory.
-      *
-      * @param state the state structure
-      * @param step which step to run
-      * @param proofs the proofs structure
-      *
-      * @return none
+    * @dev runs a single step, modifying the state.
+    *      This in turn calls the virtual functions readMemory and writeMemory.
+    *
+    * @param state the state structure
+    * @param step which step to run
+    * @param proofs the proofs structure
+    *
+    * @return none
     */
     function runStep(State memory state, uint step, Proofs memory proofs) pure internal {
         require(step < 2048);
@@ -247,14 +247,14 @@ library Salsa8 {
     uint constant m7 = 0x1;
 
     /**
-      * @dev calculates a quarter of a slasa round on a row/column of the matrix
+    * @dev calculates a quarter of a slasa round on a row/column of the matrix
     *
-      * @param y0 the first element
-      * @param y1 the second element
-      * @param y2 the third element
-      * @param y3 the fourth element
+    * @param y0 the first element
+    * @param y1 the second element
+    * @param y2 the third element
+    * @param y3 the fourth element
     *
-      * @return the updated elements after a quarter of a salsa round on a row/column of the matrix
+    * @return the updated elements after a quarter of a salsa round on a row/column of the matrix
     */
     function quarter(uint32 y0, uint32 y1, uint32 y2, uint32 y3)
         pure internal returns (uint32, uint32, uint32, uint32)
@@ -272,12 +272,12 @@ library Salsa8 {
     }
 
     /**
-      * @dev extracts a 32-bit word from the uint256 word.
+    * @dev extracts a 32-bit word from the uint256 word.
     *
-      * @param data the uint256 word from where we would like to extract a 32-bit word.
-      * @param word which 32-bit word to extract, 0 denotes the most signifacant 32-bit word.
+    * @param data the uint256 word from where we would like to extract a 32-bit word.
+    * @param word which 32-bit word to extract, 0 denotes the most signifacant 32-bit word.
     *
-      * @return return the 32-bit extracted word
+    * @return return the 32-bit extracted word
     */
     function get(uint data, uint word) pure internal returns (uint32 x)
     {
@@ -285,24 +285,24 @@ library Salsa8 {
     }
 
     /**
-      * @dev shifts a 32-bit value inside a uint256 for a set amount of 32-bit words to the left
+    * @dev shifts a 32-bit value inside a uint256 for a set amount of 32-bit words to the left
     *
-      * @param x the 32-bit value to shift.
-      * @param word how many 32-bit words to shift x to the lefy by.
+    * @param x the 32-bit value to shift.
+    * @param word how many 32-bit words to shift x to the lefy by.
     *
-      * @return returns a uint256 value containing x shifted to the left by word*32.
+    * @return returns a uint256 value containing x shifted to the left by word*32.
     */
     function put(uint x, uint word) pure internal returns (uint) {
         return x * 2**(256 - word * 32 - 32);
     }
 
     /**
-      * @dev calculates a slasa transposed rounds by doing the round on the rows.
+    * @dev calculates a slasa transposed rounds by doing the round on the rows.
     *
-      * @param first a uint256 value containing the first half of the salsa matrix i.e. the first 8 elements.
-      * @param second a uint256  value containing the second half of the salsa matrix i.e. the second 8 elements.
+    * @param first a uint256 value containing the first half of the salsa matrix i.e. the first 8 elements.
+    * @param second a uint256  value containing the second half of the salsa matrix i.e. the second 8 elements.
     *
-      * @return returns the updated first and second half of the salsa matrix.
+    * @return returns the updated first and second half of the salsa matrix.
     */
     function rowround(uint first, uint second) pure internal returns (uint f, uint s)
     {
@@ -317,12 +317,12 @@ library Salsa8 {
     }
 
     /**
-      * @dev calculates a salsa column round.
+    * @dev calculates a salsa column round.
     *
-      * @param first a uint256 value containing the first half of the salsa matrix.
-      * @param second a uint256 value containing the second half of the salsa matrix.
+    * @param first a uint256 value containing the first half of the salsa matrix.
+    * @param second a uint256 value containing the second half of the salsa matrix.
     *
-      * @return 
+    * @return 
     */
     function columnround(uint first, uint second) pure internal returns (uint f, uint s)
     {
@@ -341,12 +341,12 @@ library Salsa8 {
     }
 
     /**
-      * @dev run salsa20_8 on the input matrix
+    * @dev run salsa20_8 on the input matrix
     *
-      * @param _first the first half of the input matrix to salsa.
-      * @param _second the sesond half of the input matrix to salsa.
+    * @param _first the first half of the input matrix to salsa.
+    * @param _second the sesond half of the input matrix to salsa.
     *
-      * @return returns the result matrix in the form of two uint256 values.
+    * @return returns the result matrix in the form of two uint256 values.
     */
     function salsa20_8(uint _first, uint _second) pure internal returns (uint rfirst, uint rsecond) {
         uint first = _first;
@@ -364,11 +364,11 @@ library Salsa8 {
     }
 
     /**
-      * @dev flips the endianness of a 256-bit value
+    * @dev flips the endianness of a 256-bit value
     *
-      * @param x the input
+    * @param x the input
     *
-      * @return the flipped value
+    * @return the flipped value
     */
     function endianConvert256bit(uint x) pure internal returns (uint) {
         return
@@ -383,11 +383,11 @@ library Salsa8 {
     }
 
     /**
-      * @dev flips endianness for a 32-bit input
+    * @dev flips endianness for a 32-bit input
     *
-      * @param x the 32-bit value to have its endianness flipped
+    * @param x the 32-bit value to have its endianness flipped
     *
-      * @return the flipped value
+    * @return the flipped value
     */
     function endianConvert32bit(uint x) pure internal returns (uint) {
         return
@@ -398,11 +398,11 @@ library Salsa8 {
     }
 
     /**
-      * @dev runs Salsa8 on input values
+    * @dev runs Salsa8 on input values
     *
-      * @param values the input values for Salsa8
+    * @param values the input values for Salsa8
     *
-      * @return returns the result of running Salsa8 on the input values
+    * @return returns the result of running Salsa8 on the input values
     */
     function round(uint[4] values) pure internal returns (uint[4]) {
         var (a, b, c, d) = (values[0], values[1], values[2], values[3]);
@@ -414,12 +414,12 @@ library Salsa8 {
 
 library KeyDeriv {
   /**
-    * @dev hmacsha256 
+  * @dev hmacsha256 
   *
-    * @param key the key
-    * @param message the message to hash
+  * @param key the key
+  * @param message the message to hash
   *
-    * @return the hash result
+  * @return the hash result
   */
     function hmacsha256(bytes key, bytes message) pure internal returns (bytes32) {
         bytes32 keyl;
@@ -440,13 +440,13 @@ library KeyDeriv {
 
     /// PBKDF2 restricted to c=1, hash = hmacsha256 and dklen being a multiple of 32 not larger than 128
     /**
-      * @dev pbkdf2
+    * @dev pbkdf2
     *
-      * @param key the password
-      * @param salt cryptographic salt
-      * @param dklen desired length of the key
+    * @param key the password
+    * @param salt cryptographic salt
+    * @param dklen desired length of the key
     *
-      * @return returns the generated key
+    * @return returns the generated key
     */
     function pbkdf2(bytes key, bytes salt, uint dklen) pure internal returns (uint[4] r) {
         var message = new bytes(salt.length + 4);

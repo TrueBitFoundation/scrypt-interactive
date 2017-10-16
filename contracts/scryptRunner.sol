@@ -3,28 +3,28 @@ pragma solidity ^0.4.0;
 import {ScryptFramework} from "./scryptFramework.sol";
  
 /**
-  * @title 
-  * @author Christian Reitwiessner
+* @title 
+* @author Christian Reitwiessner
 */
 contract ScryptRunner is ScryptFramework {
-  /**
+    /**
     * @dev reserve 4096 bytes for the fullMemory member of the State struct
-  *
+    *
     * @param state the State struct instance
-  *
+    *
     * @return none
-  */
+    */
     function initMemory(State memory state) pure internal {
         state.fullMemory = new uint[](4 * 1024);
     }
 
     /**
-      * @dev run scrypt up to a certain step - just used for testing
+    * @dev run scrypt up to a certain step - just used for testing
     *
-      * @param input the input
-      * @param upToStep which step to stop running at
+    * @param input the input
+    * @param upToStep which step to stop running at
     *
-      * @return the state variables, the memoryHash, the merkle proof and the output byte array
+    * @return the state variables, the memoryHash, the merkle proof and the output byte array
     */
     function run(bytes input, uint upToStep) pure public returns (bytes32 stateHash, uint[4] vars, bytes32 memoryHash, bytes32[] proof, bytes output) {
         State memory s = inputToState(input);
@@ -46,9 +46,13 @@ contract ScryptRunner is ScryptFramework {
     }
 
     /**
-     * @dev run scrypt up to a certain step and return the state and proof.
-     *      The proof is the one required to get from the previous step to the given one.
-     */
+    * @dev run scrypt up to a certain step and return the state and proof,
+    *      The proof being the one required to get from the previous step to the given one.
+    * @param input 
+    * @param step
+    *
+    * @return 
+    */
     function getStateAndProof(bytes input, uint step) public pure returns (bytes state, bytes proof) {
         require(step <= 2050);
         if (step == 0) {
@@ -75,8 +79,8 @@ contract ScryptRunner is ScryptFramework {
     }
 
     /**
-     * @dev get the state hash of a specific step.
-     */
+    * @dev get the state hash of a specific step.
+    */
     function getStateHash(bytes input, uint step) public pure returns (bytes32 stateHash) {
         require(step <= 2050);
         var (state,) = getStateAndProof(input, step);
@@ -86,13 +90,13 @@ contract ScryptRunner is ScryptFramework {
     // The proof for reading memory consists of the values read from memory
     // plus a list of hashes from leaf to root.
     /**
-      * @dev read memory and update proofs
+    * @dev read memory and update proofs
     *
-      * @param state the State struct instance
-      * @param index the index at which to read from fullMemory
-      * @param proofs the merkle proofs for the read
+    * @param state the State struct instance
+    * @param index the index at which to read from fullMemory
+    * @param proofs the merkle proofs for the read
     *
-      * @return returns the values read from fullMem
+    * @return returns the values read from fullMem
     */
     function readMemory(State memory state, uint index, Proofs memory proofs) pure internal returns (uint a, uint b, uint c, uint d) {
         require(index < 1024);
@@ -120,14 +124,14 @@ contract ScryptRunner is ScryptFramework {
     // The proof for writing to memory consists of the four old values in
     // memory followed by a list of hashes from leaf to root.
     /**
-      * @dev write to memory
+    * @dev write to memory
     *
-      * @param state the State struct
-      * @param index the index at which the write is perfomed
-      * @param values the values that are going to be written in fullMemory
-      * @param proofs the proofs to be updated
+    * @param state the State struct
+    * @param index the index at which the write is perfomed
+    * @param values the values that are going to be written in fullMemory
+    * @param proofs the proofs to be updated
     *
-      * @return none
+    * @return none
     */
     function writeMemory(State memory state, uint index, uint[4] values, Proofs memory proofs) pure internal {
         require(index < 1024);
@@ -168,12 +172,12 @@ contract ScryptRunner is ScryptFramework {
     // Since we know that memory is only written in sequence, this might be
     // optimized, but we keep it general for now.
     /**
-      * @dev generate proof that shows the memory root has been updated correctly
+    * @dev generate proof that shows the memory root has been updated correctly
     *
-      * @param fullMem full memory
-      * @param index the index of the value to be retunred
+    * @param fullMem full memory
+    * @param index the index of the value to be retunred
     *
-      * @return the merkle proof and the value stored at index
+    * @return the merkle proof and the value stored at index
     */
     function generateMemoryProof(uint[] fullMem, uint index) internal pure returns (bytes32[] proof, bytes32) {
         uint access = index;
