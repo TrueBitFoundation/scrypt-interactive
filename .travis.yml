@@ -48,4 +48,4 @@ install:
   - sleep 5
 
 script: 
-  - node ./test/index.js
+  - travis_wait 40 node ./test/index.js

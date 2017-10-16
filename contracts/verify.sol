@@ -5,6 +5,10 @@ pragma solidity ^0.4.0;
 // @TODO:
 // * Multiple challangers (proposer should not win just because one challenger fails)
 // * Require "gas available" proof for timeout
+/**
+  * @title
+  * @author Christian Reitwiessner
+*/
 contract Verifier {
     uint constant responseTime = 1 hours;
 
