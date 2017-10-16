@@ -48,10 +48,6 @@ contract ScryptRunner is ScryptFramework {
     /**
     * @dev run scrypt up to a certain step and return the state and proof,
     *      The proof being the one required to get from the previous step to the given one.
-    * @param input 
-    * @param step
-    *
-    * @return 
     */
     function getStateAndProof(bytes input, uint step) public pure returns (bytes state, bytes proof) {
         require(step <= 2050);
