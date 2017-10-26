@@ -283,6 +283,11 @@ async function testRandomManipulatedProverVerifierCombination(prover, verifier, 
     }
 }
 
+async function testBinarySearch(runner, verifier, account, input) {
+    console.log(("Testing binary search on " + input + "...").green)
+    // TODO
+}
+
 async function test(_account) {
     var account = await setupAccount(_account)
     var runner = await deployContract(runnerCode, runnerABI, contractAddr_runner, account, 4000000, true)
@@ -297,6 +302,7 @@ async function test(_account) {
     for (var i = 0; i < 50; i++) {
         await testRandomManipulatedProverVerifierCombination(runner, verifier, account)
     }
+    await testBinarySearch(runner, verifier, account, randomHexString())
 }
 
 var account = null
