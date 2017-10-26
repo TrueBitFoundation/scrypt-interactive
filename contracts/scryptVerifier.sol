@@ -1,13 +1,20 @@
 pragma solidity ^0.4.0;
 
 import {ScryptFramework} from "./scryptFramework.sol";
-//import {Verifier} from "./verify.sol";
+import {Verifier} from "./verify.sol";
 
 /**
 * @title
 * @author Christian Reitwiessner
 */
-contract ScryptVerifier is ScryptFramework {
+contract ScryptVerifier is ScryptFramework, Verifier {
+    function isInitiallyValid(VerificationSession storage session) internal returns (bool) {
+        return session.output.length == 32 && session.highStep == 2050;
+    }
+    function performStepVerificationSpecific(VerificationSession storage, uint step, bytes preState, bytes postState, bytes proof) internal returns (bool) {
+        return verifyStep(step, preState, postState, proof);
+    }
+
     /**
     * @dev verifies a step
     *
@@ -18,7 +25,7 @@ contract ScryptVerifier is ScryptFramework {
     *
     * @return returns true on success
     */
-    function verifyStep(uint step, bytes preState, bytes postState, bytes proof) pure returns (bool success) {
+    function verifyStep(uint step, bytes preState, bytes postState, bytes proof) pure public returns (bool success) {
         State memory state;
         if (step == 0) {
             // pre-state is input

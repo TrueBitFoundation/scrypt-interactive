@@ -29,14 +29,8 @@ contract Verifier {
     }
     VerificationSession[] public sessions;
 
-    struct Transition {
-        bytes preValue;
-        bytes postValue;
-        bytes proofs;
-    }
-
-    function claimComputation(bytes _input, bytes _output, uint steps, bytes32 lowHash, bytes32 highHash) {
-        require(steps > 2 && lowHash != 0 && highHash != 0);
+    function claimComputation(bytes _input, bytes _output, uint steps) public {
+        require(steps > 2);
         sessions.push(VerificationSession({
             id: sessions.length,
             claimant: msg.sender,
@@ -46,11 +40,11 @@ contract Verifier {
             lastClaimantMessage: now,
             lastChallengerMessage: now,
             lowStep: 0,
-            lowHash: lowHash,
+            lowHash: keccak256(_input),
             medStep: 0,
             medHash: 0,
             highStep: steps,
-            highHash: highHash
+            highHash: keccak256(_output)
         }));
         require(isInitiallyValid(sessions[sessions.length - 1]));
         NewClaim(sessions.length - 1);
@@ -69,7 +63,7 @@ contract Verifier {
         _;
     }
 
-    function query(uint session, uint step) onlyChallenger(session) {
+    function query(uint session, uint step) onlyChallenger(session) public {
         var s = sessions[session];
         require(step > s.lowStep && step < s.highStep && step != s.medStep);
         if (step < s.medStep) {
@@ -85,7 +79,7 @@ contract Verifier {
         NewQuery(session);
     }
 
-    function respond(uint session, uint step, bytes32 hash) onlyClaimant(session) {
+    function respond(uint session, uint step, bytes32 hash) onlyClaimant(session) public {
         var s = sessions[session];
         // Require step to avoid replay problems
         require(step == s.medStep);
@@ -99,7 +93,7 @@ contract Verifier {
         NewResponse(session);
     }
 
-    function requestStepVerification(uint session, uint step) onlyChallenger(session) {
+    function requestStepVerification(uint session, uint step) onlyChallenger(session) public {
         var s = sessions[session];
         bytes32 lowHash;
         bytes32 highHash;
@@ -123,18 +117,22 @@ contract Verifier {
         NewQuery(session);
     }
 
-    function performStepVerification(uint session, bytes preValue, bytes postValue, bytes proofs) onlyClaimant(session) {
+    function performStepVerification(uint session, bytes preValue, bytes postValue, bytes proofs) onlyClaimant(session) internal {
         var s = sessions[session];
         require(s.lowStep + 1 == s.highStep);
-        if (sha3(preValue) != s.lowHash) claimantConvicted(session);
-        if (sha3(postValue) != s.highHash) claimantConvicted(session);
-        performStepVerificationSpecific(s, Transition(preValue, postValue, proofs));
+        if (keccak256(preValue) != s.lowHash) claimantConvicted(session);
+        if (keccak256(postValue) != s.highHash) claimantConvicted(session);
+        if (performStepVerificationSpecific(s, s.lowStep, preValue, postValue, proofs)) {
+            challengerConvicted(session);
+        } else {
+            claimantConvicted(session);
+        }
     }
 
-    function performStepVerificationSpecific(VerificationSession storage session, Transition memory transition) internal;
+    function performStepVerificationSpecific(VerificationSession storage session, uint step, bytes preState, bytes postState, bytes proof) internal returns (bool);
     function isInitiallyValid(VerificationSession storage session) internal returns (bool);
 
-    function timeout(uint sessionId) {
+    function timeout(uint sessionId) public {
         var session = sessions[sessionId];
         require(session.claimant != 0);
         if (
