@@ -59,23 +59,42 @@ contract Verifier {
     modifier onlyChallenger(uint id) {
         var session = sessions[id];
         if (session.challenger == 0) session.challenger = msg.sender;
-        else require(msg.sender != session.challenger);
+        else require(msg.sender == session.challenger);
         _;
     }
 
     function query(uint session, uint step) onlyChallenger(session) public {
         var s = sessions[session];
-        require(step > s.lowStep && step < s.highStep && step != s.medStep);
-        if (step < s.medStep) {
-            s.highStep = s.medStep;
+        // Special case: first query
+        require(s.medHash != 0 || s.medStep == 0);
+        if (step == s.lowStep && step + 1 == s.medStep) {
+            // Final step of the binary search
             s.highHash = s.medHash;
-        } else {
-            s.lowStep = s.medStep;
+            s.highStep = step + 1;
+        } else if (step == s.medStep && step + 1 == s.highStep) {
+            // Final step of the binary search
             s.lowHash = s.medHash;
+            s.lowStep = step;
+        } else {
+            require(step > s.lowStep && step < s.highStep);
+            if (s.medStep == 0 && s.medHash == 0) {
+                // Special case: First query
+            } else {
+                require(s.medHash != 0);
+                if (step < s.medStep) {
+                    s.highStep = s.medStep;
+                    s.highHash = s.medHash;
+                } else {
+                    require(step > s.medStep);
+                    require(s.medHash != 0);
+                    s.lowStep = s.medStep;
+                    s.lowHash = s.medHash;
+                }
+            }
+            s.medStep = step;
+            s.medHash = bytes32(0);
         }
-        s.medStep = step;
-        s.medHash = bytes32(0);
-        sessions[session].lastChallengerMessage = now;
+        s.lastChallengerMessage = now;
         NewQuery(session);
     }
 
@@ -83,6 +102,7 @@ contract Verifier {
         var s = sessions[session];
         // Require step to avoid replay problems
         require(step == s.medStep);
+        require(s.medHash == 0);
         if (hash == 0) {
             // Special "fold" signal
             challengerConvicted(session);
@@ -93,31 +113,7 @@ contract Verifier {
         NewResponse(session);
     }
 
-    function requestStepVerification(uint session, uint step) onlyChallenger(session) public {
-        var s = sessions[session];
-        bytes32 lowHash;
-        bytes32 highHash;
-        if (step == s.lowStep)
-            lowHash = s.lowHash;
-        else if (step == s.medStep)
-            lowHash = s.medHash;
-        else
-            require(false);
-        if (step + 1 == s.highStep)
-            highHash = s.highHash;
-        else if (step + 1 == s.medStep)
-            highHash = s.medHash;
-        else
-            require(false);
-        require(lowHash != 0 && highHash != 0);
-        s.lowHash = lowHash;
-        s.highHash = highHash;
-        s.lowStep = step;
-        s.highStep = step + 1;
-        NewQuery(session);
-    }
-
-    function performStepVerification(uint session, bytes preValue, bytes postValue, bytes proofs) onlyClaimant(session) internal {
+    function performStepVerification(uint session, bytes preValue, bytes postValue, bytes proofs) onlyClaimant(session) public {
         var s = sessions[session];
         require(s.lowStep + 1 == s.highStep);
         if (keccak256(preValue) != s.lowHash) claimantConvicted(session);
