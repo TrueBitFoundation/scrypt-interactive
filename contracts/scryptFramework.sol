@@ -104,7 +104,6 @@ contract ScryptFramework {
     * @param input the input that is going to be put inside the State struct instance
     *
     * @return  returns a State struct instance
->>>>>>> 7c1c96e56adddb3c7d10acbc180368a97d3b3b2b
     */
     function inputToState(bytes memory input) pure internal returns (State memory state)
     {
