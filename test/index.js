@@ -24,11 +24,18 @@ function invokeCompiler(input) {
 }
 
 function checkForErrors(results) {
+    if (!results) {
+        console.log("Error invoking compiler (results is invalid).")
+        console.log(results)
+        process.exit(1)
+    }
     var anyError = false
-    for (var e of results.errors) {
-        if (e.severity != 'warning') {
-            console.log(e.formattedMessage.red)
-            anyError = true
+    if (results.errors) {
+        for (var e of results.errors) {
+            if (e.severity != 'warning') {
+                console.log(e.formattedMessage.red)
+                anyError = true
+            }
         }
     }
     if (anyError) {
