@@ -74,6 +74,11 @@ contract ScryptRunner is ScryptFramework {
         return (finalStateToOutput(s, input), input);
     }
 
+    function getStateProofAndHash(bytes input, uint step) public pure returns (bytes state, bytes proof, bytes32 stateHash) {
+        (state, proof) = getStateAndProof(input, step);
+        return (state, proof, keccak256(state));
+    }
+
     /**
     * @dev get the state hash of a specific step.
     */

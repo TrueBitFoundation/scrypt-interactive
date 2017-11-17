@@ -94,7 +94,7 @@ contract ScryptFramework {
     *
     * @return return true or false
     */
-    function equal(bytes memory a, bytes memory b) pure returns (bool) {
+    function equal(bytes memory a, bytes memory b) pure internal returns (bool) {
       return keccak256(a) == keccak256(b);
     }
 

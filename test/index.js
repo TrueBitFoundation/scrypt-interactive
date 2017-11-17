@@ -1,6 +1,7 @@
 const fs = require('fs')
 const tape = require('tape')
 const spawn = require('tape-spawn')
+const net = require('net')
 const Web3 = require('web3')
 const process = require('process')
 const color = require('colors')
@@ -23,11 +24,18 @@ function invokeCompiler(input) {
 }
 
 function checkForErrors(results) {
+    if (!results) {
+        console.log("Error invoking compiler (results is invalid).")
+        console.log(results)
+        process.exit(1)
+    }
     var anyError = false
-    for (var e of results.errors) {
-        if (e.severity != 'warning') {
-            console.log(e.formattedMessage.red)
-            anyError = true
+    if (results.errors) {
+        for (var e of results.errors) {
+            if (e.severity != 'warning') {
+                console.log(e.formattedMessage.red)
+                anyError = true
+            }
         }
     }
     if (anyError) {
@@ -44,8 +52,9 @@ function compile() {
     const compilerInput_runner = {
         'language': 'Solidity',
         'sources': {
-        'scryptFramework.sol': {'content': readFile('contracts/scryptFramework.sol')},
-        'scryptRunner.sol': {'content': readFile('contracts/scryptRunner.sol')}
+            'scryptFramework.sol': {'content': readFile('contracts/scryptFramework.sol')},
+            'scryptRunner.sol': {'content': readFile('contracts/scryptRunner.sol')},
+            'verify.sol': {'content': readFile('contracts/verify.sol')}
         }
     }
 
@@ -59,8 +68,9 @@ function compile() {
     const compilerInput_verifier = {
         'language': 'Solidity',
         'sources': {
-        'scryptFramework.sol': {'content': readFile('contracts/scryptFramework.sol')},
-        'scryptVerifier.sol': {'content': readFile('contracts/scryptVerifier.sol')}
+            'scryptFramework.sol': {'content': readFile('contracts/scryptFramework.sol')},
+            'scryptVerifier.sol': {'content': readFile('contracts/scryptVerifier.sol')},
+            'verify.sol': {'content': readFile('contracts/verify.sol')}
         }
     }
     results = JSON.parse(invokeCompiler(JSON.stringify(compilerInput_verifier)))
@@ -107,7 +117,16 @@ checkWork();
 // Needs to be done every time: personal.unlockAccount(account)
 
 // Remove if not deployed yet
-var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'))
+//var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'))
+//var web3 = new Web3(new Web3.providers.WebsocketProvider('ws://127.0.0.1:8545'))
+
+var ipcpath = '/tmp/ethereum_dev_mode/geth.ipc'
+if (process.argv.length >= 1)
+{
+    ipcpath = process.argv[process.argv.length - 1]
+}
+
+var web3 = new Web3(new Web3.providers.IpcProvider(ipcpath, net))
 var contractAddr_runner = 0
 var contractAddr_verifier = 0
 
@@ -116,7 +135,6 @@ async function setupAccount(_account) {
     var account = _account ? _account : await web3.eth.personal.newAccount('')
     console.log("Using account: ".cyan + account.cyan)
     await web3.eth.personal.unlockAccount(account, '', 1000000)
-    //await miner.setEtherbase(account)
     //await web3.miner.start(2)
     //var account = "0x292248f34a6e929dd4820535b41219ba81d79255"
     return account
@@ -283,6 +301,166 @@ async function testRandomManipulatedProverVerifierCombination(prover, verifier, 
     }
 }
 
+/**
+ * Class to retrieve some information from the blockchain, does not send transactions.
+ */
+function Info(account, prover, verifier) {
+    this.getSession = async function(id) {
+        return await verifier.methods.sessions(id).call({from: account})
+    }
+    this.getStateProofAndHash = async function(input, step) {
+        return await prover.methods.getStateProofAndHash(input, step).call({from: account})
+    }
+}
+
+function Claimant(interface, info) {
+    var steps = 2050;
+    var that = this;
+    this.switchingPoint = 2051; // disabled at construction time
+    this.switchedInput = '0x00'
+    // TODO only respond to queries to own sessions
+    function inputForStep(step, input) {
+        return +step >= that.switchingPoint ? that.switchedInput : input
+    }
+    console.log("Registering events".yellow)
+    interface.verifier.events.NewQuery(async function(err, event) {
+        if (err) throw err
+        console.log("Got NewQuery event...".yellow)
+        var session = await info.getSession(event.returnValues.sessionId)
+        console.log(("New query for session " + event.returnValues.sessionId + " at step " + session.medStep).yellow)
+        if (session.medHash == "0x0000000000000000000000000000000000000000000000000000000000000000") {
+            // Regular case
+            var stateHash = (await info.getStateProofAndHash(inputForStep(session.medStep, session.input), session.medStep)).stateHash
+            console.log(("Sending state hash: " + stateHash).yellow)
+            await interface.verifier.methods.respond(event.returnValues.sessionId, session.medStep, stateHash).send({from: interface.account})
+        } else {
+            // Binary search is finished
+            if (+session.highStep - session.lowStep != 1) {
+                throw "Med hash set, but we are not in final step."
+            }
+            console.log("Binary search ended. Asking for verification of step ".yellow + session.lowStep)
+            var preState = (await info.getStateProofAndHash(inputForStep(session.lowStep, session.input), session.lowStep)).state
+            var postStateAndProof = await info.getStateProofAndHash(inputForStep(session.highStep, session.input), session.highStep)
+            var postState = postStateAndProof.state
+            var proof = postStateAndProof.proof || '0x00'
+            console.log("... using\n   PreState:  ".yellow + preState + "\n   PostState: ".yellow + postState + "\n   Proof:    ".yellow + proof)
+            await interface.verifier.methods.performStepVerification(
+                event.returnValues.sessionId,
+                preState, 
+                postState,
+                proof
+            ).send({from: interface.account, gas: 1000000})
+        }
+    })
+    this.claim = async function(input) {
+        console.log("Claiming computation...".yellow)
+        var output = (await info.getStateProofAndHash(inputForStep(steps, input), steps)).state
+        console.log("with output ".yellow + output)
+        var claimOut = await interface.verifier.methods.claimComputation(input, output, steps).send({from: interface.account, gas: 2000000})
+        // console.log(claimOut)
+    }
+}
+
+function Challenger(interface, info) {
+    var steps = 2050;
+    var that = this;
+    this.switchingPoint = 2055 // disabled at construction time
+    this.switchedInput = '0x00'
+    console.log("Registering events".blue)
+    function inputForStep(step, sessionInput) {
+        return step >= that.switchingPoint ? that.switchedInput : sessionInput
+    }
+    interface.verifier.events.NewClaim(async function(err, event) {
+        if (err) throw err
+        console.log("Got NewClaim event...".blue)
+        var session = await info.getSession(event.returnValues.sessionId)
+        console.log(("New claim for session " + event.returnValues.sessionId).blue)
+        var myOutput = (await info.getStateProofAndHash(inputForStep(steps, session.input), steps)).state
+        console.log(("Claimed output: " + session.output).blue)
+        console.log(("My output: " + myOutput).blue)
+        if (myOutput != session.output) {
+            console.log(("Challenging...").blue)
+            await interface.verifier.methods.query(event.returnValues.sessionId, Math.floor(steps / 2)).send({from: interface.account})
+        } else {
+            console.log(("Will not challenge").blue)
+        }
+    })
+    interface.verifier.events.NewResponse(async function(err, event) {
+        if (err) throw err
+        console.log("Got NewResponse event...".blue)
+        var session = await info.getSession(event.returnValues.sessionId)
+        console.log(("New response for session " + event.returnValues.sessionId).blue)
+        var myStateHash = (await info.getStateProofAndHash(inputForStep(session.medStep, session.input), session.medStep)).stateHash
+        console.log("Claimant responded with state hash ".blue + session.medHash + " - mine is ".blue + myStateHash)
+        console.log("Current steps: ".blue + session.lowStep + " - ".blue + session.medStep + " - ".blue + session.highStep)
+        var lowStep = +session.lowStep
+        var medStep = +session.medStep
+        var highStep = +session.highStep
+        var step = 0
+        if (session.medHash == myStateHash) {
+            step = medStep + Math.floor((highStep - medStep) / 2)
+        } else {
+            step = lowStep + Math.floor((medStep - lowStep) / 2)
+        }
+        await interface.verifier.methods.query(event.returnValues.sessionId, step).send({from: interface.account})
+    })
+}
+
+function createConvictionCallback(verifier, resolve) {
+    verifier.events.ChallengerConvicted().on('data', function(event) {
+        console.log("Challenger convicted for session ".greed + event.returnValues.sessionId)
+        resolve(+event.returnValues.sessionId, true)
+    })
+    verifier.events.ClaimantConvicted().on('data', function(event) {
+        console.log("Claimant convicted for session ".green + event.returnValues.sessionId)
+        resolve(+event.returnValues.sessionId, false)
+    })
+}
+
+async function testBinarySearchCheatingClaimant(runner, verifier, claimantAccount, challengerAccount, input) {
+    var info = new Info(claimantAccount, runner, verifier)
+    var claimantInterface = { account: claimantAccount, prover: runner, verifier: verifier }
+    var challengerInterface = { account: challengerAccount, prover: runner, verifier: verifier }
+    var claimant = new Claimant(claimantInterface, info)
+    var challenger = new Challenger(challengerInterface, info)
+
+    var game = {ended: null}
+    createConvictionCallback(verifier, (sessionId, claimantWon) => {
+        game.ended(claimantWon)
+    })
+    for (var i = 0; i < 5; i++) {
+        claimant.switchingPoint = chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048, 2049])
+        console.log((
+            "---------------------------------\n" +
+            "Testing binary search (cheating claimant at step " + claimant.switchingPoint + ") on " +
+            input + "..."
+        ).green)
+        await claimant.claim(input)
+        await new Promise(resolve => {
+            var timeout = setTimeout(() => {
+                console.log("ERROR: Timeout".red)
+                anyErorr = true
+                resolve()
+            }, 200 * 1000)
+            game.ended = (claimantWon) => {
+                if (claimantWon) {
+                    console.log("ERROR: Claimant won".red)
+                    anyError = true
+                } else {
+                    console.log("Challenger won".green)
+                }
+                clearTimeout(timeout)
+                resolve()
+            }
+        })
+    }
+}
+
+async function testBinarySearchCheatingChallenger(runner, verifier, account, challengerAccount, input) {
+    //console.log(("Testing binary search (cheating challenger) on " + input + "...").green)
+    // TODO
+}
+
 async function test(_account) {
     var account = await setupAccount(_account)
     var runner = await deployContract(runnerCode, runnerABI, contractAddr_runner, account, 4000000, true)
@@ -297,17 +475,11 @@ async function test(_account) {
     for (var i = 0; i < 50; i++) {
         await testRandomManipulatedProverVerifierCombination(runner, verifier, account)
     }
-}
-
-var account = null
-if (process.argv.length >= 1 && process.argv[process.argv.length - 1].startsWith('0x'))
-{
-    account = process.argv[process.argv.length - 1]
+    var challengerAccount = await setupAccount()
+    await testBinarySearchCheatingClaimant(runner, verifier, account, challengerAccount, randomHexString())
+//    await testBinarySearchCheatingChallenger(runner, verifier, account, challengerAccount, randomHexString())
+    process.exit(anyError ? 1 : 0)
 }
 
 var anyError = false
-test(account)
-if (anyError) {
-    process.exit(1)
-}
-
+test()
