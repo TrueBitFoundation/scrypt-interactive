@@ -8,8 +8,14 @@ const child_process = require('child_process')
 
 // Use the local (non-js) compiler or not.
 const useLocalSolc = false
+if (useLocalSolc) {
+  console.log("using local solc".cyan)
+} else {
+  console.log("using js solc".cyan)
+}
 
 function invokeCompiler(input) {
+    console.log("invoking the compiler...".green)
     if (useLocalSolc) {
         var result = child_process.spawnSync('solc', ['--optimize', '--standard-json', '-'], {input: input, encoding: 'utf-8'})
         if (result.status != 0) {
@@ -23,15 +29,20 @@ function invokeCompiler(input) {
 }
 
 function checkForErrors(results) {
+    console.log("checking for errors...".green)
     var anyError = false
-    for (var e of results.errors) {
-        if (e.severity != 'warning') {
-            console.log(e.formattedMessage.red)
-            anyError = true
-        }
+    if ("errors" in results) {
+      for (var e of results.errors) {
+          if (e.severity != 'warning') {
+              console.log(e.formattedMessage.red)
+              anyError = true
+          }
+      }
     }
     if (anyError) {
-        process.exit(1)        
+        process.exit(1)
+    } else {
+      console.log("no errors found...".cyan)
     }
 }
 
