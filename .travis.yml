@@ -22,31 +22,15 @@ install:
   - source ~/.bashrc
   - git clone -b release/1.7 https://github.com/ethereum/go-ethereum
   - sed -i 's/ctx, cancel = context\.WithTimeout(ctx, time\.Second\*5)/ctx, cancel = context\.WithTimeout(ctx, time\.Second\*500)/' ./go-ethereum/internal/ethapi/api.go
-  - cat ./go-ethereum/internal/ethapi/api.go
   - travis_wait 40 make -C go-ethereum
   - sudo cp ./go-ethereum/build/bin/geth /usr/local/bin/geth
   - stty tostop
-  - sudo iptables -L
-  - sudo iptables -A INPUT -p tcp --dport 8545 -j ACCEPT
-  - sudo ufw allow 8545
-  - sudo iptables -L
-  - echo ilovescrypt > ./password.txt
+  - echo ilovescrypt > $TRAVIS_BUILD_DIR/password.txt
   - geth --datadir /tmp/ethereum_dev_mode --password $TRAVIS_BUILD_DIR/password.txt account new
-  - cat ./password.txt
-  - geth account list
-  - ls
-  - pwd
-  - primaccount=$(geth account list | gawk '{print $3}' | sed 's/{/"/'|sed 's/}/"/')
+  - geth --datadir /tmp/ethereum_dev_mode account list
+  - primaccount=$(geth --datadir /tmp/ethereum_dev_mode account list | gawk '{print $3}' | sed 's/{/"/'|sed 's/}/"/')
   - echo $primaccount
-  - geth --verbosity 6 --ipcpath $TRAVIS_BUILD_DIR/geth.ipc --dev --rpc --rpcapi admin,miner,eth,net,web3,personal --rpcaddr "localhost" --rpcport "8545" --port "30303" --datadir /tmp/ethereum_dev_mode &>/dev/null &
-  - ls -l $TRAVIS_BUILD_DIR/geth.ipc || true
-  - geth --exec 'loadScript("./test/gethconfig.js")' attach ipc://$TRAVIS_BUILD_DIR/geth.ipc
-  - cat /$HOME/nohup.out || true
-  - cat ./go-ethereum/internal/ethapi/api.go
-  - ps -aux | grep geth
-  - pgrep geth || true
-  - sudo netstat -antp
-  - sudo netstat -antp | grep geth || true
+  - geth --verbosity 6 --ipcpath $TRAVIS_BUILD_DIR/geth.ipc --dev --rpc --rpcapi admin,miner,eth,net,web3,personal --rpcaddr "localhost" --rpcport "8545" --port "30303" --datadir /tmp/ethereum_dev_mode --exec 'loadScript("./test/gethconfig.js")' &>/dev/null &
   - sleep 5
 
 script: 
