@@ -119,7 +119,14 @@ checkWork();
 // Remove if not deployed yet
 //var web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'))
 //var web3 = new Web3(new Web3.providers.WebsocketProvider('ws://127.0.0.1:8545'))
-var web3 = new Web3(new Web3.providers.IpcProvider('/tmp/ethereum_dev_mode/geth.ipc', net))
+
+var ipcpath = '/tmp/ethereum_dev_mode/geth.ipc'
+if (process.argv.length >= 1)
+{
+    ipcpath = process.argv[process.argv.length - 1]
+}
+
+var web3 = new Web3(new Web3.providers.IpcProvider(ipcpath, net))
 var contractAddr_runner = 0
 var contractAddr_verifier = 0
 
@@ -471,14 +478,8 @@ async function test(_account) {
     var challengerAccount = await setupAccount()
     await testBinarySearchCheatingClaimant(runner, verifier, account, challengerAccount, randomHexString())
 //    await testBinarySearchCheatingChallenger(runner, verifier, account, challengerAccount, randomHexString())
-}
-
-var account = null
-if (process.argv.length >= 1 && process.argv[process.argv.length - 1].startsWith('0x'))
-{
-    account = process.argv[process.argv.length - 1]
+    process.exit(anyError ? 1 : 0)
 }
 
 var anyError = false
-test(account)
-process.exit(anyError ? 1 : 0)
+test()
