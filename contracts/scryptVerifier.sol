@@ -2,12 +2,25 @@ pragma solidity ^0.4.0;
 
 import {ScryptFramework} from "./scryptFramework.sol";
 import {Verifier} from "./verify.sol";
+import {ClaimManager} from "./claimManager.sol";
 
 /**
 * @title
 * @author Christian Reitwiessner
 */
 contract ScryptVerifier is ScryptFramework, Verifier {
+
+    ClaimManager cm;
+
+    function ScryptVerifier(address _cm) {
+        cm = ClaimManager(_cm);
+    }
+
+    modifier onlyBy(address _account) {
+        require(msg.sender == _account);
+        _;
+    }
+
     function isInitiallyValid(VerificationSession storage session) internal returns (bool) {
         return session.output.length == 32 && session.highStep == 2050;
     }
