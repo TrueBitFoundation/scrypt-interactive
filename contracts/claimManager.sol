@@ -1,8 +1,8 @@
 pragma solidity ^0.4.0;
 
-import './DepositsManager.sol';
-import './scryptVerifier.sol';
 import './scryptRunner.sol';
+import {DepositsManager} from './DepositsManager.sol';
+import {ScryptVerifier} from "./scryptVerifier.sol";
 
 // ClaimManager: queues a sequence of challengers to play with a claimant.
 
@@ -37,12 +37,14 @@ contract ClaimManager is DepositsManager {
         require(msg.sender == _account);
         _;
     }
+
+    ScryptVerifier sv;
  
     // @dev – the constructor
     function ClaimManager(address dogeRelayAddress, address scryptVerifierAddress) public {
         owner = msg.sender;
         dogeRelayAddress = dogeRelayAddress;
-        scryptVerifierAddress = scryptVerifierAddress;
+        sv = ScryptVerifier(scryptVerifierAddress);
     }
 
     // @dev – locks up part of the a user's deposit into a claim.
