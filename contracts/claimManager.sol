@@ -1,11 +1,11 @@
 pragma solidity ^0.4.0;
 
-import './DepositsManager.sol';
-import './scryptVerifier.sol';
+import {DepositsManager} from './DepositsManager.sol';
+import {ScryptVerifier} from "./scryptVerifier.sol";
 
 // ClaimManager: queues a sequence of challengers to play with a claimant.
 
-contract ClaimManager is DepositManager {
+contract ClaimManager is DepositsManager {
 	uint private numClaims = 0;     // index as key for the claims mapping.
     uint private minDeposit = 1;    // TODO: what should the minimum deposit be?
     uint private challengeTimeout = 40;  // claimant needs to unchallenged for 40 blocks, before a blockHash is deemed correct.
@@ -31,12 +31,14 @@ contract ClaimManager is DepositManager {
         require(msg.sender == _account);
         _;
     }
+
+    ScryptVerifier sv;
  
     // @dev – the constructor
     function ClaimManager(address dogeRelayAddress, address scryptVerifierAddress) public {
         owner = msg.sender;
         dogeRelayAddress = dogeRelayAddress;
-        scryptVerifierAddress = scryptVerifierAddress;
+        sv = ScryptVerifier(scryptVerifierAddress);
     }
 
     // @dev – locks up part of the a user's deposit into a claim.
