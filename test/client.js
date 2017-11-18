@@ -68,6 +68,9 @@ function compile() {
     const compilerInput_verifier = {
         'language': 'Solidity',
         'sources': {
+            'math/SafeMath.sol': {'content': readFile('contracts/math/SafeMath.sol')},
+            'DepositsManager.sol': {'content': readFile('contracts/DepositsManager.sol')},
+            'claimManager.sol': {'content': readFile('contracts/claimManager.sol')},
             'scryptFramework.sol': {'content': readFile('contracts/scryptFramework.sol')},
             'scryptVerifier.sol': {'content': readFile('contracts/scryptVerifier.sol')},
             'verify.sol': {'content': readFile('contracts/verify.sol')}
@@ -79,6 +82,22 @@ function compile() {
     verifierABI = results['contracts']['scryptVerifier.sol']['ScryptVerifier']['abi']
     // console.log('var verifierCode = "' + verifierCode + '"')
     // console.log('var verifierABI = ' + JSON.stringify(verifierABI) + '')
+
+    const compilerInput_claimManager = {
+        'language': 'Solidity',
+        'sources': {
+            'math/SafeMath.sol': {'content': readFile('contracts/math/SafeMath.sol')},
+            'DepositsManager.sol': {'content': readFile('contracts/DepositsManager.sol')},
+            'claimManager.sol': {'content': readFile('contracts/claimManager.sol')},
+            'scryptFramework.sol': {'content': readFile('contracts/scryptFramework.sol')},
+            'scryptVerifier.sol': {'content': readFile('contracts/scryptVerifier.sol')},
+            'verify.sol': {'content': readFile('contracts/verify.sol')}
+        }
+    }
+    results = JSON.parse(invokeCompiler(JSON.stringify(compilerInput_claimManager)))
+    checkForErrors(results)
+    claimManagerCode = '0x' + results['contracts']['claimManager.sol']['ClaimManager']['evm']['bytecode']['object']
+    claimManagerABI = results['contracts']['claimManager.sol']['ClaimManager']['abi']
 }
 console.log("Compiling contracts...".green)
 compile()
@@ -187,6 +206,14 @@ async function deployContract(c_code, c_abi, c_addr, b_account, c_gas, bool_log)
     }
     if (bool_log) console.log("contract deployed at ".blue + contract.options.address.blue)
     return contract
+}
+
+function randomInt(n) {
+    return Math.floor(Math.random() * n);
+}
+
+function chooseRandomly(data) {
+    return data[randomInt(data.length)];
 }
 
 function randomHexString() {
@@ -332,7 +359,7 @@ const dogeTestData = {
     nonce: 0
 }
 
-const testInputData = web3.utility.asciiToHex(JSON.stringify(dogeTestData));
+const testInputData = web3.utils.asciiToHex(JSON.stringify(dogeTestData));
 
 const dogeTestHash = "0x0e4b99c4d9a39f462776e5e688dc432ba8af1f22b0b8ffe6c299a5177efb4fdf";
 
@@ -379,6 +406,7 @@ async function test(_account) {
     var account = await setupAccount(_account)
     var runner = await deployContract(runnerCode, runnerABI, contractAddr_runner, account, 4000000, true)
     var verifier =  await deployContract(verifierCode, verifierABI, contractAddr_verifier, account, 4000000, true)
+    var challengerAccount = await setupAccount()
     await testBinarySearchCheatingClaimant(runner, verifier, account, challengerAccount, randomHexString())
     process.exit(anyError ? 1 : 0)
 }

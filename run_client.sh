@@ -4,5 +4,5 @@ geth --ipcpath /tmp/ethereum_dev_mode/geth.ipc --verbosity 6 --dev --rpc --rpcap
 GETH_PID=$!
 sleep 2
 geth --exec 'loadScript("./test/gethconfig.js")' attach ipc://tmp/ethereum_dev_mode/geth.ipc
-node ./test/index.js $1
+node ./test/client.js $1
 kill -9 $GETH_PID
