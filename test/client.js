@@ -140,16 +140,14 @@ checkWork();
 //var web3 = new Web3(new Web3.providers.WebsocketProvider('ws://127.0.0.1:8545'))
 
 var ipcpath = '/tmp/ethereum_dev_mode/geth.ipc'
-if (process.argv.length >= 3)
+if (process.argv.length >= 1)
 {
     ipcpath = process.argv[process.argv.length - 1]
 }
 
-console.log(("using ipcpath: " + ipcpath).cyan)
 var web3 = new Web3(new Web3.providers.IpcProvider(ipcpath, net))
 var contractAddr_runner = 0
 var contractAddr_verifier = 0
-var contractAddr_claimManager = 0
 
 async function setupAccount(_account) {
     console.log("Account setup...".green)
@@ -210,20 +208,12 @@ async function deployContract(c_code, c_abi, c_addr, b_account, c_gas, bool_log)
     return contract
 }
 
-async function deployContractModified(address, c_code, c_abi, c_addr, b_account, c_gas, bool_log) {
-  var block = await web3.eth.getBlockNumber()
-    if (bool_log) console.log("At block " + block)
-    var contract
-    if (c_addr) {
-        contract = new web3.eth.Contract(c_abi, c_addr)
-    } else {
-        contract = await new web3.eth.Contract(c_abi).deploy(address, {data: c_code}).send({
-            from: b_account,
-            gas: c_gas
-        })
-    }
-    if (bool_log) console.log("contract deployed at ".blue + contract.options.address.blue)
-    return contract
+function randomInt(n) {
+    return Math.floor(Math.random() * n);
+}
+
+function chooseRandomly(data) {
+    return data[randomInt(data.length)];
 }
 
 function randomHexString() {
@@ -237,105 +227,11 @@ function randomHexString() {
     return s;
 }
 
-function randomInt(n) {
-    return Math.floor(Math.random() * n);
-}
-
-function chooseRandomly(data) {
-    return data[randomInt(data.length)];
-}
-
-function flipRandomNibble(data) {
-    if (data.length == 2) {
-        console.log("Cannot flip nibble in empty data".red)
-        process.exit(1)
-    }
-    var nibble = 2 + randomInt(data.length - 2);
-    var m = data;
-    while (m == data) {
-        m = data.substring(0, nibble) + randomInt(16).toString(16) + data.substring(nibble + 1)
-    }
-    return m;
-}
-
-async function testStepValues(runner, verifier, account) {
-    console.log("testing step values:".green)
-    var input = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
-    for (var i of [0, 1, 1024, 1025, 2048]) {
-        var result = await runner.methods.run(input, i).call({
-            from: account
-        })
-        for (var j = 0; j < 4; j++) {
-            if (expectations[i][j] != web3.utils.numberToHex(result.vars[j])) {
-                console.log(("Invalid internal state at step " + i).red)
-                console.log(web3.utils.numberToHex(result.vars[0]))
-                console.log(web3.utils.numberToHex(result.vars[1]))
-                console.log(web3.utils.numberToHex(result.vars[2]))
-                console.log(web3.utils.numberToHex(result.vars[3]))
-                error = true
-            }
-        }
-    }
-    result = await runner.methods.run(input, 2049).call({from: account})
-    if (result.output != "0xda26bdbab79be8f5162c4ca87cc52d6f926fb21461b9fb1c88bf19180cb5c246") {
-        console.log("Invalid result after step 2049: ".red + result.output)
-        anyError = true
-    }
-}
-
 async function runProverVerifierCombination(prover, verifier, account, step, input)
 {
     var state = (await prover.methods.getStateAndProof(input, step).call({from: account})).state;
     var postData = (await prover.methods.getStateAndProof(input, step + 1).call({from: account}))
     return await verifier.methods.verifyStep(step, state, postData.state, postData.proof || '0x00').call({from: account});
-}
-
-/// This tests the prover-verifier-combination on same steps for a specific input.
-async function testProverVerifierCombination(runner, verifier, account, input) {
-    console.log(("Testing prover verifier combination on " + input + "...").green)
-    for (var step of [0, 1, 2, 3, 100, 106, 1021, 1023, 1024, 1025, 1026, 2000, 2044, 2045, 2046, 2047, 2048, 2049]) {
-        if (await runProverVerifierCombination(runner, verifier, account, step, input) !== true) {
-            console.log(("Error verifying step " + step).red)
-            anyError = true;
-        }
-    }
-}
-
-// This flips a random nibble in the proof or state.
-async function testRandomManipulatedProverVerifierCombination(prover, verifier, account)
-{
-    var input = randomHexString()
-    var step = chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048, 2049])
-    console.log(("Random manipulation test on step " + step).cyan)
-    var preState = (await prover.methods.getStateAndProof(input, step).call({from: account})).state;
-    var postData = (await prover.methods.getStateAndProof(input, step + 1).call({from: account}))
-    var postState = postData.state;
-    var proof = postData.proof || '0x00';
-
-    var correctData = '';
-    var which = randomInt(3);
-    if (which == 0) {
-        correctData = preState
-        preState = flipRandomNibble(preState);
-    } else if (which == 1 || step == 0 /* proof is unused in step 0 */) {
-        correctData = postState
-        postState = flipRandomNibble(postState);
-    } else {
-        correctData = proof
-        proof = flipRandomNibble(proof);
-    }
-    if ((await verifier.methods.verifyStep(step, preState, postState, proof).call({from: account})) !== false) {
-        console.log("Verification of manipulated data succeeded:".green)
-        console.log("input: " + input)
-        console.log("step: " + step)
-        console.log("Manipulated part: " + ['pre state', 'post state', 'proof'][which])
-        console.log("Original value: " + correctData)
-        console.log("Modified data:")
-        console.log("preState: " + preState)
-        console.log("postState: " + postState)
-        console.log("proof: " + proof)
-        anyError = true
-    }
 }
 
 /**
@@ -454,6 +350,19 @@ function createConvictionCallback(verifier, resolve) {
     })
 }
 
+const dogeTestData = {
+    version: 6422787,
+    previousBlockHash: "dc1379e657ac01b5bdb38b7949d28945d44ee0effac43c35011a4e6c24f04456",
+    merkleRoot: "60f3ad52c6c887f00d17bc5901e6fbe8b7ec22c5b7c69615420933ce1d40906f",
+    timestamp: "2017-11-18 09:37:23 -0800",
+    difficulty: "296,944.00130067",
+    nonce: 0
+}
+
+const testInputData = web3.utils.asciiToHex(JSON.stringify(dogeTestData));
+
+const dogeTestHash = "0x0e4b99c4d9a39f462776e5e688dc432ba8af1f22b0b8ffe6c299a5177efb4fdf";
+
 async function testBinarySearchCheatingClaimant(runner, verifier, claimantAccount, challengerAccount, input) {
     var info = new Info(claimantAccount, runner, verifier)
     var claimantInterface = { account: claimantAccount, prover: runner, verifier: verifier }
@@ -493,28 +402,12 @@ async function testBinarySearchCheatingClaimant(runner, verifier, claimantAccoun
     }
 }
 
-async function testBinarySearchCheatingChallenger(runner, verifier, account, challengerAccount, input) {
-    //console.log(("Testing binary search (cheating challenger) on " + input + "...").green)
-    // TODO
-}
-
 async function test(_account) {
     var account = await setupAccount(_account)
     var runner = await deployContract(runnerCode, runnerABI, contractAddr_runner, account, 4000000, true)
     var verifier =  await deployContract(verifierCode, verifierABI, contractAddr_verifier, account, 4000000, true)
-    await testStepValues(runner, verifier, account)
-    var input = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
-    await testProverVerifierCombination(runner, verifier, account, input)
-    console.log("Trying random input".green)
-    for (var i = 0; i < 10; i++) {
-        await testProverVerifierCombination(runner, verifier, account, randomHexString())
-    }
-    for (var i = 0; i < 50; i++) {
-        await testRandomManipulatedProverVerifierCombination(runner, verifier, account)
-    }
     var challengerAccount = await setupAccount()
     await testBinarySearchCheatingClaimant(runner, verifier, account, challengerAccount, randomHexString())
-//    await testBinarySearchCheatingChallenger(runner, verifier, account, challengerAccount, randomHexString())
     process.exit(anyError ? 1 : 0)
 }
 
