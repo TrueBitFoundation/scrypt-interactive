@@ -31,7 +31,6 @@ contract ClaimManager is DepositsManager {
     }
 
     mapping(uint => ScryptClaim) private claims;
-    ScryptClaim private task;
     
     modifier onlyBy(address _account) {
         require(msg.sender == _account);
@@ -39,11 +38,12 @@ contract ClaimManager is DepositsManager {
     }
 
     ScryptVerifier sv;
+    address dogeRelayAddress;
  
     // @dev – the constructor
-    function ClaimManager(address dogeRelayAddress, address scryptVerifierAddress) public {
+    function ClaimManager(address _dogeRelayAddress, address scryptVerifierAddress) public {
         owner = msg.sender;
-        dogeRelayAddress = dogeRelayAddress;
+        dogeRelayAddress = _dogeRelayAddress;
         sv = ScryptVerifier(scryptVerifierAddress);
     }
 
@@ -52,28 +52,28 @@ contract ClaimManager is DepositsManager {
     // @param account – the user's address.
     // @param amount – the amount of deposit to lock up. 
     // @return – the user's deposit bonded for the claim.
-  function bondDeposit(uint claimID, address account, uint amount) private returns (uint) { 
+    function bondDeposit(uint claimID, address account, uint amount) private returns (uint) {
         ScryptClaim storage claim = claims[claimID];
         require(deposits[msg.sender] >= amount);
         deposits[account] = deposits[account].sub(amount);
-        task.bondedDeposits[account] = task.bondedDeposits[account].add(amount);
+        claim.bondedDeposits[account] = claim.bondedDeposits[account].add(amount);
         DepositBonded(claimID, account, amount);
         return claim.bondedDeposits[account];
   }
-  
-    // @dev – unlocks a user's bonded deposits from a claim.
-  // @param claimID – the claim id.
-  // @param account – the user's address.
-  // @return – the user's deposit which was unbonded from the claim.
-  function unbondDeposit(uint claimID, address account) private returns (uint) {
-    ScryptClaim storage claim = claims[claimID];
-    uint bondedDeposit = claim.bondedDeposits[account];
-    delete claim.bondedDeposits[account];
-    deposits[account] = deposits[account].add(bondedDeposit);
-    DepositUnbonded(claimID, account, bondedDeposit);
     
-    return bondedDeposit;
-  }
+    // @dev – unlocks a user's bonded deposits from a claim.
+    // @param claimID – the claim id.
+    // @param account – the user's address.
+    // @return – the user's deposit which was unbonded from the claim.
+    function unbondDeposit(uint claimID, address account) private returns (uint) {
+      ScryptClaim storage claim = claims[claimID];
+      uint bondedDeposit = claim.bondedDeposits[account];
+      delete claim.bondedDeposits[account];
+      deposits[account] = deposits[account].add(bondedDeposit);
+      DepositUnbonded(claimID, account, bondedDeposit);
+      
+      return bondedDeposit;
+    }
  
     // @dev – check whether a DogeCoin blockHash was calculated correctly from the plaintext block header.
     // only callable by the DogeRelay contract.
@@ -83,18 +83,18 @@ contract ClaimManager is DepositsManager {
     function checkScrypt(bytes _plaintext, bytes _blockHash, address claimant) onlyBy(dogeRelayAddress) public returns (uint) {
         require(deposits[claimant] >= minDeposit);
 
-    ScryptClaim storage claim = claims[numClaims];
+        ScryptClaim storage claim = claims[numClaims];
         claim.claimant = claimant;
         claim.plaintext = _plaintext;
         claim.blockHash = _blockHash;
         claim.numChallengers = 0;
-    claim.lastChallengeAt = block.number;
+        claim.lastChallengeAt = block.number;
 
         bondDeposit(numClaims, claimant, minDeposit); 
         ClaimCreated(numClaims);
 
-    numClaims.add(1);
-    return numClaims;
+        numClaims.add(1);
+        return numClaims;
     }
 
     // @dev – challenge an existing Scrypt claim.
@@ -111,9 +111,7 @@ contract ClaimManager is DepositsManager {
         claim.numChallengers = claim.numChallengers.add(1);
         claim.lastChallengeAt = block.number;
 
-        // call into the scryptVerifier contract.
-        ScryptVerifier scryptVerifier = ScryptVerifier(scryptVerifierAddress);
-        //scryptVerifier.claimComputation(receiver, amount); // TODO: fix this.
+        //sv.claimComputation(msg.receiver, 0); // TODO: fix this.
     }
 
     // @dev – called when a verification game has ended.
@@ -122,7 +120,7 @@ contract ClaimManager is DepositsManager {
     // @param claimID – the claim ID.
     // @param winner – winner of the verification game.
     // @param loser – loser of the verification game.
-    function claimDecided(uint claimID, address winner, address loser) onlyBy(scryptVerifierAddress) public {
+    function claimDecided(uint claimID, address winner, address loser) onlyBy(address(sv)) public {
         ScryptClaim storage claim = claims[claimID];
 
         // reward the winner, with the loser's bonded deposit.
@@ -135,14 +133,14 @@ contract ClaimManager is DepositsManager {
 
             // unlock the deposits of all challengers
             for (uint index = 0; index < claim.numChallengers; index++) {
-                unbondDeposit(claim.challengers[index]);
+                unbondDeposit(claim.id, claim.challengers[index]);
                 delete claim.challengers[index];
             }
         } else if (claim.claimant == winner) {
             // the claim continues.
-            delete claim.challengers[loser];
+            delete claim.challengers[index];
         }
-    } 
+    }
 
     // @dev – check whether a claim has successfully withstood all challenges.
     // if successful, it will trigger a callback to the DogeRelay contract,
@@ -158,11 +156,11 @@ contract ClaimManager is DepositsManager {
         if (block.number - claim.lastChallengeAt > challengeTimeout) {
             // the claim is successful.
 
-            unbondDeposit(claim.claimant);
+            unbondDeposit(claim.id, claim.claimant);
 
             // there should be no one in this for loop..
             for (uint index = 0; index < claim.numChallengers; index++) {
-                unbondDeposit(claim.challengers[index]);
+                unbondDeposit(claim.id, claim.challengers[index]);
                 delete claim.challengers[index];
             }
 

@@ -10,12 +10,6 @@ import {ClaimManager} from "./claimManager.sol";
 */
 contract ScryptVerifier is ScryptFramework, Verifier {
 
-    ClaimManager cm;
-
-    function ScryptVerifier(address _cm) {
-        cm = ClaimManager(_cm);
-    }
-
     modifier onlyBy(address _account) {
         require(msg.sender == _account);
         _;

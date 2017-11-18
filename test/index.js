@@ -68,6 +68,9 @@ function compile() {
     const compilerInput_verifier = {
         'language': 'Solidity',
         'sources': {
+            'math/SafeMath.sol': {'content': readFile('contracts/math/SafeMath.sol')},
+            'DepositsManager.sol': {'content': readFile('contracts/DepositsManager.sol')},
+            'claimManager.sol': {'content': readFile('contracts/claimManager.sol')},
             'scryptFramework.sol': {'content': readFile('contracts/scryptFramework.sol')},
             'scryptVerifier.sol': {'content': readFile('contracts/scryptVerifier.sol')},
             'verify.sol': {'content': readFile('contracts/verify.sol')}
@@ -79,6 +82,22 @@ function compile() {
     verifierABI = results['contracts']['scryptVerifier.sol']['ScryptVerifier']['abi']
     // console.log('var verifierCode = "' + verifierCode + '"')
     // console.log('var verifierABI = ' + JSON.stringify(verifierABI) + '')
+
+    const compilerInput_claimManager = {
+        'language': 'Solidity',
+        'sources': {
+            'math/SafeMath.sol': {'content': readFile('contracts/math/SafeMath.sol')},
+            'DepositsManager.sol': {'content': readFile('contracts/DepositsManager.sol')},
+            'claimManager.sol': {'content': readFile('contracts/claimManager.sol')},
+            'scryptFramework.sol': {'content': readFile('contracts/scryptFramework.sol')},
+            'scryptVerifier.sol': {'content': readFile('contracts/scryptVerifier.sol')},
+            'verify.sol': {'content': readFile('contracts/verify.sol')}
+        }
+    }
+    results = JSON.parse(invokeCompiler(JSON.stringify(compilerInput_claimManager)))
+    checkForErrors(results)
+    claimManagerCode = '0x' + results['contracts']['claimManager.sol']['ClaimManager']['evm']['bytecode']['object']
+    claimManagerABI = results['contracts']['claimManager.sol']['ClaimManager']['abi']
 }
 console.log("Compiling contracts...".green)
 compile()
@@ -130,6 +149,7 @@ console.log(("using ipcpath: " + ipcpath).cyan)
 var web3 = new Web3(new Web3.providers.IpcProvider(ipcpath, net))
 var contractAddr_runner = 0
 var contractAddr_verifier = 0
+var contractAddr_claimManager = 0
 
 async function setupAccount(_account) {
     console.log("Account setup...".green)
@@ -182,6 +202,22 @@ async function deployContract(c_code, c_abi, c_addr, b_account, c_gas, bool_log)
         contract = new web3.eth.Contract(c_abi, c_addr)
     } else {
         contract = await new web3.eth.Contract(c_abi).deploy({data: c_code}).send({
+            from: b_account,
+            gas: c_gas
+        })
+    }
+    if (bool_log) console.log("contract deployed at ".blue + contract.options.address.blue)
+    return contract
+}
+
+async function deployContractModified(address, c_code, c_abi, c_addr, b_account, c_gas, bool_log) {
+  var block = await web3.eth.getBlockNumber()
+    if (bool_log) console.log("At block " + block)
+    var contract
+    if (c_addr) {
+        contract = new web3.eth.Contract(c_abi, c_addr)
+    } else {
+        contract = await new web3.eth.Contract(c_abi).deploy(address, {data: c_code}).send({
             from: b_account,
             gas: c_gas
         })
