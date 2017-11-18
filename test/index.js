@@ -121,11 +121,12 @@ checkWork();
 //var web3 = new Web3(new Web3.providers.WebsocketProvider('ws://127.0.0.1:8545'))
 
 var ipcpath = '/tmp/ethereum_dev_mode/geth.ipc'
-if (process.argv.length >= 1)
+if (process.argv.length >= 3)
 {
     ipcpath = process.argv[process.argv.length - 1]
 }
 
+console.log(("using ipcpath: " + ipcpath).cyan)
 var web3 = new Web3(new Web3.providers.IpcProvider(ipcpath, net))
 var contractAddr_runner = 0
 var contractAddr_verifier = 0

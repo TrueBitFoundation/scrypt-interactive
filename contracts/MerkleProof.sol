@@ -1,3 +1,4 @@
+pragma solidity ^0.4.4;
 /**
 * @title a library to verify the proofs in a binary sha3/keccak merkle tree with 32-byte hash size
 * @author Christian Reitwiessner
