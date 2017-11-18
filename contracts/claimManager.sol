@@ -1,6 +1,5 @@
 pragma solidity ^0.4.0;
 
-import './scryptRunner.sol';
 import {DepositsManager} from './DepositsManager.sol';
 import {ScryptVerifier} from "./scryptVerifier.sol";
 
@@ -38,7 +37,6 @@ contract ClaimManager is DepositsManager {
     }
 
     ScryptVerifier sv;
-    address dogeRelayAddress;
  
     // @dev – the constructor
     function ClaimManager(address _dogeRelayAddress, address scryptVerifierAddress) public {
