@@ -26,19 +26,21 @@ contract('ClaimManager', function(accounts) {
             await claimManager.makeDeposit({from: challenger, value: 100});
 
             // bond deposit is broken
-            tx = await claimManager.checkScrypt("foo", "0x002", claimant, {from: dogeRelayAddress})
+            tx = await claimManager.checkScrypt("foo", "062f503253482f0472d35454085fffed", claimant, {from: dogeRelayAddress})
 
-            log = tx.logs.find(log => tx.logs[0].event === 'ClaimCreated')
+            log = tx.logs.find(log => log.event === 'ClaimCreated')
             const claimID = log.args.claimID.toNumber()
             console.log("claimID is : " + claimID)
 
-            //tx = await claimManager.challengeClaim(claimID, {from: challenger})
+            tx = await claimManager.challengeClaim(claimID, {from: challenger})
 
-            // log = tx.logs.find(log => tx.logs[0].event === 'NewClaim')
-            // console.log(log)
-            // assert.equal(log.args.sessionId.toNumber(), claimID)
+            log = tx.logs.find(log => log.event === 'ClaimChallenged')
+            assert.equal(log.args.claimID.toNumber(), claimID)
 
-            // var session = await info.getSession(log.args.sessionId.toNumber())
+            tx = await claimManager.runNextVerificationGame(claimID, {from: claimant})
+            
+            log = tx.logs.find(log => log.event === 'ClaimVerificationGameStarted')
+            //var session = await info.getSession(log.args.sessionId.toNumber())
             // await scryptVerifier.query(log.args.sessionId.toNumber(), Math.floor(steps / 2)).send({from: challenger})
 
             // log = tx.logs.find(log => log.event === 'NewQuery')

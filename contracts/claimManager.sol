@@ -104,7 +104,7 @@ contract ClaimManager is DepositsManager {
         claim.plaintext = _plaintext;
         claim.blockHash = _blockHash;
         claim.numChallengers = 0;
-        claim.lastChallenger = uint(-1);
+        claim.lastChallenger = 0;
         claim.verificationOngoing = false;
         claim.createdAt = block.number;
 
@@ -143,14 +143,14 @@ contract ClaimManager is DepositsManager {
 
         // check if there is a challenger who has not the played verificationg game yet.
         // note: lastChallenger is 0-indexed.
-        require(claim.numChallengers > claim.lastChallenger.add(1));
+        require(claim.numChallengers >= claim.lastChallenger.add(1));
         
         require(claim.verificationOngoing == false);
 
         uint thisChallenger = claim.lastChallenger.add(1);
         
         // TODO: kick off a new verification game.
-        // sv.claimComputation(msg.receiver, 0); // TODO: fix this.
+        sv.claimComputation(claim.challengers[thisChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
         ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[thisChallenger]);
 
         claim.verificationOngoing = true;
