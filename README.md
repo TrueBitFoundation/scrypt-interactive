@@ -11,7 +11,18 @@ For more context on how relays work, look at the [BTCRelay](https://github.com/e
 
 ## Running the Tests
 
-To run the tests you need `geth` and a JS `node` version higher than 7.6. After getting those you can just run `run.sh` in the root directory of the repo.<br/>
+To run the tests you need `geth` and a JS `node` version higher than 7.6. 
+
+After getting those, use `run.sh` to run tests in the root directory:
+```
+# you can run all tests
+./run.sh test/index.js
+
+# you can run a specific test file. e.g.:
+./run.sh test/client.js
+
+```
+
 Also note that you will need to have an account in the data directory that geth has been passed. `run.sh` does not make one for you. You can either copy an existing account there or just run:<br/>
 ```bash
 
