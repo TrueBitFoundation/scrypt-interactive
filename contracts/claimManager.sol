@@ -70,7 +70,7 @@ contract ClaimManager is DepositsManager {
     // @return – the user's deposit bonded for the claim.
     function bondDeposit(uint claimID, address account, uint amount) private returns (uint) {
         ScryptClaim storage claim = claims[claimID];
-        require(deposits[msg.sender] >= amount);
+        require(deposits[account] >= amount);
         deposits[account] = deposits[account].sub(amount);
         claim.bondedDeposits[account] = claim.bondedDeposits[account].add(amount);
         DepositBonded(claimID, account, amount);

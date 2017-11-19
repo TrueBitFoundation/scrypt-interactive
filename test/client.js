@@ -25,7 +25,7 @@ contract('ClaimManager', function(accounts) {
             await claimManager.makeDeposit({from: claimant, value: 100});
             await claimManager.makeDeposit({from: challenger, value: 100});
 
-            //bond deposit is broken
+            // bond deposit is broken
             tx = await claimManager.checkScrypt("foo", "0x002", claimant, {from: dogeRelayAddress})
 
             log = tx.logs.find(log => tx.logs[0].event === 'ClaimCreated')
