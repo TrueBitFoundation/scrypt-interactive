@@ -8,7 +8,19 @@ import {ScryptVerifier} from "./scryptVerifier.sol";
 contract ClaimManager is DepositsManager {
     uint private numClaims = 0;     // index as key for the claims mapping.
     uint private minDeposit = 1;    // TODO: what should the minimum deposit be?
-    uint private challengeTimeout = 40;  // claimant needs to unchallenged for 40 blocks, before a blockHash is deemed correct.
+
+    // a claim goes through two stages after being created:
+    // stage 1: new challenges are allowed.
+    // stage 2: no new challenges are allowed.
+    // the claim exists until all verification games are played out.
+    // reasoning behind having two stages is to prevent DoS attacks;
+    // i.e. a malicious adversary cannot sybil challenge a claim after challengeTimeout blocks have passed.
+    uint private challengeTimeout = 20;
+
+    // blocks to wait for callback from scryptVerifier,
+    // before moving onto the next.
+    // TODO: we're not using this yet.
+    uint private verificationGameTimeout = 40;
 
     address dogeRelayAddress;
     address receiver;
@@ -16,16 +28,22 @@ contract ClaimManager is DepositsManager {
 
     event DepositBonded(uint claimID, address account, uint amount);
     event DepositUnbonded(uint claimID, address account, uint amount);
-    event ClaimCreated(uint claimID);
+    event ClaimCreated(uint claimID, address claimant, bytes plaintext, bytes blockHash);
+    event ClaimChallenged(uint claimID, address challenger);
+    event ClaimVerificationGameStarted(uint claimID, address claimant, address challenger);
+    event ClaimDecided(uint claimID, address winner, address loser);
+    event ClaimSuccessful(uint claimID, address claimant, bytes plaintext, bytes blockHash);
 
     struct ScryptClaim {
         uint id;
-        uint numChallengers; // index to key challengers mapping.
         address claimant;
         bytes plaintext;    // the plaintext Dogecoin block header.
         bytes blockHash;    // the Dogecoin blockhash.
-        uint lastChallengeAt; // the block number at which the last challenge came in.
+        uint createdAt;     // the block number at which the claim was created.
         mapping (uint => address) challengers;      // all current challengers.
+        uint numChallengers;
+        uint lastChallenger;    // index of last challenger who played a verification game.
+        bool verificationOngoing;   // is the claim waiting for results from an ongoing verificationg game.
         mapping (address => uint) bondedDeposits;   // all deposits bonded in this claim.
     }
 
@@ -86,10 +104,12 @@ contract ClaimManager is DepositsManager {
         claim.plaintext = _plaintext;
         claim.blockHash = _blockHash;
         claim.numChallengers = 0;
-        claim.lastChallengeAt = block.number;
+        claim.lastChallenger = uint(-1);
+        claim.verificationOngoing = false;
+        claim.createdAt = block.number;
 
         bondDeposit(numClaims, claimant, minDeposit); 
-        ClaimCreated(numClaims);
+        ClaimCreated(numClaims, claim.claimant, claim.plaintext, claim.blockHash);
 
         numClaims.add(1);
         return numClaims;
@@ -101,15 +121,40 @@ contract ClaimManager is DepositsManager {
     //
     // @param claimID – the claim ID.
     function challengeClaim(uint claimID) public {
+        ScryptClaim storage claim = claims[claimID];
+
+        // check that the claim is in Stage 1 (i.e. accepting new challenges).
+        require(block.number.sub(claim.createdAt) <= challengeTimeout);
+
         require(deposits[msg.sender] >= minDeposit);
         bondDeposit(claimID, msg.sender, minDeposit);
 
-        ScryptClaim storage claim = claims[claimID];
-        claim.challengers[0] = msg.sender;
+        claim.challengers[claim.numChallengers] = msg.sender;
         claim.numChallengers = claim.numChallengers.add(1);
-        claim.lastChallengeAt = block.number;
+        ClaimChallenged(claimID, msg.sender);
+    }
 
-        //sv.claimComputation(msg.receiver, 0); // TODO: fix this.
+    // @dev – runs a verification game between the claimant and
+    // the next queued-up challenger.
+    // 
+    // @param claimID – the claim id.
+    function runNextVerificationGame(uint claimID) public {
+        ScryptClaim storage claim = claims[claimID];
+
+        // check if there is a challenger who has not the played verificationg game yet.
+        // note: lastChallenger is 0-indexed.
+        require(claim.numChallengers > claim.lastChallenger.add(1));
+
+        require(claim.verificationOngoing == false);
+
+        uint thisChallenger = claim.lastChallenger.add(1);
+        
+        // TODO: kick off a new verification game.
+        // sv.claimComputation(msg.receiver, 0); // TODO: fix this.
+        ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[thisChallenger]);
+
+        claim.verificationOngoing = true;
+        claim.lastChallenger = thisChallenger;
     }
 
     // @dev – called when a verification game has ended.
@@ -121,22 +166,30 @@ contract ClaimManager is DepositsManager {
     function claimDecided(uint claimID, address winner, address loser) onlyBy(address(sv)) public {
         ScryptClaim storage claim = claims[claimID];
 
+        claim.verificationOngoing = false;
+
         // reward the winner, with the loser's bonded deposit.
         uint depositToTransfer = claim.bondedDeposits[loser];
         delete claim.bondedDeposits[loser];
         claim.bondedDeposits[winner] = claim.bondedDeposits[winner].add(depositToTransfer);
+    
+        ClaimDecided(claimID, winner, loser);
         
         if (claim.claimant == loser) {
             // the claim is over.
+            // note: no callback needed to the DogeRelay contract,
+            // because it by default does not save blocks.
 
             // unlock the deposits of all challengers
             for (uint index = 0; index < claim.numChallengers; index++) {
                 unbondDeposit(claim.id, claim.challengers[index]);
                 delete claim.challengers[index];
             }
+
+            delete claims[claimID];
         } else if (claim.claimant == winner) {
             // the claim continues.
-            delete claim.challengers[index];
+            runNextVerificationGame(claimID);
         }
     }
 
@@ -148,23 +201,21 @@ contract ClaimManager is DepositsManager {
     function checkClaimSuccessful(uint claimID) public {
         ScryptClaim storage claim = claims[claimID];
         
-        // TODO: check that there are no on-going challenges.
+        // check that the claim is in Stage w (i.e. not accepting new challenges).
+        require(block.number.sub(claim.createdAt) > challengeTimeout);
+        
+        // check that there is no ongoing verification game.
+        require(claim.verificationOngoing == false);
 
-        // check that claim has gone unchallenged for the required number of blocks.
-        if (block.number - claim.lastChallengeAt > challengeTimeout) {
-            // the claim is successful.
+        // check that all verification games have been played.
+        require(claim.numChallengers == claim.lastChallenger.add(1));
 
-            unbondDeposit(claim.id, claim.claimant);
+        unbondDeposit(claim.id, claim.claimant);
 
-            // there should be no one in this for loop..
-            for (uint index = 0; index < claim.numChallengers; index++) {
-                unbondDeposit(claim.id, claim.challengers[index]);
-                delete claim.challengers[index];
-            }
+        // TODO: callback to the DogeRelay.
+        // DogeRelay.scryptVerified(claim.plaintext, claim.blockHash);
 
-            // TODO: callback to the DogeRelay.
-            // DogeRelay.scryptVerified(claim.plaintext, claim.blockHash);
-        }
+        ClaimSuccessful(claimID, claim.claimant, claim.plaintext, claim.blockHash);
     }
 }
 
