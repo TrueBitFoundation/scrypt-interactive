@@ -1,0 +1,69 @@
+{
+  "contractName": "DogeRelay",
+  "abi": [],
+  "bytecode": "0x60606040523415600e57600080fd5b603580601b6000396000f3006060604052600080fd00a165627a7a723058205dc42217979788dcbdc781ad09575ba1cfff1d10eda1281d00d4b295ba7a6ee50029",
+  "deployedBytecode": "0x6060604052600080fd00a165627a7a723058205dc42217979788dcbdc781ad09575ba1cfff1d10eda1281d00d4b295ba7a6ee50029",
+  "sourceMap": "25:27:4:-;;;;;;;;;;;;;;;;;",
+  "deployedSourceMap": "25:27:4:-;;;;;",
+  "source": "pragma solidity ^0.4.4;\n\ncontract DogeRelay {\n    \n}\n",
+  "sourcePath": "/Users/sinahab/dev/truebit/sinahab/scrypt-interactive/contracts/dogeRelay.sol",
+  "ast": {
+    "attributes": {
+      "absolutePath": "/Users/sinahab/dev/truebit/sinahab/scrypt-interactive/contracts/dogeRelay.sol",
+      "exportedSymbols": {
+        "DogeRelay": [
+          1103
+        ]
+      }
+    },
+    "children": [
+      {
+        "attributes": {
+          "literals": [
+            "solidity",
+            "^",
+            "0.4",
+            ".4"
+          ]
+        },
+        "id": 1102,
+        "name": "PragmaDirective",
+        "src": "0:23:4"
+      },
+      {
+        "attributes": {
+          "baseContracts": [
+            null
+          ],
+          "contractDependencies": [
+            null
+          ],
+          "contractKind": "contract",
+          "documentation": null,
+          "fullyImplemented": true,
+          "linearizedBaseContracts": [
+            1103
+          ],
+          "name": "DogeRelay",
+          "nodes": [
+            null
+          ],
+          "scope": 1104
+        },
+        "id": 1103,
+        "name": "ContractDefinition",
+        "src": "25:27:4"
+      }
+    ],
+    "id": 1104,
+    "name": "SourceUnit",
+    "src": "0:53:4"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.4.18+commit.9cf6e910.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "1.0.1",
+  "updatedAt": "2017-11-19T18:26:32.258Z"
+}
