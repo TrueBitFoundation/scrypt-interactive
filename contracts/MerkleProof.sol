@@ -26,12 +26,12 @@ library BinaryMerkleProof {
     *
     * @return whether the proof was correct. returns a boolean value.
     */
-    function verify(bytes32 _root, bytes _proof) returns (bool) {
+    function verify(bytes32 _root, bytes _proof) pure public returns (bool) {
         bytes32 v = getBytes32Slice(_proof, 0);
         for (uint i = 32; i < _proof.length; i += 33) {
             byte order = _proof[i];
             bytes32 sibling = getBytes32Slice(_proof, i + 1);
-            v = (order == 0 ? sha3(v, sibling) : sha3(sibling, v));
+            v = (order == 0 ? keccak256(v, sibling) : keccak256(sibling, v));
         }
         return v == _root;
     }
@@ -44,7 +44,7 @@ library BinaryMerkleProof {
     *
     * @return return the sliced-off 32-byte value
     */
-    function getBytes32Slice(bytes _proof, uint _index) internal returns (bytes32 r) {
+    function getBytes32Slice(bytes _proof, uint _index) pure internal returns (bytes32 r) {
         _proof[_index + 31]; // bounds checking
         assembly {
             r := mload(add(add(_proof, 0x20), _index))
@@ -60,7 +60,7 @@ library BinaryMerkleProof {
     *
     * @return 
     */
-    function setBytes32Slice(bytes _proof, uint _index, bytes32 _value) {
+    function setBytes32Slice(bytes _proof, uint _index, bytes32 _value) pure public {
         _proof[_index + 31]; // bounds checking
         assembly {
             mstore(add(add(_proof, 0x20), _index), _value)
@@ -72,23 +72,23 @@ library BinaryMerkleProof {
     *
     * @return returns a boolean value indicating whether the test was passed successfully.
     */
-    function test() returns (bool) {
+    function test() pure public returns (bool) {
         bytes32[8] memory v = [
             bytes32("abc"), bytes32("def"), bytes32("ghi"), bytes32("jkl"),
             bytes32("mno"), bytes32("pqr"), bytes32("stu"), bytes32("vwx")
         ];
-        bytes32[4] memory l1 = [sha3(v[0], v[1]), sha3(v[2], v[3]), sha3(v[4], v[5]), sha3(v[6], v[7])];
-        bytes32[2] memory l2 = [sha3(l1[0], l1[1]), sha3(l1[2], l1[3])];
-        bytes32 root = sha3(l2[0], l2[1]);
+        bytes32[4] memory l1 = [keccak256(v[0], v[1]), keccak256(v[2], v[3]), keccak256(v[4], v[5]), keccak256(v[6], v[7])];
+        bytes32[2] memory l2 = [keccak256(l1[0], l1[1]), keccak256(l1[2], l1[3])];
+        bytes32 root = keccak256(l2[0], l2[1]);
 
         bytes32[] memory siblings = new bytes32[](3);
         byte[] memory directions = new byte[](3);
         siblings[0] = v[3];
-        directions[0] = 0;
+        directions[0] = byte(0);
         siblings[1] = l1[0];
-        directions[1] = 1;
+        directions[1] = byte(1);
         siblings[2] = l2[1];
-        directions[2] = 0;
+        directions[2] = byte(0);
         if (!verify(root, constructProof(v[2], siblings, directions)))
             return false;
         return true;
@@ -103,9 +103,9 @@ library BinaryMerkleProof {
     *
     * @return returns the merkle proof.
     */
-    function constructProof(bytes32 leaf, bytes32[] siblings, byte[] directions) returns (bytes r) {
+    function constructProof(bytes32 leaf, bytes32[] siblings, byte[] directions) pure public returns (bytes r) {
         uint len = directions.length;
-        if (siblings.length != len) throw;
+        require (siblings.length == len);
         r = new bytes(32 + 33 * len);
         setBytes32Slice(r, 0, leaf);
         for (uint i = 0; i < len; ++i) {

@@ -39,10 +39,10 @@ contract ClaimManager is DepositsManager {
     ScryptVerifier sv;
  
     // @dev – the constructor
-    function ClaimManager(address _dogeRelayAddress, address scryptVerifierAddress) public {
+    function ClaimManager(address _dogeRelayAddress, address _scryptVerifierAddress) public {
         owner = msg.sender;
         dogeRelayAddress = _dogeRelayAddress;
-        sv = ScryptVerifier(scryptVerifierAddress);
+        sv = ScryptVerifier(_scryptVerifierAddress);
     }
 
     // @dev – locks up part of the a user's deposit into a claim.
