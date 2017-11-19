@@ -57,20 +57,20 @@ contract ClaimManager is DepositsManager {
         claim.bondedDeposits[account] = claim.bondedDeposits[account].add(amount);
         DepositBonded(claimID, account, amount);
         return claim.bondedDeposits[account];
-  }
+    }
     
     // @dev – unlocks a user's bonded deposits from a claim.
     // @param claimID – the claim id.
     // @param account – the user's address.
     // @return – the user's deposit which was unbonded from the claim.
     function unbondDeposit(uint claimID, address account) private returns (uint) {
-      ScryptClaim storage claim = claims[claimID];
-      uint bondedDeposit = claim.bondedDeposits[account];
-      delete claim.bondedDeposits[account];
-      deposits[account] = deposits[account].add(bondedDeposit);
-      DepositUnbonded(claimID, account, bondedDeposit);
-      
-      return bondedDeposit;
+        ScryptClaim storage claim = claims[claimID];
+        uint bondedDeposit = claim.bondedDeposits[account];
+        delete claim.bondedDeposits[account];
+        deposits[account] = deposits[account].add(bondedDeposit);
+        DepositUnbonded(claimID, account, bondedDeposit);
+
+        return bondedDeposit;
     }
  
     // @dev – check whether a DogeCoin blockHash was calculated correctly from the plaintext block header.
