@@ -5,14 +5,14 @@ var Web3 = require('web3');
 var web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 
 contract('ClaimManager', function(accounts) {
-    let claimManager, dogeRelay, scryptVerifier;
+    const dogeRelayAddress = accounts[0]
+    let claimManager, scryptVerifier;
 
     const steps = 2050;
 
     beforeEach(async () => {
-        dogeRelay = await DogeRelay.new()
         scryptVerifier = await ScryptVerifier.new()
-        claimManager = await ClaimManager.new(dogeRelay.address, scryptVerifier.address);
+        claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address);
     })
 
     describe('it works', () => {
@@ -22,10 +22,9 @@ contract('ClaimManager', function(accounts) {
         it("challenger challenges", async () => {
 
             await claimManager.makeDeposit({from: claimant, value: 100});
-            await claimManager.makeDeposit({from: claimant, value: 100});
+            await claimManager.makeDeposit({from: challenger, value: 100});
 
-            //This is throwing error
-            await claimManager.checkScrypt("foo", "0x02", claimant, {from: dogeRelay.address})
+            await claimManager.checkScrypt("foo", "0x02", claimant, {from: dogeRelayAddress})
 
             log = tx.logs.find(log => log.event === 'ClaimCreated')
             console.log(log.args.claimID);
