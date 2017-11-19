@@ -98,6 +98,17 @@ function compile() {
     checkForErrors(results)
     claimManagerCode = '0x' + results['contracts']['claimManager.sol']['ClaimManager']['evm']['bytecode']['object']
     claimManagerABI = results['contracts']['claimManager.sol']['ClaimManager']['abi']
+
+    const compilerInput_dogeRelay = {
+        'language': 'Solidity',
+        'sources': {
+            'dogeRelay.sol': {'content': readFile('contracts/dogeRelay.sol')}
+        }
+    }
+    results = JSON.parse(invokeCompiler(JSON.stringify(compilerInput_dogeRelay)))
+    checkForErrors(results)
+    dogeRelayCode = '0x' + results['contracts']['dogeRelay.sol']['DogeRelay']['evm']['bytecode']['object']
+    dogeRelayABI = results['contracts']['dogeRelay.sol']['DogeRelay']['abi']
 }
 console.log("Compiling contracts...".green)
 compile()
@@ -148,6 +159,8 @@ if (process.argv.length >= 1)
 var web3 = new Web3(new Web3.providers.IpcProvider(ipcpath, net))
 var contractAddr_runner = 0
 var contractAddr_verifier = 0
+var contractAddr_claimManager = 0
+var contractAddr_dogeRelay = 0
 
 async function setupAccount(_account) {
     console.log("Account setup...".green)
@@ -200,6 +213,22 @@ async function deployContract(c_code, c_abi, c_addr, b_account, c_gas, bool_log)
         contract = new web3.eth.Contract(c_abi, c_addr)
     } else {
         contract = await new web3.eth.Contract(c_abi).deploy({data: c_code}).send({
+            from: b_account,
+            gas: c_gas
+        })
+    }
+    if (bool_log) console.log("contract deployed at ".blue + contract.options.address.blue)
+    return contract
+}
+
+async function deployClaimManagerContract(address0, address1, c_code, c_abi, c_addr, b_account, c_gas, bool_log) {
+  var block = await web3.eth.getBlockNumber()
+    if (bool_log) console.log("At block " + block)
+    var contract
+    if (c_addr) {
+        contract = new web3.eth.Contract(c_abi, c_addr)
+    } else {
+        contract = await new web3.eth.Contract(c_abi).deploy({data: c_code, arguments: [address0, address1]}).send({
             from: b_account,
             gas: c_gas
         })
@@ -374,38 +403,25 @@ async function testBinarySearchCheatingClaimant(runner, verifier, claimantAccoun
     createConvictionCallback(verifier, (sessionId, claimantWon) => {
         game.ended(claimantWon)
     })
-    for (var i = 0; i < 5; i++) {
-        claimant.switchingPoint = chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048, 2049])
-        console.log((
-            "---------------------------------\n" +
-            "Testing binary search (cheating claimant at step " + claimant.switchingPoint + ") on " +
-            input + "..."
-        ).green)
-        await claimant.claim(input)
-        await new Promise(resolve => {
-            var timeout = setTimeout(() => {
-                console.log("ERROR: Timeout".red)
-                anyErorr = true
-                resolve()
-            }, 200 * 1000)
-            game.ended = (claimantWon) => {
-                if (claimantWon) {
-                    console.log("ERROR: Claimant won".red)
-                    anyError = true
-                } else {
-                    console.log("Challenger won".green)
-                }
-                clearTimeout(timeout)
-                resolve()
-            }
-        })
-    }
+
+    await claimant.claim(input)
+
+    //Keep timeout to not end the tests too short
+    return new Promise(resolve => {
+        var timeout = setTimeout(() => {
+            console.log("ERROR: Timeout".red)
+            anyErorr = true
+            resolve()
+        }, 3000)
+    })
 }
 
 async function test(_account) {
     var account = await setupAccount(_account)
     var runner = await deployContract(runnerCode, runnerABI, contractAddr_runner, account, 4000000, true)
     var verifier =  await deployContract(verifierCode, verifierABI, contractAddr_verifier, account, 4000000, true)
+    var dogeRelay =  await deployContract(dogeRelayCode, dogeRelayABI, contractAddr_dogeRelay, account, 4000000, true)
+    var claimManager =  await deployClaimManagerContract(dogeRelay._address, verifier._address, claimManagerCode, claimManagerABI, contractAddr_claimManager, account, 4000000, true)
     var challengerAccount = await setupAccount()
     await testBinarySearchCheatingClaimant(runner, verifier, account, challengerAccount, randomHexString())
     process.exit(anyError ? 1 : 0)
