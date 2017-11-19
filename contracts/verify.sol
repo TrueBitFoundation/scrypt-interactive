@@ -29,12 +29,12 @@ contract Verifier {
     }
     VerificationSession[] public sessions;
 
-    function claimComputation(bytes _input, bytes _output, uint steps) public {
+    function claimComputation(address challenger, address claimant, bytes _input, bytes _output, uint steps) public {
         require(steps > 2);
         sessions.push(VerificationSession({
             id: sessions.length,
-            claimant: msg.sender,
-            challenger: address(0),
+            claimant: claimant,
+            challenger: challenger,
             input: _input,
             output: _output,
             lastClaimantMessage: now,

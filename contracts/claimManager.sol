@@ -144,7 +144,7 @@ contract ClaimManager is DepositsManager {
         // check if there is a challenger who has not the played verificationg game yet.
         // note: lastChallenger is 0-indexed.
         require(claim.numChallengers > claim.lastChallenger.add(1));
-
+        
         require(claim.verificationOngoing == false);
 
         uint thisChallenger = claim.lastChallenger.add(1);
