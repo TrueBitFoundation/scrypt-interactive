@@ -42,7 +42,7 @@ contract ClaimManager is DepositsManager {
         uint createdAt;     // the block number at which the claim was created.
         mapping (uint => address) challengers;      // all current challengers.
         uint numChallengers;
-        uint lastChallenger;    // index of last challenger who played a verification game.
+        uint currentChallenger;    // index of next challenger to play a verification game.
         bool verificationOngoing;   // is the claim waiting for results from an ongoing verificationg game.
         mapping (address => uint) bondedDeposits;   // all deposits bonded in this claim.
     }
@@ -104,7 +104,7 @@ contract ClaimManager is DepositsManager {
         claim.plaintext = _plaintext;
         claim.blockHash = _blockHash;
         claim.numChallengers = 0;
-        claim.lastChallenger = 0;
+        claim.currentChallenger = 0;
         claim.verificationOngoing = false;
         claim.createdAt = block.number;
 
@@ -142,19 +142,16 @@ contract ClaimManager is DepositsManager {
         ScryptClaim storage claim = claims[claimID];
 
         // check if there is a challenger who has not the played verificationg game yet.
-        // note: lastChallenger is 0-indexed.
-        require(claim.numChallengers >= claim.lastChallenger.add(1));
+        require(claim.numChallengers > claim.currentChallenger);
         
         require(claim.verificationOngoing == false);
-
-        uint thisChallenger = claim.lastChallenger.add(1);
-        
-        // TODO: kick off a new verification game.
-        sv.claimComputation(claim.challengers[thisChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
-        ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[thisChallenger]);
+ 
+        // kick off a verification game.
+        sv.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
+        ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger]);
 
         claim.verificationOngoing = true;
-        claim.lastChallenger = thisChallenger;
+        claim.currentChallenger = claim.currentChallenger.add(1);
     }
 
     // @dev – called when a verification game has ended.
@@ -208,7 +205,7 @@ contract ClaimManager is DepositsManager {
         require(claim.verificationOngoing == false);
 
         // check that all verification games have been played.
-        require(claim.numChallengers == claim.lastChallenger.add(1));
+        require(claim.numChallengers == claim.currentChallenger);
 
         unbondDeposit(claim.id, claim.claimant);
 
