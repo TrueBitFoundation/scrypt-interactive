@@ -92,17 +92,6 @@ function compile() {
     checkForErrors(results)
     claimManagerCode = '0x' + results['contracts']['claimManager.sol']['ClaimManager']['evm']['bytecode']['object']
     claimManagerABI = results['contracts']['claimManager.sol']['ClaimManager']['abi']
-
-    const compilerInput_dogeRelay = {
-        'language': 'Solidity',
-        'sources': {
-            'dogeRelay.sol': {'content': readFile('contracts/dogeRelay.sol')}
-        }
-    }
-    results = JSON.parse(invokeCompiler(JSON.stringify(compilerInput_dogeRelay)))
-    checkForErrors(results)
-    dogeRelayCode = '0x' + results['contracts']['dogeRelay.sol']['DogeRelay']['evm']['bytecode']['object']
-    dogeRelayABI = results['contracts']['dogeRelay.sol']['DogeRelay']['abi']
 }
 
 module.exports = {
