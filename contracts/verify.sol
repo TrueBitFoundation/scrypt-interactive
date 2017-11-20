@@ -156,4 +156,9 @@ contract Verifier {
     function disable(uint session) internal {
         delete sessions[session];
     }
+
+    function getSession(uint session) public returns (uint, uint, uint, bytes) {
+        VerificationSession storage sessionStruct = sessions[session];
+        return (sessionStruct.lowStep, sessionStruct.medStep, sessionStruct.highStep, sessionStruct.input);
+    }
 }
