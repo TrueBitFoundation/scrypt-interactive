@@ -62,14 +62,19 @@ contract('ClaimManager', function(accounts) {
             var medStep = session[1].toNumber();
             var highStep = session[2].toNumber();
             var input = session[3];
+            var medHash = session[4];
 
             tx = await scryptVerifier.respond(claimID, medStep, results[2], {from: claimant})
 
-           log = tx.logs.find(log => log.event === 'NewResponse')
-           assert.equal(log.args.sessionId.toNumber(), claimID)
+            log = tx.logs.find(log => log.event === 'NewResponse')
+            assert.equal(log.args.sessionId.toNumber(), claimID)
 
-            //const number = 1000;
-            //assert.equal(number, 1000);
+            console.log("Got NewResponse event...".blue)
+            var session = await scryptVerifier.getSession.call(claimID)
+            console.log(("New response for session " + claimID).blue)
+            console.log(session[1].toNumber());
+            var results = await scryptRunner.getStateProofAndHash.call(session[3], session[1].toNumber(), {from: claimant})
+
         });
     });
 });

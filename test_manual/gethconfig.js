@@ -1,2 +1,5 @@
+personal.unlockAccount(eth.accounts[0], "", 4000000)
+personal.unlockAccount(eth.accounts[1], "", 10000000)
+personal.unlockAccount(eth.accounts[2], "", 10000000)
 miner.setEtherbase(eth.accounts[0])
 miner.start(2)

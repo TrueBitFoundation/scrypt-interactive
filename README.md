@@ -39,3 +39,8 @@ geth --datadir /tmp/ethereum_dev_mode --password /path/to/password/file account 
 ```
 
 Also make sure that when you run a process in the background it is not suspended. You could use `ps -aux | grep geth` to see geth's status. if it is suspended, just run `stty tostop` to toggle your terminal's behavour.<br/>
+
+Run truffle tests using geth by running
+```bash
+./run_client_test/sh
+```

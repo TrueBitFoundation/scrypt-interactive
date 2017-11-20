@@ -157,8 +157,8 @@ contract Verifier {
         delete sessions[session];
     }
 
-    function getSession(uint session) public returns (uint, uint, uint, bytes) {
+    function getSession(uint session) public returns (uint, uint, uint, bytes, bytes32) {
         VerificationSession storage sessionStruct = sessions[session];
-        return (sessionStruct.lowStep, sessionStruct.medStep, sessionStruct.highStep, sessionStruct.input);
+        return (sessionStruct.lowStep, sessionStruct.medStep, sessionStruct.highStep, sessionStruct.input, sessionStruct.medHash);
     }
 }
