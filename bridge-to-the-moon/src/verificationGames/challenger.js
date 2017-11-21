@@ -8,35 +8,73 @@ const waitForEvent = require('../utils/waitForEvent')
 
 module.exports = (web3, api) => ({
   run: async (cmd, claim, sessionId) => new Promise(async (resolve, reject) => {
-    const { scryptVerifier } = api
     try {
-      let session
-      let step = 1
-
       // onBefore, onEnter, onLeave, onAfter
       const m = new StateMachine({
         init: 'init',
         transitions: [
           { name: 'query', from: ['init', 'preRespond'], to: 'preRespond' },
+          { name: 'finish', from: ['preRespond'], to: 'preFinish' },
           { name: 'didConvict', from: '*', to: 'convicted' },
-          { name: 'didDecide', from: 'convicted', to: 'decided' },
         ],
         methods: {
-          onEnterPreRespond: async (tsn) => {
-            // wait for the other person to respond
-            await waitForEvent(api.scryptVerifier, 'NewResponse', { filter: { sessionId } })
-            // then execute query transition
-            await tsn.fsm.query()
-          },
-
           onBeforeQuery: async (tsn) => {
             cmd.log('Syncing Session State...')
-            session = await api.getSession(claim.id)
-            // const results = await api.getResult(session.input, session.medStep)
+            const session = await api.getSession(claim.id)
+            cmd.log('Synced.')
 
-            await api.query(claim.id, step)
+            // let's check the most recent submission
+            let newMedStep
+            if (session.medStep.eq(0)) {
+              // is this the first query? we don't have a submission to check
+              // so we'll just go in the middle
+              cmd.log('This is the first query()')
+              newMedStep = Math.floor((session.highStep - session.lowStep) / 2)
+            } else {
+              // otherwise, let's see if the session.medHash is right or not
+              const result = await api.getResult(session.input, session.medStep)
+              if (result.stateHash === session.medHash) {
+                cmd.log(`The claimant's answer of ${session.medHash} DID equal our calculation of ${result.stateHash} so the error must be after step ${session.medStep}`)
+                // the claimant is right at least up to the current medStep
+                // so the issue is somewhere between (medStep, highStep]
+                newMedStep = Math.floor((session.highStep - session.medStep) / 2)
+              } else {
+                cmd.log(`The claimant's answer of ${session.medHash} did NOT equal our calculation of ${result.stateHash} so the error must be before (or at) step ${session.medStep}`)
+                // otherwise the claimant is wrong somewhere between [0, medStep]
+                newMedStep = Math.floor((session.medStep - session.lowStep) / 2)
+              }
+            }
+
+            cmd.log(`Requesting a stateHash for step ${newMedStep}`)
+
+            // now lets request the next medStep
+            await api.query(claim.id, newMedStep)
           },
+          onEnterPreRespond: async (tsn) => {
+            cmd.log('Waiting for a respond(), timeout(), or conviction event...')
+            return Promise.race([
+              // either the claimant responds with a respond()
+              waitForEvent(api.scryptVerifier, 'NewResponse', { filter: { sessionId } })
+                .then(() => cmd.log('Got NewResponse()'))
+                // in which case we want to query and wait again
+                .then(() => tsn.fsm.query()),
 
+              // or the claimant can be convicted by a timeout or fold
+              waitForEvent(api.scryptVerifier, 'ClaimantConvicted', { filter: { sessionId } })
+                .then(() => cmd.log('Got ClaimantConvicted()'))
+                // in which case we want to go to the convicted state
+                .then(() => tsn.fsm.didConvict()),
+
+              // or we can be convicted
+              waitForEvent(api.scryptVerifier, 'ChallengerConvicted', { filter: { sessionId } })
+                .then(() => cmd.log('Got ChallengerConvicted()'))
+                // in which case we want to go to the convicted state
+                .then(() => tsn.fsm.didConvict()),
+            ])
+          },
+          onEnterConvicted: async (tsn, didWin) => {
+            resolve(didWin)
+          },
         },
       })
 

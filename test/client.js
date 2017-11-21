@@ -33,7 +33,7 @@ contract('ClaimManager', function(accounts) {
     const steps = 2050;
     const claimDeposit = 1;
 
-    beforeEach(async () => {
+    before(async () => {
         scryptRunner = await ScryptRunner.new()
         scryptVerifier = await ScryptVerifier.new()
         claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address);
@@ -46,8 +46,8 @@ contract('ClaimManager', function(accounts) {
         it("challenger challenges", async () => {
             let tx, session, result, log, deposit;
 
-            await claimManager.makeDeposit({from: claimant, value: 100});
-            await claimManager.makeDeposit({from: challenger, value: 100});
+            await claimManager.makeDeposit({from: claimant, value: claimDeposit});
+            await claimManager.makeDeposit({from: challenger, value: claimDeposit});
 
             tx = await claimManager.checkScrypt("foo", "062f503253482f0472d35454085fffed", claimant, {from: dogeRelayAddress})
             log = tx.logs.find(l => l.event === 'ClaimCreated')
@@ -75,7 +75,7 @@ contract('ClaimManager', function(accounts) {
             tx = await scryptVerifier.query(claimID, 1, {from: challenger})
             session = newSession(await scryptVerifier.getSession.call(claimID))
             console.log("Session after first query: \n", session, "\n")
-            
+
             // claimant responds to first query.
             results = newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, {from: claimant}))
             tx = await scryptVerifier.respond(claimID, session.medStep, results.stateHash, {from: claimant})
@@ -99,14 +99,15 @@ contract('ClaimManager', function(accounts) {
             // the final call for the verification game
             // can only happen when lowStep + 1 == highStep (typically lowStep = 0, highStep = 1)
             tx = await scryptVerifier.performStepVerification(claimID, preState, postState, proof, claimManager.address, {from: claimant, gas: 3000000})
+
             log = tx.logs.find(l => l.event === 'ChallengerConvicted')
             assert.equal(log.args.sessionId.toNumber(), claimID)
             log = tx.logs.find(l => l.event === 'ClaimantConvicted')
             assert.equal(log, undefined)
-            
+
             // check that the callback to ClaimManager went through.
             const claimDecidedEvent = claimManager.ClaimDecided({fromBlock: 0, toBlock: 'latest'});
-            claimDecidedEvent.watch((err, resp) => { 
+            claimDecidedEvent.watch((err, resp) => {
                 assert.equal(claimDecidedEvent.args.claimID, claimID)
                 assert.equal(claimDecidedEvent.args.winner, claimant)
                 assert.equal(claimDecidedEvent.args.loser, challenger)
@@ -114,7 +115,7 @@ contract('ClaimManager', function(accounts) {
             claimDecidedEvent.stopWatching()
 
             const gamesEndedEvent = claimManager.ClaimVerificationGamesEnded({fromBlock: 0, toBlock: 'latest'});
-            gamesEndedEvent.watch((err, resp) => { 
+            gamesEndedEvent.watch((err, resp) => {
                 assert.equal(gamesEndedEvent.args.claimID, claimID)
                 assert.equal(gamesEndedEvent.args.winner, claimant)
                 assert.equal(gamesEndedEvent.args.loser, challenger)
@@ -125,7 +126,7 @@ contract('ClaimManager', function(accounts) {
             deposit = await claimManager.getBondedDeposit.call(claimID, claimant, {from: claimant})
             assert.equal(deposit.toNumber(), 2 * claimDeposit)
             deposit = await claimManager.getBondedDeposit.call(claimID, challenger, {from: claimant})
-            assert.equal(deposit.toNumber(), 0) 
+            assert.equal(deposit.toNumber(), 0)
         });
     });
 });

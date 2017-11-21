@@ -1,8 +1,8 @@
 module.exports = {
   toSession: (data) => ({
-    lowStep: data[0].toNumber(),
-    medStep: data[1].toNumber(),
-    highStep: data[2].toNumber(),
+    lowStep: data[0],
+    medStep: data[1],
+    highStep: data[2],
     input: data[3],
     medHash: data[4],
   }),

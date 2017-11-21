@@ -78,8 +78,8 @@ module.exports = async (web3, contractAddresses) => {
     },
     /**
      * @desc get the state proof and hash from scryptRunner
-     * @param input
-     * @param step
+     * @param input original input
+     * @param step compute up to this step
      * @return Result
      */
     getResult: async (input, step) => {
