@@ -14,10 +14,23 @@ contract ScryptVerifier is ScryptFramework, Verifier {
         _;
     }
 
-    function isInitiallyValid(VerificationSession storage session) internal returns (bool) {
+    function isInitiallyValid(VerificationSession storage session)
+        internal
+        returns (bool)
+    {
         return session.output.length == 32 && session.highStep == 2050;
     }
-    function performStepVerificationSpecific(VerificationSession storage, uint step, bytes preState, bytes postState, bytes proof) internal returns (bool) {
+
+    function performStepVerificationSpecific(
+        VerificationSession storage,
+        uint step,
+        bytes preState,
+        bytes postState,
+        bytes proof
+    )
+        internal
+        returns (bool)
+    {
         return verifyStep(step, preState, postState, proof);
     }
 
@@ -31,7 +44,11 @@ contract ScryptVerifier is ScryptFramework, Verifier {
     *
     * @return returns true on success
     */
-    function verifyStep(uint step, bytes preState, bytes postState, bytes proof) pure public returns (bool success) {
+    function verifyStep(uint step, bytes preState, bytes postState, bytes proof)
+        pure
+        public
+        returns (bool success)
+    {
         State memory state;
         if (step == 0) {
             // pre-state is input
@@ -40,26 +57,30 @@ contract ScryptVerifier is ScryptFramework, Verifier {
         }
         bool error;
         (error, state) = decodeState(preState);
-        if (error) return false;
+
+        if (error) { return false; }
 
         if (step < 2049) {
             Proofs memory proofs;
             (error, proofs.proof) = toArray(proof);
-            if (error) return false;
+            if (error) { return false; }
 
             runStep(state, step - 1, proofs);
-            if (proofs.verificationError) return false;
+            if (proofs.verificationError) { return false; }
 
             return equal(encodeState(state), postState);
         } else if (step == 2049) {
-            if (keccak256(proof) != state.inputHash) return false;
+            if (keccak256(proof) != state.inputHash) { return false; }
             return equal(finalStateToOutput(state, proof), postState);
         } else {
             return false;
         }
     }
 
-    function initMemory(State memory) pure internal {
+    function initMemory(State memory)
+        pure
+        internal
+    {
     }
 
     /**
@@ -71,7 +92,11 @@ contract ScryptVerifier is ScryptFramework, Verifier {
     *
     * @return returns the read result
     */
-    function readMemory(State memory state, uint index, Proofs memory proofs) pure internal returns (uint a, uint b, uint c, uint d) {
+    function readMemory(State memory state, uint index, Proofs memory proofs)
+        pure
+        internal
+        returns (uint a, uint b, uint c, uint d)
+    {
         require(index < 1024);
 
         preCheckProof(state, index, proofs);
@@ -91,9 +116,11 @@ contract ScryptVerifier is ScryptFramework, Verifier {
     * @param values the values to write
     * @param proofs the write proofs
     *
-    * @return 
     */
-    function writeMemory(State memory state, uint index, uint[4] values, Proofs memory proofs) pure internal {
+    function writeMemory(State memory state, uint index, uint[4] values, Proofs memory proofs)
+        pure
+        internal
+    {
         preCheckProof(state, index, proofs);
 
         proofs.proof[0] = bytes32(values[0]);
@@ -106,7 +133,7 @@ contract ScryptVerifier is ScryptFramework, Verifier {
     }
 
     /**
-    * @dev 
+    * @dev
     *
     * @param state the state vars
     * @param index the index of fullMemory
@@ -114,8 +141,13 @@ contract ScryptVerifier is ScryptFramework, Verifier {
     *
     * @return return whether the verification passed.
     */
-    function preCheckProof(State memory state, uint index, Proofs memory proofs) pure internal returns (bool) {
+    function preCheckProof(State memory state, uint index, Proofs memory proofs)
+        pure
+        internal
+        returns (bool)
+    {
         require(index < 1024);
+
         if (proofs.proof.length != 14) {
             proofs.verificationError = true;
             return false;
@@ -125,18 +157,23 @@ contract ScryptVerifier is ScryptFramework, Verifier {
             proofs.verificationError = true;
             return false;
         }
+
         return true;
     }
 
     /**
-    * @dev 
+    * @dev
     *
     * @param proof something
     * @param index something
     *
-    * @return 
+    * @return proofHash bytes32
     */
-    function executeProof(bytes32[] proof, uint index) pure internal returns (bytes32) {
+    function executeProof(bytes32[] proof, uint index)
+        pure
+        internal
+        returns (bytes32)
+    {
         bytes32 h = keccak256(proof[0], proof[1], proof[2], proof[3]);
         for (uint step = 0; step < 10; step++) {
             if (index % 2 == 0) {
