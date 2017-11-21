@@ -73,7 +73,7 @@ contract('ClaimManager', function(accounts) {
             var session = await scryptVerifier.getSession.call(claimID)
             console.log(("New response for session " + claimID).blue)
             console.log(session[1].toNumber());
-            var results = await scryptRunner.getStateProofAndHash.call(session[3], session[1].toNumber(), {from: claimant})
+            var results = await scryptRunner.getStateProofAndHash.call(session[3], 85, {from: claimant})
 
         });
     });
