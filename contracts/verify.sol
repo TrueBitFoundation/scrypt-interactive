@@ -147,7 +147,7 @@ contract Verifier {
         else
             require(false);
     }
-    
+
     function challengerConvicted(uint session) internal {
         disable(session);
         ChallengerConvicted(session);
@@ -160,7 +160,7 @@ contract Verifier {
         delete sessions[session];
     }
 
-    function getSession(uint session) public returns (uint, uint, uint, bytes, bytes32) {
+    function getSession(uint session) public view returns (uint, uint, uint, bytes, bytes32) {
         VerificationSession storage sessionStruct = sessions[session];
         return (sessionStruct.lowStep, sessionStruct.medStep, sessionStruct.highStep, sessionStruct.input, sessionStruct.medHash);
     }
