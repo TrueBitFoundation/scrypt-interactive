@@ -1,9 +1,9 @@
 pragma solidity ^0.4.0;
 
 import {ScryptFramework} from "./scryptFramework.sol";
- 
+
 /**
-* @title 
+* @title
 * @author Christian Reitwiessner
 */
 contract ScryptRunner is ScryptFramework {
@@ -33,7 +33,7 @@ contract ScryptRunner is ScryptFramework {
             uint internalStep = upToStep - 1;
             for (uint i = 0; i < internalStep; i++) {
                 runStep(s, i, proofs);
-            }   
+            }
             proofs.generateProofs = true;
             if (internalStep < 2048) {
                 runStep(s, internalStep, proofs);
