@@ -7,7 +7,7 @@ import {ScryptVerifier} from "./scryptVerifier.sol";
 
 contract ClaimManager is DepositsManager {
     uint private numClaims = 0;     // index as key for the claims mapping.
-    uint private minDeposit = 1;    // TODO: what should the minimum deposit be?
+    uint public minDeposit = 1;    // TODO: what should the minimum deposit be?
 
     // a claim goes through two stages after being created:
     // stage 1: new challenges are allowed.
@@ -15,16 +15,15 @@ contract ClaimManager is DepositsManager {
     // the claim exists until all verification games are played out.
     // reasoning behind having two stages is to prevent DoS attacks;
     // i.e. a malicious adversary cannot sybil challenge a claim after challengeTimeout blocks have passed.
-    uint private challengeTimeout = 20;
+    uint public challengeTimeout = 20;
 
     // blocks to wait for callback from scryptVerifier,
     // before moving onto the next.
     // TODO: we're not using this yet.
-    uint private verificationGameTimeout = 40;
+    uint public verificationGameTimeout = 40;
 
-    address dogeRelayAddress;
-    address receiver;
-    address scryptVerifierAddress;
+    address public dogeRelayAddress;
+    address public scryptVerifierAddress;
 
     event DepositBonded(uint claimID, address account, uint amount);
     event DepositUnbonded(uint claimID, address account, uint amount);
@@ -49,25 +48,26 @@ contract ClaimManager is DepositsManager {
     }
 
     mapping(uint => ScryptClaim) private claims;
-    
+
     modifier onlyBy(address _account) {
         require(msg.sender == _account);
         _;
     }
 
     ScryptVerifier sv;
- 
+
     // @dev – the constructor
     function ClaimManager(address _dogeRelayAddress, address _scryptVerifierAddress) public {
         owner = msg.sender;
         dogeRelayAddress = _dogeRelayAddress;
-        sv = ScryptVerifier(_scryptVerifierAddress);
+        scryptVerifierAddress = _scryptVerifierAddress;
+        sv = ScryptVerifier(scryptVerifierAddress);
     }
 
     // @dev – locks up part of the a user's deposit into a claim.
     // @param claimID – the claim id.
     // @param account – the user's address.
-    // @param amount – the amount of deposit to lock up. 
+    // @param amount – the amount of deposit to lock up.
     // @return – the user's deposit bonded for the claim.
     function bondDeposit(uint claimID, address account, uint amount) private returns (uint) {
         ScryptClaim storage claim = claims[claimID];
@@ -77,7 +77,7 @@ contract ClaimManager is DepositsManager {
         DepositBonded(claimID, account, amount);
         return claim.bondedDeposits[account];
     }
-    
+
     // @dev – unlocks a user's bonded deposits from a claim.
     // @param claimID – the claim id.
     // @param account – the user's address.
@@ -91,7 +91,7 @@ contract ClaimManager is DepositsManager {
 
         return bondedDeposit;
     }
- 
+
     // @dev – check whether a DogeCoin blockHash was calculated correctly from the plaintext block header.
     // only callable by the DogeRelay contract.
     // @param _plaintext – the plaintext blockHeader.
@@ -109,7 +109,7 @@ contract ClaimManager is DepositsManager {
         claim.verificationOngoing = false;
         claim.createdAt = block.number;
 
-        bondDeposit(numClaims, claimant, minDeposit); 
+        bondDeposit(numClaims, claimant, minDeposit);
         ClaimCreated(numClaims, claim.claimant, claim.plaintext, claim.blockHash);
 
         numClaims.add(1);
@@ -137,7 +137,7 @@ contract ClaimManager is DepositsManager {
 
     // @dev – runs a verification game between the claimant and
     // the next queued-up challenger.
-    // 
+    //
     // @param claimID – the claim id.
     function runNextVerificationGame(uint claimID) public {
         ScryptClaim storage claim = claims[claimID];
@@ -145,10 +145,10 @@ contract ClaimManager is DepositsManager {
         // check if there is a challenger who has not the played verificationg game yet.
         if(claim.numChallengers > claim.currentChallenger) {
             require(claim.verificationOngoing == false);
- 
+
             // kick off a verification game.
             sv.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
-            ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger]);  
+            ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger]);
 
             claim.verificationOngoing = true;
             claim.currentChallenger = claim.currentChallenger.add(1);
@@ -173,9 +173,9 @@ contract ClaimManager is DepositsManager {
         uint depositToTransfer = claim.bondedDeposits[loser];
         delete claim.bondedDeposits[loser];
         claim.bondedDeposits[winner] = claim.bondedDeposits[winner].add(depositToTransfer);
-    
+
         ClaimDecided(claimID, winner, loser);
-        
+
         if (claim.claimant == loser) {
             // the claim is over.
             // note: no callback needed to the DogeRelay contract,
@@ -197,14 +197,14 @@ contract ClaimManager is DepositsManager {
     // @dev – check whether a claim has successfully withstood all challenges.
     // if successful, it will trigger a callback to the DogeRelay contract,
     // notifying it that the Scrypt blockhash was correctly calculated.
-    // 
+    //
     // @param claimID – the claim ID.
     function checkClaimSuccessful(uint claimID) public {
         ScryptClaim storage claim = claims[claimID];
-        
+
         // check that the claim is in Stage w (i.e. not accepting new challenges).
         require(block.number.sub(claim.createdAt) > challengeTimeout);
-        
+
         // check that there is no ongoing verification game.
         require(claim.verificationOngoing == false);
 
@@ -217,6 +217,16 @@ contract ClaimManager is DepositsManager {
         // DogeRelay.scryptVerified(claim.plaintext, claim.blockHash);
 
         ClaimSuccessful(claimID, claim.claimant, claim.plaintext, claim.blockHash);
+    }
+
+    function firstChallenger(uint claimID) public view returns(address) {
+        require(claimID < numClaims);
+        return claims[claimID].challengers[0];
+    }
+
+    function createdAt(uint claimID) public view returns(uint) {
+        require(claimID < numClaims);
+        return claims[claimID].createdAt;
     }
 }
 
