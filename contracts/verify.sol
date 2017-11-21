@@ -94,13 +94,13 @@ contract Verifier {
     {
         VerificationSession storage s = sessions[sessionId];
         // Special case: first query
-        require(s.medHash != 0 || s.medStep == 0);
+        assert(s.medHash != 0 || s.medStep == 0);
         if (step == s.lowStep && step + 1 == s.medStep) {
-            // Final step of the binary search
+            // Final step of the binary search (upper end)
             s.highHash = s.medHash;
             s.highStep = step + 1;
         } else if (step == s.medStep && step + 1 == s.highStep) {
-            // Final step of the binary search
+            // Final step of the binary search (lower end)
             s.lowHash = s.medHash;
             s.lowStep = step;
         } else {
@@ -114,7 +114,6 @@ contract Verifier {
                     s.highHash = s.medHash;
                 } else {
                     require(step > s.medStep);
-                    require(s.medHash != 0);
                     s.lowStep = s.medStep;
                     s.lowHash = s.medHash;
                 }
@@ -133,7 +132,6 @@ contract Verifier {
         VerificationSession storage s = sessions[sessionId];
         // Require step to avoid replay problems
         require(step == s.medStep);
-        require(s.medHash == 0);
         if (hash == 0) {
             // Special "fold" signal
             challengerConvicted(sessionId);
@@ -193,8 +191,7 @@ contract Verifier {
             now > session.lastClaimantMessage + responseTime
         ) {
             claimantConvicted(sessionId);
-        }
-        else if (
+        } else if (
             session.lastClaimantMessage > session.lastChallengerMessage &&
             now > session.lastChallengerMessage + responseTime
         ) {
