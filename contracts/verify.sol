@@ -93,31 +93,44 @@ contract Verifier {
         public
     {
         VerificationSession storage s = sessions[sessionId];
-        // Special case: first query
-        assert(s.medHash != 0 || s.medStep == 0);
+
+        bool isFirstStep = s.medStep == 0;
+        bool haveMedHash = s.medHash != bytes32(0);
+        assert(isFirstStep || haveMedHash);
+        // ^ invariant if the step has been set but we don't have a hash for it
+
         if (step == s.lowStep && step + 1 == s.medStep) {
-            // Final step of the binary search (upper end)
+            // final step of the binary search (lower end)
             s.highHash = s.medHash;
             s.highStep = step + 1;
         } else if (step == s.medStep && step + 1 == s.highStep) {
-            // Final step of the binary search (lower end)
+            // final step of the binary search (upper end)
             s.lowHash = s.medHash;
             s.lowStep = step;
         } else {
+            // this next step must be in the correct range
             require(step > s.lowStep && step < s.highStep);
-            if (s.medStep == 0 && s.medHash == 0) {
-                // Special case: First query
-            } else {
-                require(s.medHash != 0);
+
+            // if this is NOT the first query, update the steps and assign the correct hash
+            // (if this IS the first query, we just want to initialize medStep and medHash)
+            if (!isFirstStep) {
                 if (step < s.medStep) {
+                    // if we're iterating lower,
+                    //   the new highest is the current middle
                     s.highStep = s.medStep;
                     s.highHash = s.medHash;
-                } else {
-                    require(step > s.medStep);
+                } else if (step > s.medStep) {
+                    // if we're iterating upwards,
+                    //   the new lowest is the current middle
                     s.lowStep = s.medStep;
                     s.lowHash = s.medHash;
+                } else {
+                    // and if we're requesting the midStep that we've already requested,
+                    //   there's nothing to do.
+                    // @TODO(shrugs) - should this revert?
                 }
             }
+
             s.medStep = step;
             s.medHash = bytes32(0);
         }
@@ -134,11 +147,16 @@ contract Verifier {
         require(step == s.medStep);
         if (hash == 0) {
             // Special "fold" signal
+            // @TODO(shrugs) - is this correct? should the claimant not fold here?
             challengerConvicted(sessionId);
             return;
         }
+
+        // record the claimed hash
         s.medHash = hash;
         s.lastClaimantMessage = now;
+
+        // notify watchers
         NewResponse(sessionId);
     }
 
@@ -154,8 +172,12 @@ contract Verifier {
     {
         VerificationSession storage s = sessions[sessionId];
         require(s.lowStep + 1 == s.highStep);
-        if (keccak256(preValue) != s.lowHash) claimantConvicted(sessionId);
-        if (keccak256(postValue) != s.highHash) claimantConvicted(sessionId);
+        // ^ must be at the end of the binary search according to the smart contract
+
+        if (keccak256(preValue) != s.lowHash) { claimantConvicted(sessionId); return; }
+        if (keccak256(postValue) != s.highHash) { return claimantConvicted(sessionId); return; }
+        // ^ if the claimant supplied anything other than what we know, convict them
+        // @TODO(shrugs) - why do we even have this if we already know this information?
 
         ClaimManager cm = ClaimManager(claimManager);
         if (performStepVerificationSpecific(s, s.lowStep, preValue, postValue, proofs)) {
