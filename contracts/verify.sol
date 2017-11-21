@@ -164,7 +164,7 @@ contract Verifier {
             cm.claimDecided(sessionId, s.claimant, s.challenger);
             challengerConvicted(sessionId);
         } else {
-            cm.claimDecided(sessionId, s.challenger, s.challenger);
+            cm.claimDecided(sessionId, s.challenger, s.claimant);
             claimantConvicted(sessionId);
         }
     }
