@@ -10,6 +10,13 @@ import {ClaimManager} from "./claimManager.sol";
   * @author Christian Reitwiessner
 */
 contract Verifier {
+
+    event NewClaim(uint sessionId);
+    event NewQuery(uint sessionId);
+    event NewResponse(uint sessionId);
+    event ChallengerConvicted(uint sessionId);
+    event ClaimantConvicted(uint sessionId);
+
     uint constant responseTime = 1 hours;
 
     struct VerificationSession {
@@ -29,10 +36,21 @@ contract Verifier {
     }
     VerificationSession[] public sessions;
 
-    function claimComputation(address challenger, address claimant, bytes _input, bytes _output, uint steps) public {
+    function claimComputation(
+        address challenger,
+        address claimant,
+        bytes _input,
+        bytes _output,
+        uint steps
+    )
+        public
+        returns (uint)
+    {
         require(steps > 2);
+
+        uint sessionId = sessions.length;
         sessions.push(VerificationSession({
-            id: sessions.length,
+            id: sessionId,
             claimant: claimant,
             challenger: challenger,
             input: _input,
@@ -46,25 +64,35 @@ contract Verifier {
             highStep: steps,
             highHash: keccak256(_output)
         }));
-        require(isInitiallyValid(sessions[sessions.length - 1]));
-        NewClaim(sessions.length - 1);
-    }
-    event NewClaim(uint sessionId);
-    event NewQuery(uint sessionId);
-    event NewResponse(uint sessionId);
-    event ChallengerConvicted(uint sessionId);
-    event ClaimantConvicted(uint sessionId);
 
-    modifier onlyClaimant(uint id) { require(msg.sender == sessions[id].claimant); _; }
-    modifier onlyChallenger(uint id) {
-        var session = sessions[id];
-        if (session.challenger == 0) session.challenger = msg.sender;
-        else require(msg.sender == session.challenger);
+        require(isInitiallyValid(sessions[sessionId]));
+
+        NewClaim(sessionId);
+        return sessionId;
+    }
+
+    modifier onlyClaimant(uint sessionId) {
+        require(msg.sender == sessions[sessionId].claimant);
         _;
     }
 
-    function query(uint session, uint step) onlyChallenger(session) public {
-        var s = sessions[session];
+    // @TODO(shrugs) - this allows anyone to challenge an empty claim
+    //  is this what we want?
+    modifier onlyChallenger(uint sessionId) {
+        var session = sessions[sessionId];
+        if (session.challenger == address(0)) {
+            session.challenger = msg.sender;
+        } else {
+            require(msg.sender == session.challenger);
+        }
+        _;
+    }
+
+    function query(uint sessionId, uint step)
+        onlyChallenger(sessionId)
+        public
+    {
+        VerificationSession storage s = sessions[sessionId];
         // Special case: first query
         require(s.medHash != 0 || s.medStep == 0);
         if (step == s.lowStep && step + 1 == s.medStep) {
@@ -95,73 +123,119 @@ contract Verifier {
             s.medHash = bytes32(0);
         }
         s.lastChallengerMessage = now;
-        NewQuery(session);
+        NewQuery(sessionId);
     }
 
-    function respond(uint session, uint step, bytes32 hash) onlyClaimant(session) public {
-        var s = sessions[session];
+    function respond(uint sessionId, uint step, bytes32 hash)
+        onlyClaimant(sessionId)
+        public
+    {
+        VerificationSession storage s = sessions[sessionId];
         // Require step to avoid replay problems
         require(step == s.medStep);
         require(s.medHash == 0);
         if (hash == 0) {
             // Special "fold" signal
-            challengerConvicted(session);
+            challengerConvicted(sessionId);
             return;
         }
         s.medHash = hash;
         s.lastClaimantMessage = now;
-        NewResponse(session);
+        NewResponse(sessionId);
     }
 
-    function performStepVerification(uint session, bytes preValue, bytes postValue, bytes proofs, address claimManager) onlyClaimant(session) public {
-        var s = sessions[session];
+    function performStepVerification(
+        uint sessionId,
+        bytes preValue,
+        bytes postValue,
+        bytes proofs,
+        address claimManager
+    )
+        onlyClaimant(sessionId)
+        public
+    {
+        VerificationSession storage s = sessions[sessionId];
         require(s.lowStep + 1 == s.highStep);
-        if (keccak256(preValue) != s.lowHash) claimantConvicted(session);
-        if (keccak256(postValue) != s.highHash) claimantConvicted(session);
+        if (keccak256(preValue) != s.lowHash) claimantConvicted(sessionId);
+        if (keccak256(postValue) != s.highHash) claimantConvicted(sessionId);
+
         ClaimManager cm = ClaimManager(claimManager);
         if (performStepVerificationSpecific(s, s.lowStep, preValue, postValue, proofs)) {
-            cm.claimDecided(session, s.claimant, s.challenger);
-            challengerConvicted(session);
+            cm.claimDecided(sessionId, s.claimant, s.challenger);
+            challengerConvicted(sessionId);
         } else {
-            cm.claimDecided(session, s.challenger, s.challenger);
-            claimantConvicted(session);
+            cm.claimDecided(sessionId, s.challenger, s.challenger);
+            claimantConvicted(sessionId);
         }
     }
 
-    function performStepVerificationSpecific(VerificationSession storage session, uint step, bytes preState, bytes postState, bytes proof) internal returns (bool);
-    function isInitiallyValid(VerificationSession storage session) internal returns (bool);
+    function performStepVerificationSpecific(
+        VerificationSession storage session,
+        uint step,
+        bytes preState,
+        bytes postState,
+        bytes proof
+    )
+        internal
+        returns (bool);
 
-    function timeout(uint sessionId) public {
+    function isInitiallyValid(VerificationSession storage session)
+        internal
+        returns (bool);
+
+    function timeout(uint sessionId)
+        public
+    {
         var session = sessions[sessionId];
         require(session.claimant != 0);
         if (
             session.lastChallengerMessage > session.lastClaimantMessage &&
             now > session.lastClaimantMessage + responseTime
-        )
+        ) {
             claimantConvicted(sessionId);
+        }
         else if (
             session.lastClaimantMessage > session.lastChallengerMessage &&
             now > session.lastChallengerMessage + responseTime
-        )
+        ) {
             challengerConvicted(sessionId);
-        else
+        } else {
             require(false);
+        }
     }
 
-    function challengerConvicted(uint session) internal {
-        disable(session);
-        ChallengerConvicted(session);
-    }
-    function claimantConvicted(uint session) internal {
-        disable(session);
-        ClaimantConvicted(session);
-    }
-    function disable(uint session) internal {
-        delete sessions[session];
+    function challengerConvicted(uint sessionId)
+        internal
+    {
+        disable(sessionId);
+        ChallengerConvicted(sessionId);
     }
 
-    function getSession(uint session) public view returns (uint, uint, uint, bytes, bytes32) {
-        VerificationSession storage sessionStruct = sessions[session];
-        return (sessionStruct.lowStep, sessionStruct.medStep, sessionStruct.highStep, sessionStruct.input, sessionStruct.medHash);
+    function claimantConvicted(uint sessionId)
+        internal
+    {
+        disable(sessionId);
+        ClaimantConvicted(sessionId);
+    }
+
+    function disable(uint sessionId)
+        internal
+    {
+        delete sessions[sessionId];
+    }
+
+    function getSession(uint sessionId)
+        public
+        view
+        returns (uint, uint, uint, bytes, bytes32)
+    {
+        VerificationSession storage session = sessions[sessionId];
+        return (
+            session.lowStep,
+            session.medStep,
+            session.highStep,
+            session.input,
+            session.medHash
+        );
     }
 }

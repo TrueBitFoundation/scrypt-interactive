@@ -29,7 +29,7 @@ contract ClaimManager is DepositsManager {
     event DepositUnbonded(uint claimID, address account, uint amount);
     event ClaimCreated(uint claimID, address claimant, bytes plaintext, bytes blockHash);
     event ClaimChallenged(uint claimID, address challenger);
-    event ClaimVerificationGameStarted(uint claimID, address claimant, address challenger);
+    event ClaimVerificationGameStarted(uint claimID, address claimant, address challenger, uint sessionId);
     event ClaimDecided(uint claimID, address winner, address loser);
     event ClaimSuccessful(uint claimID, address claimant, bytes plaintext, bytes blockHash);
     event VerificationGamesEnded(uint claimID);
@@ -147,8 +147,8 @@ contract ClaimManager is DepositsManager {
             require(claim.verificationOngoing == false);
 
             // kick off a verification game.
-            sv.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
-            ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger]);
+            uint sessionId = sv.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
+            ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger], sessionId);
 
             claim.verificationOngoing = true;
             claim.currentChallenger = claim.currentChallenger.add(1);
