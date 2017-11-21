@@ -1,5 +1,5 @@
 pragma solidity ^0.4.0;
-
+import {ClaimManager} from "./claimManager.sol";
 // Simple generic challenge-response computation verifier.
 //
 // @TODO:
@@ -113,14 +113,17 @@ contract Verifier {
         NewResponse(session);
     }
 
-    function performStepVerification(uint session, bytes preValue, bytes postValue, bytes proofs) onlyClaimant(session) public {
+    function performStepVerification(uint session, bytes preValue, bytes postValue, bytes proofs, address claimManager) onlyClaimant(session) public {
         var s = sessions[session];
         require(s.lowStep + 1 == s.highStep);
         if (keccak256(preValue) != s.lowHash) claimantConvicted(session);
         if (keccak256(postValue) != s.highHash) claimantConvicted(session);
+        ClaimManager cm = ClaimManager(claimManager);
         if (performStepVerificationSpecific(s, s.lowStep, preValue, postValue, proofs)) {
+            cm.claimDecided(session, s.claimant, s.challenger);
             challengerConvicted(session);
         } else {
+            cm.claimDecided(session, s.challenger, s.challenger);
             claimantConvicted(session);
         }
     }

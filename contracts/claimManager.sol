@@ -33,6 +33,7 @@ contract ClaimManager is DepositsManager {
     event ClaimVerificationGameStarted(uint claimID, address claimant, address challenger);
     event ClaimDecided(uint claimID, address winner, address loser);
     event ClaimSuccessful(uint claimID, address claimant, bytes plaintext, bytes blockHash);
+    event VerificationGamesEnded(uint claimID);
 
     struct ScryptClaim {
         uint id;
@@ -142,16 +143,19 @@ contract ClaimManager is DepositsManager {
         ScryptClaim storage claim = claims[claimID];
 
         // check if there is a challenger who has not the played verificationg game yet.
-        require(claim.numChallengers > claim.currentChallenger);
-        
-        require(claim.verificationOngoing == false);
+        if(claim.numChallengers > claim.currentChallenger) {
+            require(claim.verificationOngoing == false);
  
-        // kick off a verification game.
-        sv.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
-        ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger]);
+            // kick off a verification game.
+            sv.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
+            ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger]);  
 
-        claim.verificationOngoing = true;
-        claim.currentChallenger = claim.currentChallenger.add(1);
+            claim.verificationOngoing = true;
+            claim.currentChallenger = claim.currentChallenger.add(1);
+        }else{
+            require(claim.verificationOngoing == false);
+            VerificationGamesEnded(claimID);
+        }
     }
 
     // @dev – called when a verification game has ended.

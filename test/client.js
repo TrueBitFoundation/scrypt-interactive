@@ -4,6 +4,28 @@ var ScryptRunner = artifacts.require('./scryptRunner.sol');
 var Web3 = require('web3');
 var web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 
+function newSession(sessionData) {
+    return {
+        lowStep: sessionData[0].toNumber(),
+        medStep: sessionData[1].toNumber(),
+        highStep: sessionData[2].toNumber(),
+        input: sessionData[3],
+        medHash: sessionData[4]
+    }
+}
+
+function newResult(resultData) {
+    return {
+        state: resultData[0],
+        proof: resultData[1],
+        stateHash: resultData[2]
+    }
+}
+
+function timeout(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 contract('ClaimManager', function(accounts) {
     const dogeRelayAddress = accounts[0]
     let claimManager, scryptVerifier, scryptRunner;
@@ -43,38 +65,49 @@ contract('ClaimManager', function(accounts) {
             assert.equal(log.args.claimID.toNumber(), claimID)
             assert.equal(log.args.claimant, claimant)
             assert.equal(log.args.challenger, challenger)
-
-            var session = await scryptVerifier.getSession.call(claimID)
-            var lowStep = session[0].toNumber();
-            var medStep = session[1].toNumber();
-            var highStep = session[2].toNumber();
-            var input = session[3];
             
-            tx = await scryptVerifier.query(claimID, Math.floor(steps / 2), {from: challenger})
+            //First challenge
+            //Each call to query sets the new medstep
+            //Intial high step is currently 2050 (assuming this is the final number of steps)
+            tx = await scryptVerifier.query(claimID, 1, {from: challenger})
 
-            log = tx.logs.find(log => log.event === 'NewQuery')
+            var session = newSession(await scryptVerifier.getSession.call(claimID))
+            console.log(session)
+            var results = newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, {from: claimant}))
+            tx = await scryptVerifier.respond(claimID, session.medStep, results.stateHash, {from: claimant})
+
+            var session = newSession(await scryptVerifier.getSession.call(claimID))
+            var results = newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, {from: claimant}))
+            tx = await scryptVerifier.query(claimID, 0, {from: challenger})
+
+            var session = newSession(await scryptVerifier.getSession.call(claimID))
+
+            var preState = newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.lowStep, {from: claimant})).state
+            var postStateAndProof = newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.highStep, {from: claimant}))
+            var postState = postStateAndProof.state
+            var proof = postStateAndProof.proof || '0x00'
+            console.log("lowStep: " + session.lowStep)
+            console.log("highStep: " + session.highStep)
+            console.log("... using\n   PreState:  ".yellow + preState + "\n   PostState: ".yellow + postState + "\n   Proof:    ".yellow + proof)
+            //the final call for the verification game
+            //can only happen when lowStep + 1 == highStep (typically lowStep = 0, highStep = 1)
+            tx = await scryptVerifier.performStepVerification(claimID, preState, postState, proof, claimManager.address, {from: claimant, gas: 3000000})
+
+            log = tx.logs.find(log => log.event === 'ChallengerConvicted')
             assert.equal(log.args.sessionId.toNumber(), claimID)
 
-            var results = await scryptRunner.getStateProofAndHash.call(input, medStep, {from: claimant})
-
-            var session = await scryptVerifier.getSession.call(claimID)
-            var lowStep = session[0].toNumber();
-            var medStep = session[1].toNumber();
-            var highStep = session[2].toNumber();
-            var input = session[3];
-            var medHash = session[4];
-
-            tx = await scryptVerifier.respond(claimID, medStep, results[2], {from: claimant})
-
-            log = tx.logs.find(log => log.event === 'NewResponse')
+            log = tx.logs.find(log => log.event === 'ClaimantConvicted')
+            assert.equal(log, undefined)
             assert.equal(log.args.sessionId.toNumber(), claimID)
 
-            console.log("Got NewResponse event...".blue)
-            var session = await scryptVerifier.getSession.call(claimID)
-            console.log(("New response for session " + claimID).blue)
-            console.log(session[1].toNumber());
-            var results = await scryptRunner.getStateProofAndHash.call(session[3], 85, {from: claimant})
+            //TODO: Track events from claimManager to pick up these events
+            // log1 = events.find(log => log.event === 'ClaimDecided')
+            // assert.equal(log1.args.claimID.toNumber(), claimID)
+            // assert.equal(log1.args.winner, claimant)
+            // assert.equal(log1.args.loser, challenger)
 
+            // log2 = events.find(log => log.event === 'VerificationGamesEnded')
+            // assert.equal(log2.args.sessionId.toNumber(), claimID)
         });
     });
 });
