@@ -60,12 +60,12 @@ contract('ClaimManager', function(accounts) {
             assert.equal(log.args.claimID.toNumber(), claimID)
 
             tx = await claimManager.runNextVerificationGame(claimID, {from: claimant})
-            
+
             log = tx.logs.find(log => log.event === 'ClaimVerificationGameStarted')
             assert.equal(log.args.claimID.toNumber(), claimID)
             assert.equal(log.args.claimant, claimant)
             assert.equal(log.args.challenger, challenger)
-            
+
             //First challenge
             //Each call to query sets the new medstep
             //Intial high step is currently 2050 (assuming this is the final number of steps)
@@ -98,7 +98,7 @@ contract('ClaimManager', function(accounts) {
 
             log = tx.logs.find(log => log.event === 'ClaimantConvicted')
             assert.equal(log, undefined)
-            assert.equal(log.args.sessionId.toNumber(), claimID)
+            // assert.equal(log.args.sessionId.toNumber(), claimID)
 
             //TODO: Track events from claimManager to pick up these events
             // log1 = events.find(log => log.event === 'ClaimDecided')
