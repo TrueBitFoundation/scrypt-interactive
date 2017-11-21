@@ -32,7 +32,7 @@ contract ClaimManager is DepositsManager {
     event ClaimVerificationGameStarted(uint claimID, address claimant, address challenger, uint sessionId);
     event ClaimDecided(uint claimID, address winner, address loser);
     event ClaimSuccessful(uint claimID, address claimant, bytes plaintext, bytes blockHash);
-    event VerificationGamesEnded(uint claimID);
+    event ClaimVerificationGamesEnded(uint claimID);
 
     struct ScryptClaim {
         uint id;
@@ -75,6 +75,15 @@ contract ClaimManager is DepositsManager {
         deposits[account] = deposits[account].sub(amount);
         claim.bondedDeposits[account] = claim.bondedDeposits[account].add(amount);
         DepositBonded(claimID, account, amount);
+        return claim.bondedDeposits[account];
+    }
+
+    // @dev – accessor for a claims bonded deposits.
+    // @param claimID – the claim id.
+    // @param account – the user's address.
+    // @return – the user's deposit bonded for the claim.
+    function getBondedDeposit(uint claimID, address account) public view returns (uint) {
+        ScryptClaim storage claim = claims[claimID];
         return claim.bondedDeposits[account];
     }
 
@@ -143,7 +152,7 @@ contract ClaimManager is DepositsManager {
         ScryptClaim storage claim = claims[claimID];
 
         // check if there is a challenger who has not the played verificationg game yet.
-        if(claim.numChallengers > claim.currentChallenger) {
+        if (claim.numChallengers > claim.currentChallenger) {
             require(claim.verificationOngoing == false);
 
             // kick off a verification game.
@@ -152,9 +161,9 @@ contract ClaimManager is DepositsManager {
 
             claim.verificationOngoing = true;
             claim.currentChallenger = claim.currentChallenger.add(1);
-        }else{
+        } else {
             require(claim.verificationOngoing == false);
-            VerificationGamesEnded(claimID);
+            ClaimVerificationGamesEnded(claimID);
         }
     }
 
