@@ -9,6 +9,7 @@
   "author": "chriseth",
   "license": "MIT",
   "dependencies": {
+    "truffle": "^4.0.1",
     "web3": "^0.19.0"
   },
   "devDependencies": {
