@@ -74,27 +74,27 @@ contract('ClaimManager', function(accounts) {
             // Intial high step is currently 2050 (assuming this is the final number of steps)
             tx = await scryptVerifier.query(claimID, 1, {from: challenger})
             session = newSession(await scryptVerifier.getSession.call(claimID))
-            console.log("Session after first query: \n", session, "\n")
+            // console.log("Session after first query: \n", session, "\n")
 
             // claimant responds to first query.
             results = newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, {from: claimant}))
             tx = await scryptVerifier.respond(claimID, session.medStep, results.stateHash, {from: claimant})
             session = newSession(await scryptVerifier.getSession.call(claimID))
-            console.log("Session after first response: \n", session, "\n")
+            // console.log("Session after first response: \n", session, "\n")
             results = newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, {from: claimant}))
-            console.log("Results after first response: \n", session, "\n")
+            // console.log("Results after first response: \n", session, "\n")
 
             // second query from the challenger.
             tx = await scryptVerifier.query(claimID, 0, {from: challenger})
             session = newSession(await scryptVerifier.getSession.call(claimID))
-            console.log("Session after second query: \n", session, "\n")
+            // console.log("Session after second query: \n", session, "\n")
 
 
             var preState = newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.lowStep, {from: claimant})).state
             var postStateAndProof = newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.highStep, {from: claimant}))
             var postState = postStateAndProof.state
             var proof = postStateAndProof.proof || '0x00'
-            console.log("... using\n   PreState:  ".yellow + preState + "\n   PostState: ".yellow + postState + "\n   Proof:    ".yellow + proof + "\n")
+            // console.log("... using\n   PreState:  ".yellow + preState + "\n   PostState: ".yellow + postState + "\n   Proof:    ".yellow + proof + "\n")
 
             // the final call for the verification game
             // can only happen when lowStep + 1 == highStep (typically lowStep = 0, highStep = 1)
