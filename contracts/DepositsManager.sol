@@ -26,6 +26,9 @@ contract DepositsManager {
     // @return – the user's updated deposit amount.
     function makeDeposit() public payable returns (uint) {
         deposits[msg.sender] = deposits[msg.sender].add(msg.value);
+        
+        require(deposits[msg.sender] <= this.balance);
+
         DepositMade(msg.sender, msg.value);
         return deposits[msg.sender];
     }
