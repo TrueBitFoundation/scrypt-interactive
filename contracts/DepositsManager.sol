@@ -25,7 +25,7 @@ contract DepositsManager {
     // @dev – allows a user to deposit eth.
     // @return – the user's updated deposit amount.
     function makeDeposit() public payable returns (uint) {
-        deposits[msg.sender] = deposits[msg.sender].add(msg.value);
+        deposits[msg.sender] += msg.value;
         
         require(deposits[msg.sender] <= this.balance);
 
