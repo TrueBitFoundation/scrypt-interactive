@@ -268,7 +268,7 @@ library Salsa8 {
         y3 = y3 ^ ((t * 2**13) | (t / 2**(32-13)));
         t = y3 + y2;
         y0 = y0 ^ ((t * 2**18) | (t / 2**(32-18)));
-        return (y0, y1, y2, y3);        
+        return (y0, y1, y2, y3);
     }
 
     /**
@@ -322,7 +322,7 @@ library Salsa8 {
     * @param first a uint256 value containing the first half of the salsa matrix.
     * @param second a uint256 value containing the second half of the salsa matrix.
     *
-    * @return 
+    * @return f, s
     */
     function columnround(uint first, uint second) pure internal returns (uint f, uint s)
     {
@@ -414,7 +414,7 @@ library Salsa8 {
 
 library KeyDeriv {
   /**
-  * @dev hmacsha256 
+  * @dev hmacsha256
   *
   * @param key the key
   * @param message the message to hash
@@ -434,7 +434,7 @@ library KeyDeriv {
                 keyr |= bytes32(uint(key[i]) * 2**(8 * (63 - i)));
         }
         bytes32 threesix = 0x3636363636363636363636363636363636363636363636363636363636363636;
-        bytes32 fivec = 0x5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c; 
+        bytes32 fivec = 0x5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c;
         return sha256(fivec ^ keyl, fivec ^ keyr, sha256(threesix ^ keyl, threesix ^ keyr, message));
     }
 

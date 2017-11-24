@@ -1,6 +1,6 @@
 pragma solidity ^0.4.4;
 
-import './math/SafeMath.sol';
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
 contract DepositsManager {
     using SafeMath for uint;
@@ -26,7 +26,7 @@ contract DepositsManager {
     // @return – the user's updated deposit amount.
     function makeDeposit() public payable returns (uint) {
         deposits[msg.sender] += msg.value;
-        
+
         require(deposits[msg.sender] <= this.balance);
 
         DepositMade(msg.sender, msg.value);

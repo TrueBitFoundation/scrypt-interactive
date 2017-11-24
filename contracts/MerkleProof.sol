@@ -14,7 +14,7 @@ pragma solidity ^0.4.4;
  * node is the left (0) or right (1) child node and Sibling is a 32 byte
  * value which is the other sibling.
  * Example:
- * 
+ *
  *
  */
 library BinaryMerkleProof {
@@ -58,7 +58,7 @@ library BinaryMerkleProof {
     * @param _index the offset at which to set value _value
     * @param _value the value to set inside the merkle proof
     *
-    * @return 
+    * @return none
     */
     function setBytes32Slice(bytes _proof, uint _index, bytes32 _value) pure public {
         _proof[_index + 31]; // bounds checking

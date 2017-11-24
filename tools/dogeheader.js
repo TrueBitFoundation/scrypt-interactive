@@ -13,7 +13,7 @@
  */
 
 // @return serialized blockheader
-function serialize(blockheader) {
+function serialize (blockheader) {
   var bw = new BufferWriter()
 
   bw.writeUInt32LE(blockheader.version)
@@ -27,10 +27,9 @@ function serialize(blockheader) {
 }
 
 // @return hex-encoded hash of blockheader
-function hash(serializedBlockheader) {
+function hash (serializedBlockheader) {
   return hexReverse(toHex(sha256(sha256(serializedBlockheader))))
 }
-
 
 // via: https://dogechain.info/api/v1/block/1976514
 

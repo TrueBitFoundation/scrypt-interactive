@@ -1,3 +1,0 @@
-
-require('./client')
-require('./verification')

@@ -11,7 +11,10 @@
     "jest"    : true
   },
   "globals" : {
-
+    "artifacts": false,
+    "contract": false,
+    "web3": false,
+    "assert": false
   },
   "rules": {
 
@@ -22,6 +25,7 @@
     "indent": [2, 2],
     "quotes": [2, "single"],
     "no-unused-vars": [1, {}],
+    "no-unused-expressions": 0,
     "no-use-before-define": 0,
     "semi": ["error", "never"],
     "eqeqeq": [2, "smart"],
