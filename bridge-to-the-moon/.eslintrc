@@ -1,6 +1,7 @@
 {
   "extends" : [
-    "standard"
+    "standard",
+    "plugin:promise/recommended"
   ],
   "plugins": [
     "promise"
@@ -43,6 +44,6 @@
     "space-before-function-paren": ["error", "always"],
 
     "max-len": [2, 120, 2],
-    "generator-star-spacing": ["error", "before"],
+    "generator-star-spacing": ["error", "before"]
   }
 }
