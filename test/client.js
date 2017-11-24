@@ -50,7 +50,7 @@ contract('ClaimManager', function(accounts) {
         it("claimant checks scrypt", async () => {
             await claimManager.makeDeposit({from: claimant, value: claimDeposit});
 
-            tx = await claimManager.checkScrypt("foo", "062f503253482f0472d35454085fffed", claimant, {from: dogeRelayAddress})
+            tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, claimant, {from: dogeRelayAddress})
             log = tx.logs.find(l => l.event === 'ClaimCreated')
             claimID = log.args.claimID.toNumber()
             // check that the claimant's deposits were bonded.

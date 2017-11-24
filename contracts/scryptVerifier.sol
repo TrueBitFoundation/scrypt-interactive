@@ -18,7 +18,7 @@ contract ScryptVerifier is ScryptFramework, Verifier {
         internal
         returns (bool)
     {
-        return session.output.length == 32 && session.highStep == 2050;
+        return session.output.length == 64 && session.highStep == 2050;
     }
 
     function performStepVerificationSpecific(
