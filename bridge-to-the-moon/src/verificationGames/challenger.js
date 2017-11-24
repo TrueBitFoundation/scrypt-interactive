@@ -9,7 +9,6 @@ const waitForEvent = require('../utils/waitForEvent')
 module.exports = (web3, api) => ({
   run: async (cmd, claim, sessionId) => new Promise(async (resolve, reject) => {
     try {
-      // onBefore, onEnter, onLeave, onAfter
       const m = new StateMachine({
         init: 'init',
         transitions: [
@@ -29,7 +28,8 @@ module.exports = (web3, api) => ({
               // is this the first query? we don't have a submission to check
               // so we'll just go in the middle
               cmd.log('This is the first query()')
-              newMedStep = Math.floor((session.highStep - session.lowStep) / 2)
+
+              newMedStep = session.lowStep.add(session.highStep.sub(session.lowStep).div(2).floor())
             } else {
               // otherwise, let's see if the session.medHash is right or not
               const result = await api.getResult(session.input, session.medStep)
@@ -37,11 +37,11 @@ module.exports = (web3, api) => ({
                 cmd.log(`The claimant's answer of ${session.medHash} DID equal our calculation of ${result.stateHash} so the error must be after step ${session.medStep}`)
                 // the claimant is right at least up to the current medStep
                 // so the issue is somewhere between (medStep, highStep]
-                newMedStep = Math.floor((session.highStep - session.medStep) / 2)
+                newMedStep = session.medStep.add(session.highStep.sub(session.medStep).div(2).floor())
               } else {
                 cmd.log(`The claimant's answer of ${session.medHash} did NOT equal our calculation of ${result.stateHash} so the error must be before (or at) step ${session.medStep}`)
                 // otherwise the claimant is wrong somewhere between [0, medStep]
-                newMedStep = Math.floor((session.medStep - session.lowStep) / 2)
+                newMedStep = session.lowStep.add(session.medStep.sub(session.lowStep).div(2).floor())
               }
             }
 
