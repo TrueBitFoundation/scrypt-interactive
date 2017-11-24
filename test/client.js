@@ -29,46 +29,54 @@ function timeout(ms) {
 contract('ClaimManager', function(accounts) {
     const dogeRelayAddress = accounts[0]
     let claimManager, scryptVerifier, scryptRunner;
+    const serializedBlockHeader = "030162002adb34dfa6574cf127a781ecb9683ca28f911a59020628c90c72b4a3d9942233a3b905b2388b020085dbd9e03209db4493f5420336d882d0b78b54f728b8f90058f7115a2c83221a00000000";
+    const testScryptHash = "ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2bd6e5682";
 
+    let claimID;
     const steps = 2050;
     const claimDeposit = 1;
+    let tx, session, result, log, deposit;
 
-    before(async () => {
-        scryptRunner = await ScryptRunner.new()
-        scryptVerifier = await ScryptVerifier.new()
-        claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address);
-    })
-
-    describe('it works', () => {
+    context('normal conditions', function() {
         const claimant = accounts[1];
         const challenger = accounts[2];
 
-        it("challenger challenges", async () => {
-            let tx, session, result, log, deposit;
+        before(async () => {
+            scryptRunner = await ScryptRunner.new()
+            scryptVerifier = await ScryptVerifier.new()
+            claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address);
+        });
 
+        it("claimant checks scrypt", async () => {
             await claimManager.makeDeposit({from: claimant, value: claimDeposit});
-            await claimManager.makeDeposit({from: challenger, value: claimDeposit});
 
             tx = await claimManager.checkScrypt("foo", "062f503253482f0472d35454085fffed", claimant, {from: dogeRelayAddress})
             log = tx.logs.find(l => l.event === 'ClaimCreated')
-            const claimID = log.args.claimID.toNumber()
+            claimID = log.args.claimID.toNumber()
             // check that the claimant's deposits were bonded.
             deposit = await claimManager.getBondedDeposit.call(claimID, claimant, {from: claimant})
             assert.equal(deposit.toNumber(), claimDeposit)
+        });
 
+        it("challenger challenges", async () => {
+            await claimManager.makeDeposit({from: challenger, value: claimDeposit});
             tx = await claimManager.challengeClaim(claimID, {from: challenger})
             log = tx.logs.find(l => l.event === 'ClaimChallenged')
             assert.equal(log.args.claimID.toNumber(), claimID)
             // check that the challenger's deposits were bonded.
             deposit = await claimManager.getBondedDeposit.call(claimID, challenger, {from: claimant})
             assert.equal(deposit.toNumber(), claimDeposit)
+        });
 
+        it("begins verification game", async () => {
             tx = await claimManager.runNextVerificationGame(claimID, {from: claimant})
             log = tx.logs.find(l => l.event === 'ClaimVerificationGameStarted')
             assert.equal(log.args.claimID.toNumber(), claimID)
             assert.equal(log.args.claimant, claimant)
             assert.equal(log.args.challenger, challenger)
+        });
 
+        it("participates in verification game", async () => {
             // First challenge
             // Each call to query sets the new medstep
             // Intial high step is currently 2050 (assuming this is the final number of steps)
@@ -83,9 +91,11 @@ contract('ClaimManager', function(accounts) {
             // console.log("Session after first response: \n", session, "\n")
             results = newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, {from: claimant}))
             // console.log("Results after first response: \n", session, "\n")
-
             // second query from the challenger.
             tx = await scryptVerifier.query(claimID, 0, {from: challenger})
+        });
+
+        it("finalizes verification game", async () => {
             session = newSession(await scryptVerifier.getSession.call(claimID))
             // console.log("Session after second query: \n", session, "\n")
 
@@ -121,7 +131,9 @@ contract('ClaimManager', function(accounts) {
                 assert.equal(gamesEndedEvent.args.loser, challenger)
             })
             gamesEndedEvent.stopWatching()
+        });
 
+        it("checks bonded deposits", async () => {
             // check that the loser's deposits were transferred to the winner.
             deposit = await claimManager.getBondedDeposit.call(claimID, claimant, {from: claimant})
             assert.equal(deposit.toNumber(), 2 * claimDeposit)
