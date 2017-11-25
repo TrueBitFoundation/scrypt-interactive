@@ -16,31 +16,18 @@ For more context on how relays work, look at the [BTCRelay](https://github.com/e
 
 ## Running the Tests
 
-There are two sets of tests:
-
-### Truffle tests:
-
-To run these tests, run `truffle test` in the root directory of the repo.
-
-### The low level tests:
-
-To run these tests you need `geth` and a JS `node` version higher than 7.6. 
-
-After getting those, use `run.sh` to run tests in the root directory:
+After cloning the repo, make sure you have the zeppelin libraries. If you want to use `run.sh`, also make sure you have `ganache-cli`:<br/>
 ```
-# you can run all tests
-./run.sh test_manual/index.js
+#To get the zeppelin solidity libraries:
+npm install zeppelin-solidity
 
-# you can run a specific test file. e.g.:
-./run.sh test_manual/client.js
-
+#To geth ganache-cli(formerly testrpc):
+npm install ganache-cli
 ```
+After that just run `./run.sh`.<br/>
 
-Also note that you will need to have an account in the data directory that geth has been passed. `run.sh` does not make one for you. You can either copy an existing account there or just run:<br/>
-```bash
+If you want to run anything other than `ganache-cli`, run it and then run `truffle test`.<br/>
 
-geth --datadir /tmp/ethereum_dev_mode --password /path/to/password/file account new
+## Tool Versions
 
-```
-
-Also make sure that when you run a process in the background it is not suspended. You could use `ps -aux | grep geth` to see geth's status. if it is suspended, just run `stty tostop` to toggle your terminal's behavour.<br/>
+For solidity, make sure you are using `0.18.0` or up. Refrain from using nightly builds. If you have to build your solidity, first look at [here](https://github.com/ethereum/solidity/releases) and then get the source from the tarball(don't clone the solidity repo).<br/>

@@ -1,7 +1,7 @@
 pragma solidity ^0.4.0;
 
 import {DepositsManager} from './DepositsManager.sol';
-import {ScryptVerifier} from "./ScryptVerifier.sol";
+import {ScryptVerifier} from "./scryptVerifier.sol";
 
 // ClaimManager: queues a sequence of challengers to play with a claimant.
 

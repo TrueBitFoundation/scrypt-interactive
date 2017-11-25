@@ -1,7 +1,7 @@
 pragma solidity ^0.4.0;
 
-import {ScryptFramework} from "./ScryptFramework.sol";
-import {Verifier} from "./Verifier.sol";
+import {ScryptFramework} from "./scryptFramework.sol";
+import {Verifier} from "./verifier.sol";
 
 /**
 * @title

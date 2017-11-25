@@ -1,8 +1,8 @@
 const timeout = require('./helpers/timeout')
 
-const ClaimManager = artifacts.require('./ClaimManager.sol')
-const ScryptVerifier = artifacts.require('./ScryptVerifier.sol')
-const ScryptRunner = artifacts.require('./ScryptRunner.sol')
+const ClaimManager = artifacts.require('ClaimManager')
+const ScryptVerifier = artifacts.require('ScryptVerifier')
+const ScryptRunner = artifacts.require('ScryptRunner')
 
 function newSession (sessionData) {
   return {

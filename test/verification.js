@@ -4,8 +4,8 @@ const { expect } = require('./helpers/chai')
 const Web3 = require('web3')
 const web3 = new Web3()
 
-const ScryptVerifier = artifacts.require('./ScryptVerifier.sol')
-const ScryptRunner = artifacts.require('./ScryptRunner.sol')
+const ScryptVerifier = artifacts.require('ScryptVerifier')
+const ScryptRunner = artifacts.require('ScryptRunner')
 
 const random = require('./helpers/random')
 
