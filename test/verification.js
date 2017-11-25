@@ -116,47 +116,47 @@ contract('ScryptVerifier', function (accounts) {
     }
   })
 
-  context('random bit flipping', () => {
-    _.times(50, () => {
-      const input = random.randomHexString()
-      const step = random.chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048, 2049])
+  // context('random bit flipping', () => {
+  //   _.times(50, () => {
+  //     const input = random.randomHexString()
+  //     const step = random.chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048, 2049])
 
-      it('correctly fails', async () => {
-        let preState = (await scryptRunner.getStateAndProof(input, step)).state
-        const postData = (await scryptRunner.getStateAndProof(input, step + 1))
-        console.log(preState)
-        console.log(postState)
-        let postState = postData.state
+  //     it('correctly fails', async () => {
+  //       let preState = (await scryptRunner.getStateAndProof(input, step)).state
+  //       const postData = (await scryptRunner.getStateAndProof(input, step + 1))
+  //       console.log(preState)
+  //       console.log(postState)
+  //       let postState = postData.state
 
-        let proof = postData.proof || '0x00'
-        const which = random.randomInt(3)
-        if (which === 0) {
-          // correctData = preState
-          preState = random.flipRandomNibble(preState)
-        } else if (which === 1 || step === 0 /* proof is unused in step 0 */) {
-          // correctData = postState
-          postState = random.flipRandomNibble(postState)
-        } else {
-          // correctData = proof
-          proof = random.flipRandomNibble(proof)
-        }
+  //       let proof = postData.proof || '0x00'
+  //       const which = random.randomInt(3)
+  //       if (which === 0) {
+  //         // correctData = preState
+  //         preState = random.flipRandomNibble(preState)
+  //       } else if (which === 1 || step === 0 /* proof is unused in step 0 */) {
+  //         // correctData = postState
+  //         postState = random.flipRandomNibble(postState)
+  //       } else {
+  //         // correctData = proof
+  //         proof = random.flipRandomNibble(proof)
+  //       }
 
-        expect(
-          scryptVerifier.methods.verifyStep(step, preState, postState, proof)
-        ).to.be.rejected
-      })
-    })
-  })
+  //       expect(
+  //         scryptVerifier.methods.verifyStep(step, preState, postState, proof)
+  //       ).to.be.rejected
+  //     })
+  //   })
+  // })
 
-  // @TODO(shrugs) - port these tests as well
-  // function Info(account, prover, verifier) {
-  //     this.getSession = async function(id) {
-  //         return await verifier.methods.sessions(id).call({from: account})
-  //     }
-  //     this.getStateProofAndHash = async function(input, step) {
-  //         return await prover.methods.getStateProofAndHash(input, step).call({from: account})
-  //     }
-  // }
+  //@TODO(shrugs) - port these tests as well
+  function Info(account, prover, verifier) {
+      this.getSession = async function(id) {
+          return await verifier.methods.sessions(id).call({from: account})
+      }
+      this.getStateProofAndHash = async function(input, step) {
+          return await prover.methods.getStateProofAndHash(input, step).call({from: account})
+      }
+  }
 
   // function Claimant(interface, info) {
   //     var steps = 2050;
