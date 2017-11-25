@@ -1,8 +1,6 @@
 
 const _ = require('lodash')
 const { expect } = require('./helpers/chai')
-const Web3 = require('web3')
-const web3 = new Web3()
 
 const ScryptVerifier = artifacts.require('ScryptVerifier')
 const ScryptRunner = artifacts.require('ScryptRunner')
@@ -84,7 +82,7 @@ contract('ScryptVerifier', function (accounts) {
 
         for (let i = 0; i < stepCase.results.length; i++) {
           expect(stepCase.results[i]).to.equal(
-            web3.toHex(result.vars[i])
+            web3.toHex(result[1][i])
           )
         }
       })
@@ -120,6 +118,8 @@ contract('ScryptVerifier', function (accounts) {
       it('correctly fails', async () => {
         let preState = (await scryptRunner.getStateAndProof(input, step)).state
         const postData = (await scryptRunner.getStateAndProof(input, step + 1))
+        console.log(preState)
+        console.log(postState)
         let postState = postData.state
 
         let proof = postData.proof || '0x00'
