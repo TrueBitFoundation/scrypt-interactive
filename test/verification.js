@@ -7,6 +7,13 @@ const ScryptRunner = artifacts.require('ScryptRunner')
 
 const random = require('./helpers/random')
 
+const jsonifyStateAndProof = (stateAndProof) => {
+  return {
+    'state': stateAndProof[0],
+    'proof': stateAndProof[1]
+  }
+}
+
 // eslint-disable-next-line max-len
 const getStateAndProofInput = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
 const resultExpectations = [
@@ -95,17 +102,16 @@ contract('ScryptVerifier', function (accounts) {
 
   context('prover-verifier combination', () => {
     const verifyStep = async (input, step) => {
-      const state = (await scryptRunner.getStateAndProof(input, step)).state
-      const postData = (await scryptRunner.getStateAndProof(input, step + 1))
-
-      const verified = await scryptVerifier.verifyStep(step, state, postData.state, postData.proof || '0x00')
-      console.log('fuck', verified)
+      const data = jsonifyStateAndProof(await scryptRunner.getStateAndProof(input, step)) 
+      const postData = jsonifyStateAndProof(await scryptRunner.getStateAndProof(input, step + 1))
+      const verified = await scryptVerifier.verifyStep(step, data.state, postData.state, postData.proof || '0x00')
       return verified
     }
 
     for (let step of [0, 1, 2, 3, 100, 106, 1021, 1023, 1024, 1025, 1026, 2000, 2044, 2045, 2046, 2047, 2048, 2049]) {
       it(`should be able to prove and verify step ${step}`, async () => {
-        expect(verifyStep(verifyProveInput, step)).to.be.fulfilled.and.be.equal(true)
+        const result = await verifyStep(verifyProveInput, step)
+        expect(result).to.be.true
       })
     }
   })
