@@ -1,4 +1,4 @@
-dfunction newSession (sessionData) {
+function newSession (sessionData) {
   return {
     lowStep: sessionData[0].toNumber(),
     medStep: sessionData[1].toNumber(),
