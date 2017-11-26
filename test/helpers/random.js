@@ -34,4 +34,5 @@ module.exports = {
   randomHexString: randomHexString,
   chooseRandomly: chooseRandomly,
   flipRandomNibble: flipRandomNibble,
+  randomInt: randomInt,
 }

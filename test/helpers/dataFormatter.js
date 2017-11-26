@@ -16,7 +16,15 @@ function newResult (resultData) {
   }
 }
 
+function newStateAndProof (resultData) {
+  return {
+    state: resultData[0],
+    proof: resultData[1],
+  }
+}
+
 module.exports = {
   newSession: newSession,
   newResult: newResult,
+  newStateAndProof: newStateAndProof,
 }
