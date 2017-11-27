@@ -128,6 +128,7 @@ contract Verifier {
                     // and if we're requesting the midStep that we've already requested,
                     //   there's nothing to do.
                     // @TODO(shrugs) - should this revert?
+                    revert();
                 }
             }
 
