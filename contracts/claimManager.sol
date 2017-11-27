@@ -201,7 +201,7 @@ contract ClaimManager is DepositsManager {
         } else if (claim.claimant == winner) {
             // the claim continues.
             runNextVerificationGame(claimID);
-        }
+        }else{ revert() }
     }
 
     // @dev – check whether a claim has successfully withstood all challenges.
