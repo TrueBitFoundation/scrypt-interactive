@@ -8,13 +8,6 @@ const ScryptRunner = artifacts.require('ScryptRunner')
 
 const random = require('./helpers/random')
 
-const jsonifyStateAndProof = (stateAndProof) => {
-  return {
-    'state': stateAndProof[0],
-    'proof': stateAndProof[1]
-  }
-}
-
 // eslint-disable-next-line max-len
 const getStateAndProofInput = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
 const resultExpectations = [
