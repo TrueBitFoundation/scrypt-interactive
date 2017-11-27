@@ -133,9 +133,9 @@ contract ScryptFramework {
         state.vars[2] = Salsa8.endianConvert256bit(state.vars[2]);
         state.vars[3] = Salsa8.endianConvert256bit(state.vars[3]);
         bytes memory val = uint4ToBytes(state.vars);
-        uint[4] memory values = KeyDeriv.pbkdf2(input, val, 32);
+        uint[4] memory values = KeyDeriv.pbkdf2(input, val, 64);
         require(values[1] == 0 && values[2] == 0 && values[3] == 0);
-        output = new bytes(32);
+        output = new bytes(64);
         uint val0 = values[0];
         assembly { mstore(add(output, 0x20), val0) }
     }
