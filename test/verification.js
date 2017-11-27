@@ -97,16 +97,18 @@ contract('ScryptVerifier', function (accounts) {
 
   context('prover-verifier combination', () => {
     const verifyStep = async (input, step) => {
-      const state = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof(input, step)).state
-      const postData = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof(input, step + 1))
+      const state = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step, {gas: 200000000})).state
+      const postData = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step + 1, {gas: 200000000}))
 
-      const verified = await scryptVerifier.verifyStep(step, state, postData.state, postData.proof || '0x00')
+      const verified = await scryptVerifier.verifyStep(step, state, postData.state, postData.proof || '0x00', {from: accounts[0]})
       return verified
     }
 
-    //let steps = [0, 1, 2, 3, 100, 106, 1021, 1023, 1024, 1025, 1026, 2000, 2044, 2045, 2046, 2047, 2048, 2049]
+
+
+    let binarySearchSteps = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1025, 2049]
     //any step above 85 will give out of gas
-    for (let step of [0, 1, 2, 3]) {
+    for (let step of binarySearchSteps) {
       it(`should be able to prove and verify step ${step}`, async () => {
         expect(await verifyStep(verifyProveInput, step)).to.be.equal(true)
       })
