@@ -37,7 +37,7 @@ contract DepositsManager {
     // @param amount – how much eth to withdraw
     // @return – the user's updated deposit amount.
     function withdrawDeposit(uint amount) public returns (uint) {
-        require(deposits[msg.sender] > amount);
+        require(deposits[msg.sender] >= amount);
 
         deposits[msg.sender] = deposits[msg.sender].sub(amount);
         msg.sender.transfer(amount);
