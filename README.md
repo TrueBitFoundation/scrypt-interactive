@@ -16,18 +16,25 @@ For more context on how relays work, look at the [BTCRelay](https://github.com/e
 
 ## Running the Tests
 
-After cloning the repo, make sure you have the zeppelin libraries. If you want to use `run.sh`, also make sure you have `ganache-cli`:<br/>
+To run the tests, first install npm dependencies:
 ```
-#To get the zeppelin solidity libraries:
-npm install zeppelin-solidity
+# install npm dependencies:
+npm install
 
-#To geth ganache-cli(formerly testrpc):
-npm install ganache-cli
+# install ganache-cli
+npm install -g ganache-cli
 ```
-After that just run `./run.sh`.<br/>
 
-If you want to run anything other than `ganache-cli`, run it and then run `truffle test`.<br/>
+Then, you can run tests by executing the `run.sh` script:
+```
+./run.sh
+```
 
-## Tool Versions
+Or run the truffle tests manually:
+```
+# first start ganache-cli
+ganache-cli
 
-For solidity, make sure you are using `0.18.0` or up. Refrain from using nightly builds. If you have to build your solidity, first look at [here](https://github.com/ethereum/solidity/releases) and then get the source from the tarball(don't clone the solidity repo).<br/>
+# run tests
+truffle test
+```
