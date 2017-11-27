@@ -70,31 +70,30 @@ contract('ScryptVerifier', function (accounts) {
     scryptVerifier = await ScryptVerifier.new()
   })
 
-  //This test wont run until timeout issue is fixed. Leaving commented for now
+  context('Testing step values', () => {
+    _.each(resultExpectations, (stepCase) => {
+      // @TODO – remove this if statement, to run for all stepCases.
+      // currently gives "out of gas" error when when doing scryptRunner.run with i = 1024
+      // potentially helpful links:
+      // 1. https://ethereum.stackexchange.com/questions/9824/can-solidity-constant-functions-be-arbitrarily-complex/9827
+      // 2. start testrpc with a higher limit: testrpc -l 4500000000000
+      if (stepCase.steps > 1) return
 
-  // context('Testing step values', () => {
-  //   // @TODO – fix this
-  //   // currently gives "out of gas" error when when doing scryptRunner.run with i = 1024
-  //   // potentially helpful links:
-  //   // 1. https://ethereum.stackexchange.com/questions/9824/can-solidity-constant-functions-be-arbitrarily-complex/9827
-  //   // 2. start testrpc with a higher limit: testrpc -l 4500000000000
+      it(`can compute ${stepCase.steps} steps`, async () => {
+        const result = await scryptRunner.run.call(getStateAndProofInput, stepCase.steps)
 
-  //   _.each(resultExpectations, (stepCase) => {
-  //     it(`can compute ${stepCase.steps} steps`, async () => {
-  //       const result = await scryptRunner.run.call(getStateAndProofInput, stepCase.steps)
+        for (let i = 0; i < stepCase.results.length; i++) {
+          expect(stepCase.results[i]).to.equal(
+            web3.toHex(result[1][i])
+          )
+        }
+      })
+    })
 
-  //       for (let i = 0; i < stepCase.results.length; i++) {
-  //         expect(stepCase.results[i]).to.equal(
-  //           web3.toHex(result[1][i])
-  //         )
-  //       }
-  //     })
-  //   })
-
-  //   it('should fail on step 2049', async () => {
-  //     expect(scryptRunner.run.call(getStateAndProofInput, 2049)).to.be.rejected
-  //   })
-  // })
+    it('should fail on step 2049', async () => {
+      expect(scryptRunner.run.call(getStateAndProofInput, 2049)).to.be.rejected
+    })
+  })
 
   context('prover-verifier combination', () => {
     const verifyStep = async (input, step) => {
