@@ -147,6 +147,7 @@ contract Verifier {
         require(hash != 0);
 
         // record the claimed hash
+        require(s.medHash == bytes32(0));
         s.medHash = hash;
         s.lastClaimantMessage = now;
 
