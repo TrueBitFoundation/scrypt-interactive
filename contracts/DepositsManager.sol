@@ -39,7 +39,7 @@ contract DepositsManager {
     function withdrawDeposit(uint amount) public returns (uint) {
         require(deposits[msg.sender] >= amount);
 
-        deposits[msg.sender] = deposits[msg.sender].sub(amount);
+        deposits[msg.sender] -= amount;
         msg.sender.transfer(amount);
 
         DepositWithdrawn(msg.sender, amount);
