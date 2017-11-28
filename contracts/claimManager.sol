@@ -177,6 +177,7 @@ contract ClaimManager is DepositsManager {
     function claimDecided(uint claimID, address winner, address loser) onlyBy(address(sv)) public {
         ScryptClaim storage claim = claims[claimID];
 
+        require(claim.verificationOngoing == true);
         claim.verificationOngoing = false;
 
         // reward the winner, with the loser's bonded deposit.
@@ -201,7 +202,7 @@ contract ClaimManager is DepositsManager {
         } else if (claim.claimant == winner) {
             // the claim continues.
             runNextVerificationGame(claimID);
-        }else{ revert(); }
+        } else { revert(); }
     }
 
     // @dev – check whether a claim has successfully withstood all challenges.
