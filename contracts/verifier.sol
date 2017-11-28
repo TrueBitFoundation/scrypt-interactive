@@ -80,11 +80,7 @@ contract Verifier {
     //  is this what we want?
     modifier onlyChallenger(uint sessionId) {
         var session = sessions[sessionId];
-        if (session.challenger == address(0)) {
-            session.challenger = msg.sender;
-        } else {
-            require(msg.sender == session.challenger);
-        }
+        require(msg.sender == session.challenger);
         _;
     }
 
