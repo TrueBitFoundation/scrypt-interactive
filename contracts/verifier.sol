@@ -92,7 +92,7 @@ contract Verifier {
 
         bool isFirstStep = s.medStep == 0;
         bool haveMedHash = s.medHash != bytes32(0);
-        assert(isFirstStep || haveMedHash);
+        require(isFirstStep || haveMedHash);
         // ^ invariant if the step has been set but we don't have a hash for it
 
         if (step == s.lowStep && step + 1 == s.medStep) {
