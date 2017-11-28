@@ -168,10 +168,8 @@ contract Verifier {
         require(s.lowStep + 1 == s.highStep);
         // ^ must be at the end of the binary search according to the smart contract
 
-        if (keccak256(preValue) != s.lowHash) { claimantConvicted(sessionId); return; }
-        if (keccak256(postValue) != s.highHash) { return claimantConvicted(sessionId); return; }
-        // ^ if the claimant supplied anything other than what we know, convict them
-        // @TODO(shrugs) - why do we even have this if we already know this information?
+        require(keccak256(preValue) == s.lowHash);
+        require(keccak256(postValue) == s.highHash);
 
         ClaimManager cm = ClaimManager(claimManager);
         if (performStepVerificationSpecific(s, s.lowStep, preValue, postValue, proofs)) {
