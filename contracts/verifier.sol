@@ -142,12 +142,9 @@ contract Verifier {
         VerificationSession storage s = sessions[sessionId];
         // Require step to avoid replay problems
         require(step == s.medStep);
-        if (hash == 0) {
-            // Special "fold" signal
-            // @TODO(shrugs) - is this correct? should the claimant not fold here?
-            challengerConvicted(sessionId);
-            return;
-        }
+        
+        // provided hash cannot be zero; as that is a special flag.
+        require(hash != 0);
 
         // record the claimed hash
         s.medHash = hash;
