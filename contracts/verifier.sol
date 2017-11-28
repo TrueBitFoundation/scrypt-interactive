@@ -203,12 +203,12 @@ contract Verifier {
         require(session.claimant != 0);
         if (
             session.lastChallengerMessage > session.lastClaimantMessage &&
-            now > session.lastClaimantMessage + responseTime
+            now > session.lastChallengerMessage + responseTime
         ) {
             claimantConvicted(sessionId);
         } else if (
             session.lastClaimantMessage > session.lastChallengerMessage &&
-            now > session.lastChallengerMessage + responseTime
+            now > session.lastClaimantMessage + responseTime
         ) {
             challengerConvicted(sessionId);
         } else {
