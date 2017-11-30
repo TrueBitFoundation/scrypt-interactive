@@ -54,13 +54,13 @@ contract ClaimManager is DepositsManager {
         _;
     }
 
-    ScryptVerifier sv;
+    ScryptVerifier scryptVerifier;
 
     // @dev – the constructor
     function ClaimManager(address _dogeRelayAddress, address _scryptVerifierAddress) public {
         dogeRelayAddress = _dogeRelayAddress;
         scryptVerifierAddress = _scryptVerifierAddress;
-        sv = ScryptVerifier(scryptVerifierAddress);
+        scryptVerifier = ScryptVerifier(scryptVerifierAddress);
     }
 
     // @dev – locks up part of the a user's deposit into a claim.
@@ -157,7 +157,7 @@ contract ClaimManager is DepositsManager {
             require(claim.verificationOngoing == false);
 
             // kick off a verification game.
-            uint sessionId = sv.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
+            uint sessionId = scryptVerifier.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
             ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger], sessionId);
 
             claim.verificationOngoing = true;
@@ -174,7 +174,7 @@ contract ClaimManager is DepositsManager {
     // @param claimID – the claim ID.
     // @param winner – winner of the verification game.
     // @param loser – loser of the verification game.
-    function claimDecided(uint claimID, address winner, address loser) onlyBy(address(sv)) public {
+    function claimDecided(uint claimID, address winner, address loser) onlyBy(address(scryptVerifier)) public {
         ScryptClaim storage claim = claims[claimID];
 
         require(claim.verificationOngoing == true);
