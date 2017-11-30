@@ -120,8 +120,16 @@ contract('ClaimManager', function (accounts) {
       // check that the loser's deposits were transferred to the winner.
       deposit = await claimManager.getBondedDeposit.call(claimID, claimant, { from: claimant })
       assert.equal(deposit.toNumber(), 2 * claimDeposit)
-      deposit = await claimManager.getBondedDeposit.call(claimID, challenger, { from: claimant })
+      deposit = await claimManager.getBondedDeposit.call(claimID, challenger, { from: challenger })
       assert.equal(deposit.toNumber(), 0)
+    })
+
+    it('checks unbonded deposits', async () => {
+      //Check that participants can unbond their deposit
+      await claimManager.unbondDeposit(claimID, claimant, {from: claimant})
+      deposit = await claimManager.getDeposit.call(claimant, {from: claimant})
+      await claimManager.unbondDeposit(claimID, challenger, { from: challenger })
+      deposit = await claimManager.getDeposit.call(challenger, {from: challenger})
     })
   })
 

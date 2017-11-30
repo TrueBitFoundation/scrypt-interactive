@@ -46,6 +46,7 @@ contract ClaimManager is DepositsManager {
         uint currentChallenger;    // index of next challenger to play a verification game.
         bool verificationOngoing;   // is the claim waiting for results from an ongoing verificationg game.
         mapping (address => uint) bondedDeposits;   // all deposits bonded in this claim.
+        bool decided;
     }
 
     mapping(uint => ScryptClaim) private claims;
@@ -92,8 +93,9 @@ contract ClaimManager is DepositsManager {
     // @param claimID – the claim id.
     // @param account – the user's address.
     // @return – the user's deposit which was unbonded from the claim.
-    function unbondDeposit(uint claimID, address account) private returns (uint) {
+    function unbondDeposit(uint claimID, address account) public returns (uint) {
         ScryptClaim storage claim = claims[claimID];
+        require(claim.decided == true);
         uint bondedDeposit = claim.bondedDeposits[account];
         delete claim.bondedDeposits[account];
         deposits[account] = deposits[account].add(bondedDeposit);
@@ -118,6 +120,7 @@ contract ClaimManager is DepositsManager {
         claim.currentChallenger = 0;
         claim.verificationOngoing = false;
         claim.createdAt = block.number;
+        claim.decided = false;
 
         bondDeposit(numClaims, claimant, minDeposit);
         ClaimCreated(numClaims, claim.claimant, claim.plaintext, claim.blockHash);
@@ -164,6 +167,7 @@ contract ClaimManager is DepositsManager {
             claim.currentChallenger = claim.currentChallenger.add(1);
         } else {
             require(claim.verificationOngoing == false);
+            claim.decided = true;
             ClaimVerificationGamesEnded(claimID);
         }
     }
@@ -192,13 +196,9 @@ contract ClaimManager is DepositsManager {
             // note: no callback needed to the DogeRelay contract,
             // because it by default does not save blocks.
 
-            // unlock the deposits of all challengers
-            for (uint index = 0; index < claim.numChallengers; index++) {
-                unbondDeposit(claim.id, claim.challengers[index]);
-                delete claim.challengers[index];
-            }
-
-            delete claims[claimID];
+            //Trigger end of verification game
+            claim.numChallengers = 0;
+            runNextVerificationGame(claimID);
         } else if (claim.claimant == winner) {
             // the claim continues.
             runNextVerificationGame(claimID);
