@@ -224,8 +224,7 @@ contract ClaimManager is DepositsManager {
 
         unbondDeposit(claim.id, claim.claimant);
 
-        // TODO: callback to the DogeRelay.
-        // DogeRelay.scryptVerified(claim.plaintext, claim.blockHash);
+        dogeRelay.scryptVerified(claim.plaintext, claim.blockHash);
 
         ClaimSuccessful(claimID, claim.claimant, claim.plaintext, claim.blockHash);
     }
@@ -240,4 +239,3 @@ contract ClaimManager is DepositsManager {
         return claims[claimID].createdAt;
     }
 }
-

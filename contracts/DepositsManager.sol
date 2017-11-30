@@ -46,4 +46,3 @@ contract DepositsManager {
         return deposits[msg.sender];
     }
 }
-

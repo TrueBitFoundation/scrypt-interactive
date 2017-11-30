@@ -132,6 +132,4 @@ contract('ClaimManager', function (accounts) {
       deposit = await claimManager.getDeposit.call(challenger, {from: challenger})
     })
   })
-
-
 })
