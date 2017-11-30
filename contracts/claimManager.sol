@@ -41,7 +41,7 @@ contract ClaimManager is DepositsManager {
         bytes plaintext;    // the plaintext Dogecoin block header.
         bytes blockHash;    // the Dogecoin blockhash.
         uint createdAt;     // the block number at which the claim was created.
-        mapping (uint => address) challengers;      // all current challengers.
+        address[] challengers;      // all current challengers.
         uint numChallengers;
         uint currentChallenger;    // index of next challenger to play a verification game.
         bool verificationOngoing;   // is the claim waiting for results from an ongoing verificationg game.
@@ -143,7 +143,7 @@ contract ClaimManager is DepositsManager {
         require(deposits[msg.sender] >= minDeposit);
         bondDeposit(claimID, msg.sender, minDeposit);
 
-        claim.challengers[claim.numChallengers] = msg.sender;
+        claim.challengers.push(msg.sender);
         claim.numChallengers = claim.numChallengers.add(1);
         ClaimChallenged(claimID, msg.sender);
     }
