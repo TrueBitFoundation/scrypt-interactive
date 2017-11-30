@@ -23,8 +23,8 @@ contract ClaimManager is DepositsManager {
     // TODO: we're not using this yet.
     uint public verificationGameTimeout = 40;
 
-    address public dogeRelayAddress;
-    address public scryptVerifierAddress;
+    DogeRelay public dogeRelay;
+    ScryptVerifier public scryptVerifier;
 
     event DepositBonded(uint claimID, address account, uint amount);
     event DepositUnbonded(uint claimID, address account, uint amount);
@@ -55,13 +55,12 @@ contract ClaimManager is DepositsManager {
         _;
     }
 
-    ScryptVerifier scryptVerifier;
+
 
     // @dev – the constructor
-    function ClaimManager(address _dogeRelayAddress, address _scryptVerifierAddress) public {
-        dogeRelayAddress = _dogeRelayAddress;
-        scryptVerifierAddress = _scryptVerifierAddress;
-        scryptVerifier = ScryptVerifier(scryptVerifierAddress);
+    function ClaimManager(DogeRelay _dogeRelay, ScryptVerifier _scryptVerifier) public {
+        dogeRelay = _dogeRelay;
+        scryptVerifier = _scryptVerifier;
     }
 
     // @dev – locks up part of the a user's deposit into a claim.
@@ -108,7 +107,7 @@ contract ClaimManager is DepositsManager {
     // @param _plaintext – the plaintext blockHeader.
     // @param _blockHash – the blockHash.
     // @param claimant – the address of the Dogecoin block submitter.
-    function checkScrypt(bytes _plaintext, bytes _blockHash, address claimant) onlyBy(dogeRelayAddress) public returns (uint) {
+    function checkScrypt(bytes _plaintext, bytes _blockHash, address claimant) onlyBy(dogeRelay) public returns (uint) {
         require(deposits[claimant] >= minDeposit);
 
         ScryptClaim storage claim = claims[numClaims];

@@ -160,7 +160,7 @@ contract Verifier {
         bytes preValue,
         bytes postValue,
         bytes proofs,
-        address claimManager
+        ClaimManager claimManager
     )
         onlyClaimant(sessionId)
         public
@@ -172,12 +172,11 @@ contract Verifier {
         require(keccak256(preValue) == s.lowHash);
         require(keccak256(postValue) == s.highHash);
 
-        ClaimManager cm = ClaimManager(claimManager);
         if (performStepVerificationSpecific(s, s.lowStep, preValue, postValue, proofs)) {
-            cm.claimDecided(sessionId, s.claimant, s.challenger);
+            claimManager.claimDecided(sessionId, s.claimant, s.challenger);
             challengerConvicted(sessionId);
         } else {
-            cm.claimDecided(sessionId, s.challenger, s.claimant);
+            claimManager.claimDecided(sessionId, s.challenger, s.claimant);
             claimantConvicted(sessionId);
         }
     }
