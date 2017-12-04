@@ -1,9 +1,9 @@
 pragma solidity ^0.4.0;
 
 import {ScryptFramework} from "./scryptFramework.sol";
- 
+
 /**
-* @title 
+* @title
 * @author Christian Reitwiessner
 */
 contract ScryptRunner is ScryptFramework {
@@ -14,7 +14,10 @@ contract ScryptRunner is ScryptFramework {
     *
     * @return none
     */
-    function initMemory(State memory state) pure internal {
+    function initMemory(State memory state)
+        pure
+        internal
+    {
         state.fullMemory = new uint[](4 * 1024);
     }
 
@@ -26,14 +29,18 @@ contract ScryptRunner is ScryptFramework {
     *
     * @return the state variables, the memoryHash, the merkle proof and the output byte array
     */
-    function run(bytes input, uint upToStep) pure public returns (bytes32 stateHash, uint[4] vars, bytes32 memoryHash, bytes32[] proof, bytes output) {
+    function run(bytes input, uint upToStep)
+        pure
+        public
+        returns (bytes32 stateHash, uint[4] vars, bytes32 memoryHash, bytes32[] proof, bytes output)
+    {
         State memory s = inputToState(input);
         Proofs memory proofs;
         if (upToStep > 0) {
             uint internalStep = upToStep - 1;
             for (uint i = 0; i < internalStep; i++) {
                 runStep(s, i, proofs);
-            }   
+            }
             proofs.generateProofs = true;
             if (internalStep < 2048) {
                 runStep(s, internalStep, proofs);
@@ -49,7 +56,11 @@ contract ScryptRunner is ScryptFramework {
     * @dev run scrypt up to a certain step and return the state and proof,
     *      The proof being the one required to get from the previous step to the given one.
     */
-    function getStateAndProof(bytes input, uint step) public pure returns (bytes state, bytes proof) {
+    function getStateAndProof(bytes input, uint step)
+        pure
+        public
+        returns (bytes state, bytes proof)
+    {
         require(step <= 2050);
         if (step == 0) {
             return (input, proof);
@@ -74,7 +85,11 @@ contract ScryptRunner is ScryptFramework {
         return (finalStateToOutput(s, input), input);
     }
 
-    function getStateProofAndHash(bytes input, uint step) public pure returns (bytes state, bytes proof, bytes32 stateHash) {
+    function getStateProofAndHash(bytes input, uint step)
+        pure
+        public
+        returns (bytes state, bytes proof, bytes32 stateHash)
+    {
         (state, proof) = getStateAndProof(input, step);
         return (state, proof, keccak256(state));
     }
@@ -82,8 +97,13 @@ contract ScryptRunner is ScryptFramework {
     /**
     * @dev get the state hash of a specific step.
     */
-    function getStateHash(bytes input, uint step) public pure returns (bytes32 stateHash) {
+    function getStateHash(bytes input, uint step)
+        pure
+        public
+        returns (bytes32 stateHash)
+    {
         require(step <= 2050);
+
         var (state,) = getStateAndProof(input, step);
         return keccak256(state);
     }
@@ -99,7 +119,11 @@ contract ScryptRunner is ScryptFramework {
     *
     * @return returns the values read from fullMem
     */
-    function readMemory(State memory state, uint index, Proofs memory proofs) pure internal returns (uint a, uint b, uint c, uint d) {
+    function readMemory(State memory state, uint index, Proofs memory proofs)
+        pure
+        internal
+        returns (uint a, uint b, uint c, uint d)
+    {
         require(index < 1024);
         uint pos = 0x20 * 4 * index;
         uint[] memory fullMem = state.fullMemory;
@@ -134,7 +158,10 @@ contract ScryptRunner is ScryptFramework {
     *
     * @return none
     */
-    function writeMemory(State memory state, uint index, uint[4] values, Proofs memory proofs) pure internal {
+    function writeMemory(State memory state, uint index, uint[4] values, Proofs memory proofs)
+        pure
+        internal
+    {
         require(index < 1024);
         uint pos = 0x20 * 4 * index;
         uint[] memory fullMem = state.fullMemory;
@@ -180,14 +207,19 @@ contract ScryptRunner is ScryptFramework {
     *
     * @return the merkle proof and the value stored at index
     */
-    function generateMemoryProof(uint[] fullMem, uint index) internal pure returns (bytes32[] proof, bytes32) {
+    function generateMemoryProof(uint[] fullMem, uint index)
+        pure
+        internal
+        returns (bytes32[] proof, bytes32)
+    {
         uint access = index;
         proof = new bytes32[](14);
         // the first four values will later be changed to either the old value
         // (for writes) or the read value (for reads)
         bytes32[] memory hashes = new bytes32[](1024);
-        for (uint i = 0; i < 1024; i++)
+        for (uint i = 0; i < 1024; i++) {
             hashes[i] = keccak256(fullMem[4 * i + 0], fullMem[4 * i + 1], fullMem[4 * i + 2], fullMem[4 * i + 3]);
+        }
         uint numHashes = 1024;
         for (uint step = 4; step < proof.length; step++) {
             proof[step] = hashes[access ^ 1];

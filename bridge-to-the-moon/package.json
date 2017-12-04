@@ -1,0 +1,36 @@
+{
+  "name": "bridge-to-the-moon",
+  "version": "1.0.0",
+  "description": "Off-chain client for the DOGE-ETH bridge",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "bttm": "index.js"
+  },
+  "keywords": [
+    "dogecoin"
+  ],
+  "author": "Matt Condon <m@cond.in> (http://mat.tc)",
+  "license": "MIT",
+  "dependencies": {
+    "bignumber.js": "^4.1.0",
+    "dotenv": "^4.0.0",
+    "es6-promisify": "^5.0.0",
+    "javascript-state-machine": "^3.0.1",
+    "litecore-lib": "^0.13.22",
+    "truffle-contract": "^3.0.1",
+    "vorpal": "^1.12.0",
+    "vorpal-as-default": "0.0.2",
+    "web3": "^1.0.0-beta.26"
+  },
+  "devDependencies": {
+    "eslint": "^4.11.0",
+    "eslint-config-standard": "^10.2.1",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-node": "^5.2.1",
+    "eslint-plugin-standard": "^3.0.1"
+  }
+}

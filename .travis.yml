@@ -32,8 +32,8 @@ install:
   - echo $primaccount
   - geth --verbosity 6 --ipcpath $TRAVIS_BUILD_DIR/geth.ipc --dev --rpc --rpcapi admin,miner,eth,net,web3,personal --rpcaddr "localhost" --rpcport "8545" --port "30303" --datadir /tmp/ethereum_dev_mode &>/dev/null &
   - sleep 5
-  - geth --exec 'loadScript("./test/gethconfig.js")' attach $TRAVIS_BUILD_DIR/geth.ipc
+  - geth --exec 'loadScript("./test_manual/gethconfig.js")' attach $TRAVIS_BUILD_DIR/geth.ipc
   - sleep 5
 
 script: 
-  - node ./test/index.js $TRAVIS_BUILD_DIR/geth.ipc
+  - node ./test_manual/index.js $TRAVIS_BUILD_DIR/geth.ipc
