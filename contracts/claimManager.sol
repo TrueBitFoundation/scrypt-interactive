@@ -72,6 +72,7 @@ contract ClaimManager is DepositsManager {
     function bondDeposit(uint claimID, address account, uint amount) private returns (uint) {
         ScryptClaim storage claim = claims[claimID];
 
+        require(claimExists(claim));
         require(deposits[account] >= amount);
         deposits[account] -= amount;
 
@@ -86,6 +87,7 @@ contract ClaimManager is DepositsManager {
     // @return – the user's deposit bonded for the claim.
     function getBondedDeposit(uint claimID, address account) public view returns (uint) {
         ScryptClaim storage claim = claims[claimID];
+        require(claimExists(claim));
         return claim.bondedDeposits[account];
     }
 
@@ -95,6 +97,7 @@ contract ClaimManager is DepositsManager {
     // @return – the user's deposit which was unbonded from the claim.
     function unbondDeposit(uint claimID, address account) public returns (uint) {
         ScryptClaim storage claim = claims[claimID];
+        require(claimExists(claim));
         require(claim.decided == true);
         uint bondedDeposit = claim.bondedDeposits[account];
         delete claim.bondedDeposits[account];
@@ -137,6 +140,8 @@ contract ClaimManager is DepositsManager {
     function challengeClaim(uint claimID) public {
         ScryptClaim storage claim = claims[claimID];
 
+        require(claimExists(claim));
+
         // check that the claim is in Stage 1 (i.e. accepting new challenges).
         require(block.number.sub(claim.createdAt) <= challengeTimeout);
 
@@ -154,6 +159,8 @@ contract ClaimManager is DepositsManager {
     // @param claimID – the claim id.
     function runNextVerificationGame(uint claimID) public {
         ScryptClaim storage claim = claims[claimID];
+
+        require(claimExists(claim));
 
         // check if there is a challenger who has not the played verificationg game yet.
         if (claim.numChallengers > claim.currentChallenger) {
@@ -180,6 +187,8 @@ contract ClaimManager is DepositsManager {
     // @param loser – loser of the verification game.
     function claimDecided(uint claimID, address winner, address loser) onlyBy(address(scryptVerifier)) public {
         ScryptClaim storage claim = claims[claimID];
+
+        require(claimExists(claim));
 
         require(claim.verificationOngoing == true);
         claim.verificationOngoing = false;
@@ -213,6 +222,8 @@ contract ClaimManager is DepositsManager {
     function checkClaimSuccessful(uint claimID) public {
         ScryptClaim storage claim = claims[claimID];
 
+        require(claimExists(claim));
+
         // check that the claim is in Stage w (i.e. not accepting new challenges).
         require(block.number.sub(claim.createdAt) > challengeTimeout);
 
@@ -227,6 +238,10 @@ contract ClaimManager is DepositsManager {
         dogeRelay.scryptVerified(claim.plaintext, claim.blockHash);
 
         ClaimSuccessful(claimID, claim.claimant, claim.plaintext, claim.blockHash);
+    }
+
+    function claimExists(ScryptClaim claim) pure private returns(bool) {
+        return claim.claimant != 0x0;
     }
 
     function firstChallenger(uint claimID) public view returns(address) {
