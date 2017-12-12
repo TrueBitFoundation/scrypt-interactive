@@ -26,7 +26,7 @@ contract ClaimManager is DepositsManager {
     event ClaimCreated(uint claimID, address claimant, bytes plaintext, bytes blockHash);
     event ClaimChallenged(uint claimID, address challenger);
     event ClaimVerificationGameStarted(uint claimID, address claimant, address challenger, uint sessionId);
-    event ClaimDecided(uint claimID, address winner, address loser);
+    event SessionDecided(uint sessionId, address winner, address loser);
     event ClaimSuccessful(uint claimID, address claimant, bytes plaintext, bytes blockHash);
     event ClaimVerificationGamesEnded(uint claimID);
 
@@ -177,10 +177,10 @@ contract ClaimManager is DepositsManager {
     // @dev – called when a verification game has ended.
     // only callable by the scryptVerifier contract.
     //
-    // @param claimID – the claim ID.
+    // @param sessionId – the sessionId.
     // @param winner – winner of the verification game.
     // @param loser – loser of the verification game.
-    function claimDecided(uint claimID, address winner, address loser) onlyBy(address(scryptVerifier)) public {
+    function sessionDecided(uint sessionId, uint claimID, address winner, address loser) onlyBy(address(scryptVerifier)) public {
         ScryptClaim storage claim = claims[claimID];
 
         require(claimExists(claim));
@@ -193,7 +193,7 @@ contract ClaimManager is DepositsManager {
         delete claim.bondedDeposits[loser];
         claim.bondedDeposits[winner] = claim.bondedDeposits[winner].add(depositToTransfer);
 
-        ClaimDecided(claimID, winner, loser);
+        SessionDecided(sessionId, winner, loser);
 
         if (claim.claimant == loser) {
             // the claim is over.
