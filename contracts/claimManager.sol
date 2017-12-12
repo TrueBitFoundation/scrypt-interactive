@@ -10,13 +10,8 @@ contract ClaimManager is DepositsManager {
     uint private numClaims = 0;     // index as key for the claims mapping.
     uint public minDeposit = 1;    // TODO: what should the minimum deposit be?
 
-    // a claim goes through two stages after being created:
-    // stage 1: new challenges are allowed.
-    // stage 2: no new challenges are allowed.
-    // the claim exists until all verification games are played out.
-    // reasoning behind having two stages is to prevent DoS attacks;
-    // i.e. a malicious adversary cannot sybil challenge a claim after challengeTimeout blocks have passed.
-    uint public challengeTimeout = 20;
+    //default initial amount of blocks for challenge timeout
+    uint public defaultChallengeTimeout = 20;
 
     // blocks to wait for callback from scryptVerifier,
     // before moving onto the next.
@@ -47,6 +42,7 @@ contract ClaimManager is DepositsManager {
         bool verificationOngoing;   // is the claim waiting for results from an ongoing verificationg game.
         mapping (address => uint) bondedDeposits;   // all deposits bonded in this claim.
         bool decided;
+        uint challengeTimeoutBlockNumber;
     }
 
     mapping(uint => ScryptClaim) private claims;
@@ -141,13 +137,12 @@ contract ClaimManager is DepositsManager {
         ScryptClaim storage claim = claims[claimID];
 
         require(claimExists(claim));
-
-        // check that the claim is in Stage 1 (i.e. accepting new challenges).
-        require(block.number.sub(claim.createdAt) <= challengeTimeout);
+        require(!claim.decided);
 
         require(deposits[msg.sender] >= minDeposit);
         bondDeposit(claimID, msg.sender, minDeposit);
 
+        claim.challengeTimeoutBlockNumber = block.number.add(defaultChallengeTimeout);
         claim.challengers.push(msg.sender);
         claim.numChallengers = claim.numChallengers.add(1);
         ClaimChallenged(claimID, msg.sender);
@@ -155,12 +150,12 @@ contract ClaimManager is DepositsManager {
 
     // @dev – runs a verification game between the claimant and
     // the next queued-up challenger.
-    //
     // @param claimID – the claim id.
     function runNextVerificationGame(uint claimID) public {
         ScryptClaim storage claim = claims[claimID];
 
         require(claimExists(claim));
+        require(!claim.decided);
 
         // check if there is a challenger who has not the played verificationg game yet.
         if (claim.numChallengers > claim.currentChallenger) {
@@ -224,14 +219,19 @@ contract ClaimManager is DepositsManager {
 
         require(claimExists(claim));
 
-        // check that the claim is in Stage w (i.e. not accepting new challenges).
-        require(block.number.sub(claim.createdAt) > challengeTimeout);
+        // check that the claim has exceeded the default challenge timeout.
+        require(block.number.sub(claim.createdAt) > defaultChallengeTimeout);
+
+        //check that the claim has exceeded the claim's specific challenge timeout.
+        require(block.number > claim.challengeTimeoutBlockNumber);
 
         // check that there is no ongoing verification game.
         require(claim.verificationOngoing == false);
 
         // check that all verification games have been played.
         require(claim.numChallengers == claim.currentChallenger);
+
+        require(claim.decided);
 
         unbondDeposit(claim.id, claim.claimant);
 
