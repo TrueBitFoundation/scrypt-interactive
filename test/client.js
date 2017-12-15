@@ -1,3 +1,12 @@
+const Ganache = require("ganache-core");
+const Web3 = require('web3');
+const fs = require('fs');
+
+const web3 = new Web3(Ganache.provider())
+
+const scryptRunnerBin = fs.readFileSync('./special_contracts_build/ScryptRunner.bin', 'utf8')
+const scryptRunnerABI = JSON.parse(fs.readFileSync('./special_contracts_build/ScryptRunner.abi', 'utf8'))
+
 const timeout = require('./helpers/timeout')
 const dataFormatter = require('./helpers/dataFormatter')
 
@@ -26,7 +35,22 @@ contract('ClaimManager', function (accounts) {
 
   context('normal conditions', function () {
     before(async () => {
-      scryptRunner = await ScryptRunner.new()
+
+      let accounts2 = await new Promise((resolve) => {
+        return web3.eth.getAccounts((err, result) => {
+          resolve(result)
+        })
+      })
+
+      //Because we are using old web3
+      scryptRunner = await new Promise((resolve) => {
+        return web3.eth.contract(scryptRunnerABI)
+        .new({from: accounts2[0], data: scryptRunnerBin}, (error, result) => {
+          if(error) { console.log(error) }
+          resolve(result)
+        })
+      })
+
       scryptVerifier = await ScryptVerifier.new()
       claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address)
     })
@@ -69,11 +93,12 @@ contract('ClaimManager', function (accounts) {
       // console.log("Session after first query: \n", session, "\n")
 
       // claimant responds to first query.
-      results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, { from: claimant }))
+      results = dataFormatter.newResult(await getStateProofAndHash(scryptRunner, session.input, session.medStep))
+
       tx = await scryptVerifier.respond(claimID, session.medStep, results.stateHash, { from: claimant })
       session = dataFormatter.newSession(await scryptVerifier.getSession.call(claimID))
       // console.log("Session after first response: \n", session, "\n")
-      results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, { from: claimant }))
+      results = dataFormatter.newResult(await getStateProofAndHash(scryptRunner, session.input, session.medStep))
       // console.log("Results after first response: \n", session, "\n")
       // second query from the challenger.
       tx = await scryptVerifier.query(claimID, 0, { from: challenger })
@@ -83,8 +108,8 @@ contract('ClaimManager', function (accounts) {
       session = dataFormatter.newSession(await scryptVerifier.getSession.call(claimID))
       // console.log("Session after second query: \n", session, "\n")
 
-      var preState = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.lowStep, { from: claimant })).state
-      var postStateAndProof = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.highStep, { from: claimant }))
+      var preState = dataFormatter.newResult(await getStateProofAndHash(scryptRunner, session.input, session.lowStep)).state
+      var postStateAndProof = dataFormatter.newResult(await getStateProofAndHash(scryptRunner, session.input, session.highStep))
       var postState = postStateAndProof.state
       var proof = postStateAndProof.proof || '0x00'
       // console.log("... using\n   PreState:  ".yellow + preState + "\n   PostState: ".yellow + postState + "\n   Proof:    ".yellow + proof + "\n")
@@ -133,3 +158,11 @@ contract('ClaimManager', function (accounts) {
     })
   })
 })
+
+async function getStateProofAndHash(scryptRunner, input, step) {
+  return new Promise((resolve) => {
+    return scryptRunner.getStateProofAndHash.call(input, step, (err, result) => {
+      resolve(result);
+    })
+  })
+}
