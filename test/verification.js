@@ -2,9 +2,10 @@
 const _ = require('lodash')
 const { expect } = require('./helpers/chai')
 const dataFormatter = require('./helpers/dataFormatter')
+const offchain = require('./helpers/offchain')
 
 const ScryptVerifier = artifacts.require('ScryptVerifier')
-const ScryptRunner = artifacts.require('ScryptRunner')
+//const ScryptRunner = artifacts.require('ScryptRunner')
 
 const random = require('./helpers/random')
 
@@ -66,7 +67,7 @@ contract('ScryptVerifier', function (accounts) {
     scryptVerifier
 
   before(async () => {
-    scryptRunner = await ScryptRunner.new()
+    scryptRunner = await offchain.scryptRunner()
     scryptVerifier = await ScryptVerifier.new()
   })
 
@@ -80,7 +81,7 @@ contract('ScryptVerifier', function (accounts) {
       if (stepCase.steps > 1) return
 
       it(`can compute ${stepCase.steps} steps`, async () => {
-        const result = await scryptRunner.run.call(getStateAndProofInput, stepCase.steps)
+        const result = await offchain.run(scryptRunner, getStateAndProofInput, stepCase.steps)
 
         for (let i = 0; i < stepCase.results.length; i++) {
           expect(stepCase.results[i]).to.equal(
@@ -91,14 +92,14 @@ contract('ScryptVerifier', function (accounts) {
     })
 
     it('should fail on step 2049', async () => {
-      expect(scryptRunner.run.call(getStateAndProofInput, 2049)).to.be.rejected
+      expect(await offchain.run(scryptRunner, getStateAndProofInput, 2049)).to.be.rejected
     })
   })
 
   context('prover-verifier combination', () => {
     const verifyStep = async (input, step) => {
-      const state = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step, {gas: 200000000})).state
-      const postData = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step + 1, {gas: 200000000}))
+      const state = dataFormatter.newStateAndProof(await offchain.getStateAndProof(scryptRunner, input, step)).state
+      const postData = dataFormatter.newStateAndProof(await offchain.getStateAndProof(scryptRunner, input, step + 1))
 
       const verified = await scryptVerifier.verifyStep(step, state, postData.state, postData.proof || '0x00', {from: accounts[0]})
       return verified
@@ -124,8 +125,8 @@ contract('ScryptVerifier', function (accounts) {
       const step = random.chooseRandomly([0, 1, 2])
 
       it('correctly fails', async () => {
-        let preState = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof(input, step)).state
-        const postData = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof(input, step + 1))
+        let preState = dataFormatter.newStateAndProof(await offchain.getStateAndProof(scryptRunner, input, step)).state
+        const postData = dataFormatter.newStateAndProof(await offchain.getStateAndProof(scryptRunner, input, step + 1))
         let postState = postData.state
 
         let proof = postData.proof || '0x00'
