@@ -14,26 +14,7 @@ matrix:
       - sudo apt-get install build-essential -y
 
 install: 
-  - npm install
-  - curl -O https://storage.googleapis.com/golang/go1.7.3.linux-amd64.tar.gz
-  - sudo tar -C /usr/local -xzf go1.7.3.linux-amd64.tar.gz
-  - mkdir -p ~/go; echo "export GOPATH=$HOME/go" >> ~/.bashrc
-  - echo "export PATH=$PATH:$HOME/go/bin:/usr/local/go/bin" >> ~/.bashrc
-  - source ~/.bashrc
-  - git clone -b release/1.7 https://github.com/ethereum/go-ethereum
-  - sed -i 's/ctx, cancel = context\.WithTimeout(ctx, time\.Second\*5)/ctx, cancel = context\.WithTimeout(ctx, time\.Second\*500)/' ./go-ethereum/internal/ethapi/api.go
-  - travis_wait 40 make -C go-ethereum
-  - sudo cp ./go-ethereum/build/bin/geth /usr/local/bin/geth
-  - stty tostop
-  - echo ilovescrypt > $TRAVIS_BUILD_DIR/password.txt
-  - geth --datadir /tmp/ethereum_dev_mode --password $TRAVIS_BUILD_DIR/password.txt account new
-  - geth --datadir /tmp/ethereum_dev_mode account list
-  - primaccount=$(geth --datadir /tmp/ethereum_dev_mode account list | gawk '{print $3}' | sed 's/{/"/'|sed 's/}/"/')
-  - echo $primaccount
-  - geth --verbosity 6 --ipcpath $TRAVIS_BUILD_DIR/geth.ipc --dev --rpc --rpcapi admin,miner,eth,net,web3,personal --rpcaddr "localhost" --rpcport "8545" --port "30303" --datadir /tmp/ethereum_dev_mode &>/dev/null &
-  - sleep 5
-  - geth --exec 'loadScript("./test_manual/gethconfig.js")' attach $TRAVIS_BUILD_DIR/geth.ipc
-  - sleep 5
+  - sh ./install.sh
 
 script: 
-  - node ./test_manual/index.js $TRAVIS_BUILD_DIR/geth.ipc
+  - sh ./run.sh

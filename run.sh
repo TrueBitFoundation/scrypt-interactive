@@ -16,7 +16,7 @@ NODE_VERSION=$(node --version)
 check_node_version $NODE_VERSION
 if [[ $? == 1 ]]; then echo "node version is too old. please use v.7.6.0 or newer." && exit 1; fi
 
-ganache-cli -l 4500000000000 > ./ganache-log 2>&1 &
+ganache-cli > ./ganache-log 2>&1 &
 GANACHE_PID=$!
 "truffle" compile
 "truffle" test
