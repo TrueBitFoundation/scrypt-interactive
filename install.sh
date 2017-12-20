@@ -9,3 +9,5 @@ cd ..
 npm install --save ./ethereumjs-vm
 
 npm install
+
+npm install -g ganache-cli
