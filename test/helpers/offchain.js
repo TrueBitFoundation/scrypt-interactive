@@ -28,15 +28,23 @@ async function scryptRunner() {
 async function getStateProofAndHash(scryptRunner, input, step) {
   return new Promise((resolve) => {
     return scryptRunner.getStateProofAndHash.call(input, step, (err, result) => {
-      resolve(result);
+      if(err) {
+        reject(err);
+      }else{
+        resolve(result);
+      }
     })
   })
 }
 
 async function run(scryptRunner, input, step) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     return scryptRunner.run.call(input, step, (err, result) => {
-      resolve(result);
+      if(err) {
+        reject(err);
+      }else{
+        resolve(result);
+      }
     })
   })
 }
@@ -44,7 +52,11 @@ async function run(scryptRunner, input, step) {
 async function getStateAndProof(scryptRunner, input, step) {
   return new Promise((resolve) => {
     return scryptRunner.getStateAndProof.call(input, step, (err, result) => {
-      resolve(result);
+      if(err) {
+        reject(err);
+      }else{
+        resolve(result);
+      }
     })
   })
 }

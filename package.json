@@ -10,7 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "chai": "^4.1.2",
-    "ethereumjs-vm": "file:ethereumjs-vm",
+    "ethereumjs-vm": "file:../ethereumjs-vm",
     "ganache-core": "^2.0.2",
     "lodash": "^4.17.4",
     "truffle": "^4.0.1",
