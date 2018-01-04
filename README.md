@@ -24,4 +24,7 @@ First install npm dependencies with:
 Then, you can run tests by executing the `run.sh` script:
 ```
 ./run.sh
-```
+
+## Doge-Ethereum bounty split contract
+
+ The bounty contract is deployed at: `0x1ed3e252dcb6d540947d2d63a911f56733d55681`
