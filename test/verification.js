@@ -73,12 +73,6 @@ contract('ScryptVerifier', function (accounts) {
 
   context('Testing step values', () => {
     _.each(resultExpectations, (stepCase) => {
-      // @TODO – remove this if statement, to run for all stepCases.
-      // currently gives "out of gas" error when when doing scryptRunner.run with i = 1024
-      // potentially helpful links:
-      // 1. https://ethereum.stackexchange.com/questions/9824/can-solidity-constant-functions-be-arbitrarily-complex/9827
-      // 2. start testrpc with a higher limit: testrpc -l 4500000000000
-      if (stepCase.steps > 1) return
 
       it(`can compute ${stepCase.steps} steps`, async () => {
         const result = await offchain.run(scryptRunner, getStateAndProofInput, stepCase.steps)
@@ -113,8 +107,7 @@ contract('ScryptVerifier', function (accounts) {
       return verified
     }
 
-    //Mocha timeout issue with 2049
-    let binarySearchSteps = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1025]
+    let binarySearchSteps = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1025, 2048]
     for (let step of binarySearchSteps) {
       it(`should be able to prove and verify step ${step}`, async () => {
         expect(await verifyStep(verifyProveInput, step)).to.be.equal(true)
@@ -123,12 +116,12 @@ contract('ScryptVerifier', function (accounts) {
   })
 
   context('random bit flipping', () => {
-    _.times(5, () => {//change 5 to higher number when out of gas error issue resolved
+    _.times(30, () => {//change 5 to higher number when out of gas error issue resolved
       const input = random.randomHexString()
-      //const step = random.chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048, 2049])
+      const step = random.chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048])
 
       //Keeping this list smaller for now to get meaningful test results
-      const step = random.chooseRandomly([0, 1, 2])
+      //const step = random.chooseRandomly([0, 1, 2])
 
       it('correctly fails', async () => {
         let preState = dataFormatter.newStateAndProof(await offchain.getStateAndProof(scryptRunner, input, step)).state

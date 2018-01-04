@@ -16,25 +16,12 @@ For more context on how relays work, look at the [BTCRelay](https://github.com/e
 
 ## Running the Tests
 
-To run the tests, first install npm dependencies:
+First install npm dependencies with:
 ```
-# install npm dependencies:
-npm install
-
-# install ganache-cli
-npm install -g ganache-cli
+./install.sh
 ```
 
 Then, you can run tests by executing the `run.sh` script:
 ```
 ./run.sh
-```
-
-Or run the truffle tests manually:
-```
-# first start ganache-cli
-ganache-cli
-
-# run tests
-truffle test
 ```

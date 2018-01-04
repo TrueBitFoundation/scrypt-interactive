@@ -1,28 +1,26 @@
-const Ganache = require("ganache-core");
 const Web3 = require('web3');
 const fs = require('fs');
+const deploy = require('./deploy');
 
-const web3 = new Web3(Ganache.provider())
+
+//const web3 = new Web3(Ganache.provider())
+
+const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:4242"))
 
 const scryptRunnerBin = fs.readFileSync('./special_contracts_build/ScryptRunner.bin', 'utf8')
 const scryptRunnerABI = JSON.parse(fs.readFileSync('./special_contracts_build/ScryptRunner.abi', 'utf8'))
 
+var account
+
+var _scryptRunner
+
 async function scryptRunner() {
 
-	//Because we are using old web3
-	let accounts = await new Promise((resolve) => {
-	  return web3.eth.getAccounts((err, result) => {
-	    resolve(result)
-	  })
-	})
+  if(!account) account = await deploy.setupAccount("0x00a329c0648769a73afac7f9381e08fb43dbea72")
 
-	return new Promise((resolve) => {
-	  return web3.eth.contract(scryptRunnerABI)
-	  .new({from: accounts[0], data: scryptRunnerBin}, (error, result) => {
-	    if(error) { console.log(error) }
-	    resolve(result)
-	  })
-	})
+  if(!_scryptRunner) _scryptRunner = await deploy.deployContract(runnerCode, runnerABI, 0, account, 4000000, true)
+
+  return _scryptRunner 
 }
 
 async function getStateProofAndHash(scryptRunner, input, step) {

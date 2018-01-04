@@ -1,12 +1,10 @@
-git clone https://github.com/hswick/ethereumjs-vm.git
+git clone https://github.com/paritytech/parity
 
-cd ./ethereumjs-vm
+cd parity
 
-npm install
+cargo build --release
 
 cd ..
-
-npm install --save ./ethereumjs-vm
 
 npm install
 

@@ -6,3 +6,4 @@ tmp/
 ethereumjs-vm/
 
 ganache-log
+parity-log
