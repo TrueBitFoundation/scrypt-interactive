@@ -18,9 +18,10 @@
 
 ganache-cli > ./ganache-log 2>&1 &
 GANACHE_PID=$!
-~/projects/parity/target/release/parity --config config.toml --geth > ./parity-log 2>&1 &
+./parity --config config.toml --geth > ./parity-log 2>&1 &
 PARITY_PID=$!
-"truffle" compile
-"truffle" test
-"kill" -9 $GANACHE_PID
-"kill" -9 $PARITY_PID
+truffle compile
+truffle test
+kill -9 $GANACHE_PID
+kill -9 $PARITY_PID
+cat parity-log

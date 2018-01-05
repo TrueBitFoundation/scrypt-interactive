@@ -7,7 +7,7 @@ const process = require('process')
 const color = require('colors')
 const child_process = require('child_process')
 
-const useLocalSolc = false
+const useLocalSolc = true
 
 const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:4242"))
 
@@ -27,7 +27,6 @@ function invokeCompiler(input) {
 function checkForErrors(results) {
     if (!results) {
         console.log("Error invoking compiler (results is invalid).")
-        console.log(results)
         process.exit(1)
     }
     var anyError = false
@@ -58,14 +57,9 @@ function compile() {
             'scryptRunner.sol': {'content': readFile('contracts/scryptRunner.sol')}
         }
     }
-
-    var results = JSON.parse(invokeCompiler(JSON.stringify(compilerInput_runner)))
-    checkForErrors(results)
-    runnerCode = '0x' + results['contracts']['scryptRunner.sol']['ScryptRunner']['evm']['bytecode']['object']
-    runnerABI = results['contracts']['scryptRunner.sol']['ScryptRunner']['abi']
-    // console.log('var runnerCode = "' + runnerCode + '"')
-    // console.log('var runnerABI = ' + JSON.stringify(runnerABI) + '')
-
+    
+    runnerCode = Buffer(fs.readFileSync(__dirname+'/offchain_evm'))
+    runnerABI = JSON.parse(fs.readFileSync(__dirname+'/offchain_abi.json'))
 }
 
 async function deployContract(c_code, c_abi, c_addr, b_account, c_gas, bool_log) {

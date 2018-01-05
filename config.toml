@@ -7,4 +7,4 @@ password=["passfile"]
 
 [rpc]
 port=4242
-apis=["web3","eth","net","parity","traces","rpc","personal"]
+apis=["web3", "eth", "net", "personal", "parity", "parity_set", "traces", "rpc", "parity_accounts"]

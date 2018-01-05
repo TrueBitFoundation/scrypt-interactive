@@ -1,11 +1,9 @@
-git clone https://github.com/paritytech/parity
+#!/bin/bash
 
-cd parity
+wget https://parity-downloads-mirror.parity.io/v1.8.5/x86_64-unknown-linux-gnu/parity
 
-cargo build --release
-
-cd ..
+chmod 755 ./parity
 
 npm install
 
-npm install -g ganache-cli
+npm install -g ganache-cli truffle

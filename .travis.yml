@@ -2,7 +2,7 @@ dist: trusty
 sudo: required
 language: node_js
 node_js:
-  - "7.6"
+  - "8.0.0"
 
 matrix:
   include:
@@ -12,9 +12,10 @@ matrix:
       - sudo add-apt-repository ppa:ethereum/ethereum -y
       - sudo apt-get update
       - sudo apt-get install build-essential -y
+      - sudo apt-get install gcc g++ libssl-dev libudev-dev pkg-config
 
 install: 
-  - sh ./install.sh
+  - bash ./install.sh
 
 script: 
-  - sh ./run.sh
+  - bash ./run.sh
