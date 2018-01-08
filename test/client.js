@@ -19,7 +19,7 @@ contract('ClaimManager', function (accounts) {
   let claimManager,
     scryptVerifier,
     scryptRunner
-  let claimID
+  let claimID, sessionId
   let tx, session, result, log, deposit
 
   const serializedBlockHeader = '030162002adb34dfa6574cf127a781ecb9683ca28f911a59020628c90c72b4a3d9942233a3b905b2388b020085dbd9e03209db4493f5420336d882d0b78b54f728b8f90058f7115a2c83221a00000000'
@@ -63,30 +63,30 @@ contract('ClaimManager', function (accounts) {
       assert.equal(log.args.claimID.toNumber(), claimID)
       assert.equal(log.args.claimant, claimant)
       assert.equal(log.args.challenger, challenger)
+      sessionId = log.args.sessionId.toNumber();
     })
 
     it('participates in verification game', async () => {
       // First challenge
       // Each call to query sets the new medstep
       // Intial high step is currently 2050 (assuming this is the final number of steps)
-      tx = await scryptVerifier.query(claimID, 1, { from: challenger })
+      tx = await scryptVerifier.query(sessionId, 1, { from: challenger })
       session = dataFormatter.newSession(await scryptVerifier.getSession.call(claimID))
       // console.log("Session after first query: \n", session, "\n")
 
       // claimant responds to first query.
-      results = dataFormatter.newResult(await offchain.getStateProofAndHash(scryptRunner, session.input, session.medStep))
-
-      tx = await scryptVerifier.respond(claimID, session.medStep, results.stateHash, { from: claimant })
-      session = dataFormatter.newSession(await scryptVerifier.getSession.call(claimID))
+      results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, { from: claimant }))
+      tx = await scryptVerifier.respond(sessionId, session.medStep, results.stateHash, { from: claimant })
+      session = dataFormatter.newSession(await scryptVerifier.getSession.call(sessionId))
       // console.log("Session after first response: \n", session, "\n")
       results = dataFormatter.newResult(await offchain.getStateProofAndHash(scryptRunner, session.input, session.medStep))
       // console.log("Results after first response: \n", session, "\n")
       // second query from the challenger.
-      tx = await scryptVerifier.query(claimID, 0, { from: challenger })
+      tx = await scryptVerifier.query(sessionId, 0, { from: challenger })
     })
 
     it('finalizes verification game', async () => {
-      session = dataFormatter.newSession(await scryptVerifier.getSession.call(claimID))
+      session = dataFormatter.newSession(await scryptVerifier.getSession.call(sessionId))
       // console.log("Session after second query: \n", session, "\n")
 
       var preState = dataFormatter.newResult(await offchain.getStateProofAndHash(scryptRunner, session.input, session.lowStep)).state
@@ -97,21 +97,21 @@ contract('ClaimManager', function (accounts) {
 
       // the final call for the verification game
       // can only happen when lowStep + 1 == highStep (typically lowStep = 0, highStep = 1)
-      tx = await scryptVerifier.performStepVerification(claimID, preState, postState, proof, claimManager.address, { from: claimant, gas: 3000000 })
+      tx = await scryptVerifier.performStepVerification(sessionId, claimID, preState, postState, proof, claimManager.address, { from: claimant, gas: 3000000 })
 
       log = tx.logs.find(l => l.event === 'ChallengerConvicted')
-      assert.equal(log.args.sessionId.toNumber(), claimID)
+      assert.equal(log.args.sessionId.toNumber(), sessionId)
       log = tx.logs.find(l => l.event === 'ClaimantConvicted')
       assert.equal(log, undefined)
 
       // check that the callback to ClaimManager went through.
-      const claimDecidedEvent = claimManager.ClaimDecided({ fromBlock: 0, toBlock: 'latest' })
-      claimDecidedEvent.watch((err, resp) => {
-        assert.equal(claimDecidedEvent.args.claimID, claimID)
-        assert.equal(claimDecidedEvent.args.winner, claimant)
-        assert.equal(claimDecidedEvent.args.loser, challenger)
+      const sessionDecidedEvent = claimManager.SessionDecided({ fromBlock: 0, toBlock: 'latest' })
+      sessionDecidedEvent.watch((err, resp) => {
+        assert.equal(sessionDecidedEvent.args.sessionId, sessionId)
+        assert.equal(sessionDecidedEvent.args.winner, claimant)
+        assert.equal(sessionDecidedEvent.args.loser, challenger)
       })
-      claimDecidedEvent.stopWatching()
+      sessionDecidedEvent.stopWatching()
 
       const gamesEndedEvent = claimManager.ClaimVerificationGamesEnded({ fromBlock: 0, toBlock: 'latest' })
       gamesEndedEvent.watch((err, resp) => {

@@ -11,7 +11,7 @@ import {ClaimManager} from "./claimManager.sol";
 */
 contract Verifier {
 
-    event NewClaim(uint sessionId);
+    event NewSession(uint sessionId);
     event NewQuery(uint sessionId);
     event NewResponse(uint sessionId);
     event ChallengerConvicted(uint sessionId);
@@ -67,7 +67,7 @@ contract Verifier {
 
         require(isInitiallyValid(sessions[sessionId]));
 
-        NewClaim(sessionId);
+        NewSession(sessionId);
         return sessionId;
     }
 
@@ -157,6 +157,7 @@ contract Verifier {
 
     function performStepVerification(
         uint sessionId,
+        uint claimID,
         bytes preValue,
         bytes postValue,
         bytes proofs,
@@ -173,10 +174,10 @@ contract Verifier {
         require(keccak256(postValue) == s.highHash);
 
         if (performStepVerificationSpecific(s, s.lowStep, preValue, postValue, proofs)) {
-            claimManager.claimDecided(sessionId, s.claimant, s.challenger);
+            claimManager.sessionDecided(sessionId, claimID, s.claimant, s.challenger);
             challengerConvicted(sessionId);
         } else {
-            claimManager.claimDecided(sessionId, s.challenger, s.claimant);
+            claimManager.sessionDecided(sessionId, claimID, s.challenger, s.claimant);
             claimantConvicted(sessionId);
         }
     }
