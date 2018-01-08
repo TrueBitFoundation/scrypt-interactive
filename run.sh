@@ -22,6 +22,6 @@ GANACHE_PID=$!
 PARITY_PID=$!
 truffle compile
 truffle test
+sleep 10
 kill -9 $GANACHE_PID
 kill -9 $PARITY_PID
-cat parity-log

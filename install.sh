@@ -7,3 +7,8 @@ chmod 755 ./parity
 npm install
 
 npm install -g ganache-cli truffle
+
+./parity --chain dev 2>&1 &
+PARITY_PID=$!
+sleep 10
+kill $PARITY_PID
