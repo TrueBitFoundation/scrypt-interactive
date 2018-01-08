@@ -59,6 +59,24 @@ Then run the tests with:
 truffle test
 ```
 
+## Easy Parity Installation
+
+Download latest binary relase for your OS from [here](https://github.com/paritytech/parity/releases)
+
+You might need to run parity and kill it once if you are getting an issue with accounts.
+
+```
+./parity --chain dev
+```
+
+Kill it. Then do:
+
+```
+./parity --config config.toml --geth
+```
+
+To run the parity dev chain needed for the offchain component.
+
 ## Doge-Ethereum bounty split contract
 
  The bounty contract is deployed at: `0x1ed3e252dcb6d540947d2d63a911f56733d55681`
