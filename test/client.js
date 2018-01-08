@@ -1,5 +1,6 @@
 const timeout = require('./helpers/timeout')
 const dataFormatter = require('./helpers/dataFormatter')
+const offchain = require('./helpers/offchain')
 
 const ClaimManager = artifacts.require('ClaimManager')
 const ScryptVerifier = artifacts.require('ScryptVerifier')
@@ -25,8 +26,12 @@ contract('ClaimManager', function (accounts) {
   const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2bd6e5682'
 
   context('normal conditions', function () {
+
     before(async () => {
-      scryptRunner = await ScryptRunner.new()
+
+      scryptRunner = await offchain.scryptRunner();
+      
+      console.log("scryptRunner deployed")
       scryptVerifier = await ScryptVerifier.new()
       claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address)
     })
@@ -69,11 +74,12 @@ contract('ClaimManager', function (accounts) {
       // console.log("Session after first query: \n", session, "\n")
 
       // claimant responds to first query.
-      results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, { from: claimant }))
+      results = dataFormatter.newResult(await offchain.getStateProofAndHash(scryptRunner, session.input, session.medStep))
+
       tx = await scryptVerifier.respond(claimID, session.medStep, results.stateHash, { from: claimant })
       session = dataFormatter.newSession(await scryptVerifier.getSession.call(claimID))
       // console.log("Session after first response: \n", session, "\n")
-      results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, { from: claimant }))
+      results = dataFormatter.newResult(await offchain.getStateProofAndHash(scryptRunner, session.input, session.medStep))
       // console.log("Results after first response: \n", session, "\n")
       // second query from the challenger.
       tx = await scryptVerifier.query(claimID, 0, { from: challenger })
@@ -83,8 +89,8 @@ contract('ClaimManager', function (accounts) {
       session = dataFormatter.newSession(await scryptVerifier.getSession.call(claimID))
       // console.log("Session after second query: \n", session, "\n")
 
-      var preState = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.lowStep, { from: claimant })).state
-      var postStateAndProof = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.highStep, { from: claimant }))
+      var preState = dataFormatter.newResult(await offchain.getStateProofAndHash(scryptRunner, session.input, session.lowStep)).state
+      var postStateAndProof = dataFormatter.newResult(await offchain.getStateProofAndHash(scryptRunner, session.input, session.highStep))
       var postState = postStateAndProof.state
       var proof = postStateAndProof.proof || '0x00'
       // console.log("... using\n   PreState:  ".yellow + preState + "\n   PostState: ".yellow + postState + "\n   Proof:    ".yellow + proof + "\n")

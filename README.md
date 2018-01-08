@@ -16,30 +16,49 @@ For more context on how relays work, look at the [BTCRelay](https://github.com/e
 
 ## Running the Tests
 
-To run the tests, first install npm dependencies:
+If you are on a Linux machine you can simply install dependencies with this command:
 ```
-# install npm dependencies:
-npm install
+./install.sh
+```
 
-# install ganache-cli
-npm install -g ganache-cli
+Else you will need to have parity, which can be done by downloading a binary release for your machine from [here](https://github.com/paritytech/parity/releases)
+
+Ensure you have the latest version of node installed.
+
+You will need a testrpc and truffle:
+
+```
+npm install -g ganache-cli truffle
+```
+
+Then install packages deps:
+
+```
+npm install
 ```
 
 Then, you can run tests by executing the `run.sh` script:
 ```
 ./run.sh
+
 ```
 
-Or run the truffle tests manually:
+Or you can run parity with this config:
+
 ```
-# first start ganache-cli
+parity --config config.toml --geth
+```
+
+In a separate terminal window run ganache-cli
+```
 ganache-cli
+```
 
-# run tests
+Then run the tests with:
+```
 truffle test
 ```
 
 ## Doge-Ethereum bounty split contract
 
  The bounty contract is deployed at: `0x1ed3e252dcb6d540947d2d63a911f56733d55681`
-
