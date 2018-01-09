@@ -1,63 +1,30 @@
-require('dotenv').config()
-const vorpal = require('vorpal')()
-const asDefault = require('vorpal-as-default')
-const Web3 = require('web3')
-const selfText = require('./src/utils/selfText')
-const setup = require('./src/utils/setup')
+const Web3 = require('web3');
+const fs = require('fs');
 
-// let's monekypatch web3 cause it doesn't play nice with truffle yet
-Web3.providers.WebsocketProvider.prototype.sendAsync = Web3.providers.WebsocketProvider.prototype.send
+const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"))
 
-// run the setup function to connect to bridge
-const connect = async function (cmd) {
-  cmd.log('Connecting to bridge...')
-  const res = await setup()
-  cmd.log('Connected!')
-  return res
+const addresses = JSON.parse(fs.readFileSync('./contract_addresses.json'));
+const ClaimManager = JSON.parse(fs.readFileSync('../build/contracts/ClaimManager.json'))
+const ScryptVerifier = JSON.parse(fs.readFileSync('../build/contracts/ScryptVerifier.json'))
+
+let claimManager = web3.eth.contract(ClaimManager.abi).at(addresses.claimManager);
+let scryptVerifier = web3.eth.contract(ScryptVerifier.abi).at(addresses.scryptVerifier);
+
+const serializedBlockHeader = '030162002adb34dfa6574cf127a781ecb9683ca28f911a59020628c90c72b4a3d9942233a3b905b2388b020085dbd9e03209db4493f5420336d882d0b78b54f728b8f90058f7115a2c83221a00000000'
+const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2bd6e5682'
+
+async function run() {
+
+  await claimManager.makeDeposit({ from: addresses.claimant, value: 1 })
+  await claimManager.makeDeposit({ from: addresses.challenger, value: 1 })
+
+  tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, addresses.claimant, { from: addresses.dogeRelay, gas: 200000})
+
+  console.log(tx)
+
+  //log = tx.logs.find(l => l.event === 'ClaimCreated')
+  //claimID = log.args.claimID.toNumber()
+  //tx = await claimManager.challengeClaim(claimID, { from: challenger })
 }
 
-vorpal
-  .command('describe', 'What is the Doge-Eth Bridge and how to you use it?')
-  .action(async function (args) {
-    this.log(selfText)
-  })
-
-vorpal
-  .command('status', 'Display the status of the bridge.')
-  .action(async function (args) {
-    const { api, web3 } = await connect(this)
-
-    try {
-      const deposited = await api.getDeposit(web3.eth.defaultAccount)
-
-      this.log(`Deposited: ${web3.fromWei(deposited, 'ether')} ETH`)
-    } catch (error) {
-      this.log(`Unable to connect to bridge: ${error.stack}`)
-    }
-  })
-
-vorpal
-  .command('monitor', 'Monitors the Doge-Eth bridge and validates blockheader claims.')
-  .option('-c, --challenge', 'Challenge incorrect claims.')
-  .option('-d, --deposit', `
-    Automaticaly deposit ETH if we haven't deposited enough to challenge.
-    Only applies when challenging (--challenge)
-  `)
-  .action(async function (args) {
-    const { bridge } = await connect(this)
-
-    await bridge.monitor(this,
-      !!args.options.challenge,
-      !!args.options.deposit
-    )
-  })
-
-vorpal
-  .delimiter('bttm$')
-  .show()
-  .parse(process.argv)
-  .use(asDefault, 'describe')
-
-process.on('unhandledRejection', (error, p) => {
-  vorpal.log('Unhandled Rejection at:', p, 'error:', error)
-})
+run();

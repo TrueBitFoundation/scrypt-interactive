@@ -3,6 +3,31 @@
 
 - See [scrypt-interactive](https://github.com/TrueBitFoundation/scrypt-interactive) for the details of the bridge.
 
+## Installation
+
+```
+npm install
+```
+
+Ensure you have a test net running
+```
+ganache-cli
+```
+
+Deploy the needed contracts
+```
+truffle deploy ..
+```
+
+Then use this utility script to get the new contract addresses
+```
+truffle exec ../util/contract_addresses.js
+```
+
+
+
+Follow installation instructions in parent scrypt-interactive repo
+
 ## Requirements
 
 - Node v9.2.0

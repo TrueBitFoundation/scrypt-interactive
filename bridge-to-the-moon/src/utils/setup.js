@@ -3,7 +3,7 @@ const Bridge = require('../bridge')
 const Api = require('../api')
 
 // let's monekypatch web3 cause it doesn't play nice with truffle-contract yet
-Web3.providers.WebsocketProvider.prototype.sendAsync = Web3.providers.WebsocketProvider.prototype.send
+//Web3.providers.WebsocketProvider.prototype.sendAsync = Web3.providers.WebsocketProvider.prototype.send
 
 // @TODO(shrugs) - there's got to be a better pattern for init-once promises
 module.exports = async function () {

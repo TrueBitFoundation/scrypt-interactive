@@ -1,7 +1,7 @@
 
 const BigNumber = require('bignumber.js')
 const contracts = require('./contracts')
-const { toSession, toResult } = require('../utils/models')
+const { toSession, toResult } = require('./utils/models')
 
 module.exports = async (web3, contractAddresses) => {
   const {
