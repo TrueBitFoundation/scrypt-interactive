@@ -45,18 +45,18 @@ function checkForErrors(results) {
 
 
 function compile() {
-    const solc = require('solc')
-    function readFile(name) {
-        return fs.readFileSync(name, {encoding: 'utf-8'})
-    }
+    // const solc = require('solc')
+    // function readFile(name) {
+    //     return fs.readFileSync(name, {encoding: 'utf-8'})
+    // }
 
-    const compilerInput_runner = {
-        'language': 'Solidity',
-        'sources': {
-            'scryptFramework.sol': {'content': readFile('contracts/scryptFramework.sol')},
-            'scryptRunner.sol': {'content': readFile('contracts/scryptRunner.sol')}
-        }
-    }
+    // const compilerInput_runner = {
+    //     'language': 'Solidity',
+    //     'sources': {
+    //         'scryptFramework.sol': {'content': readFile('contracts/scryptFramework.sol')},
+    //         'scryptRunner.sol': {'content': readFile('contracts/scryptRunner.sol')}
+    //     }
+    // }
     
     runnerCode = Buffer(fs.readFileSync(__dirname+'/offchain_evm'))
     runnerABI = JSON.parse(fs.readFileSync(__dirname+'/offchain_abi.json'))

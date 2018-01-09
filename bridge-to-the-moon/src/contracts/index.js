@@ -9,7 +9,7 @@ const getAbi = async (name) => readFile(abiPath(name), 'utf8')
 
 module.exports = async (web3, {
   claimManager: claimManagerAddress,
-  scryptRunner: scryptRunnerAddress,
+  scryptVerifier: scryptVerifierAddress,
 }) => {
   const getContract = async (name) => {
     const AbstractContract = contract({
@@ -28,14 +28,10 @@ module.exports = async (web3, {
   // @TODO(shrugs) - once truffle stops being fucking awful software
   //  change this to await ClaimManager.at()
   const claimManager = ClaimManager.at(claimManagerAddress)
-  const scryptRunner = ScryptRunner.at(scryptRunnerAddress)
-  const scryptVerifier = ScryptVerifier.at(
-    await claimManager.scryptVerifierAddress.call()
-  )
+  const scryptVerifier = ScryptVerifier.at(scryptVerifierAddress)
 
   return {
     claimManager,
-    scryptRunner,
-    scryptVerifier,
+    scryptVerifier
   }
 }
