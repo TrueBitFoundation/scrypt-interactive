@@ -1,5 +1,5 @@
-module.exports = async (web3, api) => {
+module.exports = async (web3, api, challenger) => {
     return {
-        challengeClaim: require('./challengeClaim')(web3, api),
+        challengeClaim: require('./challengeClaim')(web3, api, challenger),
     }
 }

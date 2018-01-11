@@ -28,7 +28,7 @@ module.exports = async function(callback) {
     let scryptVerifier = await ScryptVerifier.new()
     let claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address)
 
-    const bridge = await require('./bridge-to-the-moon')(claimManager, scryptVerifier, scryptRunner, web3)
+    const bridge = await require('./bridge-to-the-moon')(claimManager, scryptVerifier, scryptRunner, web3, challenger)
 
     await bridge.api.makeDeposit({ from: claimant, value: 1 })
     //This is meant to be called by DogeRelay which will have to have its own client

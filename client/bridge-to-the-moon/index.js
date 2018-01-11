@@ -1,12 +1,12 @@
 const blockheader = require('./util/blockheader')
 
-module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3) {
-  const api = await require('./api')(claimManager, scryptVerifier, scryptRunner)
-  const stateMachines = await require('./state-machines')(web3, api)
+module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3, challenger) {
+  const api = await require('./api')(claimManager, scryptVerifier, scryptRunner, web3)
+  const stateMachines = await require('./state-machines')(web3, api, challenger)
 
   return {
     api,
-    monitorClaims: async (cmd, autoChallenge = false, autoDeposit = false) => {
+    monitor: async (cmd, autoChallenge = false, autoDeposit = false) => {
       return new Promise(async (resolve, reject) => {
         let inProgressClaims = []
 

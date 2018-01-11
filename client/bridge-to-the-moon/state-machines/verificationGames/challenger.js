@@ -8,7 +8,7 @@ const waitForEvent = require('../../util/waitForEvent')
 const { calculateMidpoint } = require('../../util/math')
 
 module.exports = (web3, api) => ({
-  run: async (cmd, claim, sessionId) => new Promise(async (resolve, reject) => {
+  run: async (cmd, claim, sessionId, challenger) => new Promise(async (resolve, reject) => {
     try {
       const m = new StateMachine({
         init: 'init',
@@ -49,29 +49,53 @@ module.exports = (web3, api) => ({
             cmd.log(`Requesting a stateHash for step ${newMedStep}`)
 
             // now lets request the next medStep
-            await api.query(claim.id, newMedStep)
+            await api.query(claim.id, newMedStep, {from: challenger})
           },
           onEnterPreRespond: async (tsn) => {
             cmd.log('Waiting for a respond(), timeout(), or conviction event...')
-            return Promise.race([
-              // either the claimant responds with a respond()
-              waitForEvent(api.scryptVerifier, 'NewResponse', { filter: { sessionId } })
-                .then(() => cmd.log('Got NewResponse()'))
-                // in which case we want to query and wait again
-                .then(() => tsn.fsm.query()),
+            let newResponseEvent = api.scryptVerifier.NewResponse({sessionId: sessionId})
+            let claimantConvictedEvent = api.scryptVerifier.ClaimantConvicted({sessionId: sessionId})
+            let challengerConvictedEvent = api.scryptVerifier.ChallengerConvicted({sessionId: sessionId})
+            let race = async () => {
+              return new Promise((resolve) => {
+                
+                newResponseEvent.watch((err, result) => {
+                  if(result) resolve()
+                })
 
-              // or the claimant can be convicted by a timeout or fold
-              waitForEvent(api.scryptVerifier, 'ClaimantConvicted', { filter: { sessionId } })
-                .then(() => cmd.log('Got ClaimantConvicted()'))
-                // in which case we want to go to the convicted state
-                .then(() => tsn.fsm.didConvict()),
+                
+                claimantConvictedEvent.watch((err, result) => {
+                  if(result) resolve()
+                })
 
-              // or we can be convicted
-              waitForEvent(api.scryptVerifier, 'ChallengerConvicted', { filter: { sessionId } })
-                .then(() => cmd.log('Got ChallengerConvicted()'))
-                // in which case we want to go to the convicted state
-                .then(() => tsn.fsm.didConvict()),
-            ])
+                challengerConvictedEvent.watch((err, result) => {
+                  if(result) resolve()
+                }) 
+              })
+            }
+            await race()
+            newResponseEvent.stopWatching()
+            claimantConvictedEvent.stopWatching()
+            challengerConvictedEvent.stopWatching()
+            // return Promise.race([
+            //   // either the claimant responds with a respond()
+            //   waitForEvent(api.scryptVerifier, 'NewResponse', { filter: { sessionId } })
+            //     .then(() => cmd.log('Got NewResponse()'))
+            //     // in which case we want to query and wait again
+            //     .then(() => tsn.fsm.query()),
+
+            //   // or the claimant can be convicted by a timeout or fold
+            //   waitForEvent(api.scryptVerifier, 'ClaimantConvicted', { filter: { sessionId } })
+            //     .then(() => cmd.log('Got ClaimantConvicted()'))
+            //     // in which case we want to go to the convicted state
+            //     .then(() => tsn.fsm.didConvict()),
+
+            //   // or we can be convicted
+            //   waitForEvent(api.scryptVerifier, 'ChallengerConvicted', { filter: { sessionId } })
+            //     .then(() => cmd.log('Got ChallengerConvicted()'))
+            //     // in which case we want to go to the convicted state
+            //     .then(() => tsn.fsm.didConvict()),
+            // ])
           },
           onEnterConvicted: async (tsn, didWin) => {
             resolve(didWin)

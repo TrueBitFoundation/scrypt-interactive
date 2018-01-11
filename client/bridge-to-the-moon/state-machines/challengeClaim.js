@@ -4,7 +4,7 @@ const BlockEmitter = require('../util/blockemitter')
 const waitForEvent = require('../util/waitForEvent')
 const timeout = require('../util/timeout')
 
-module.exports = (web3, api) => ({
+module.exports = (web3, api, challenger) => ({
   run: async (cmd, claim, autoDeposit = false) => new Promise(async (resolve, reject) => {
     try {
       const { claimManager } = api
@@ -24,17 +24,17 @@ module.exports = (web3, api) => ({
             cmd.log('Checking deposits...')
 
             const minDeposit = await api.getMinDeposit()
-            const currentDeposit = await api.getDeposit()
+            const currentDeposit = await api.getDeposit(challenger)
             if (currentDeposit.lt(minDeposit)) {
               cmd.log('Not enough ETH deposited.')
               // if we don't have enough deposit, either add some or throw
               // let's just add exactly the right amount for now
               if (autoDeposit) {
                 const neededAmount = minDeposit.sub(currentDeposit)
-                const myBalance = await api.getBalance(me)
+                const myBalance = await api.getBalance(challenger)
                 if (myBalance.gte(neededAmount)) {
                   cmd.log(`Depositing ${web3.fromWei(neededAmount, 'ether')} ETH...`)
-                  await api.deposit(neededAmount)
+                  await api.makeDeposit({from: challenger, value: neededAmount})
                   cmd.log(`Deposited ${web3.fromWei(neededAmount, 'ether')} ETH.`)
                 } else {
                   throw new Error(`
@@ -48,43 +48,40 @@ module.exports = (web3, api) => ({
               }
             }
           },
-          onAfterStart: async (tsn) => tsn.fsm.challenge(),
+          onAfterStart: async (tsn) => { console.log("Beginning challenge") },
           onBeforeChallenge: async (tsn) => {
             cmd.log('Challenging...')
-            await api.challengeClaim(claim.id)
+            console.log(claim.id)
+            api.challengeClaim(claim.id, {from: challenger})
           },
           onAfterChallenge: async (tsn) => {
             cmd.log('Challenged.')
-            await tsn.fsm.timeout()
           },
           onBeforeTimeout: async (tsn) => {
             cmd.log('Waiting for challenge timeout...')
             const challengeTimeout = await api.getChallengeTimeout()
             cmd.log(`    (which is ${challengeTimeout} blocks)`)
             const blockEmitter = await BlockEmitter(web3)
-            const timeoutExpiresAt = claim.createdAt.plus(challengeTimeout).toNumber()
+            const timeoutExpiresAt = claim.createdAt + challengeTimeout.toNumber()
             await blockEmitter.waitForBlock(timeoutExpiresAt)
           },
           onAfterTimeout: async (tsn) => {
             cmd.log('Timeout over.')
-            await tsn.fsm.verify()
           },
           onBeforeVerify: async (tsn) => {
-            const waitForEventAndGetSessionId = async () => {
-              const event = await waitForEvent(claimManager, 'ClaimVerificationGameStarted', {
-                filter: {
-                  claimID: claim.id,
-                  challenger: me,
-                },
+            const waitForEventAndGetSessionId = async (resolve) => {
+              let vgameStartedEvent = claimManager.ClaimVerificationGameStarted({claimID: claim.id, challenger: challenger})
+              vgameStartedEvent.watch((err, result) => {
+                if(!err) {
+                  return result.args.sessionId.toNumber()
+                }
               })
-
-              return event.returnValues.sessionId
             }
 
             const runVerificationGameAndGetSessionId = async () => {
               const [sessionId] = await Promise.all([
                 waitForEventAndGetSessionId(),
-                api.runNextVerificationGame(claim.id),
+                api.runNextVerificationGame(claim.id, {from: challenger}),
               ])
 
               return sessionId
@@ -98,7 +95,7 @@ module.exports = (web3, api) => ({
               cmd.log('Starting Verification Game...')
               const sessionId = await runVerificationGameAndGetSessionId()
               cmd.log('Verification Game Started.')
-              return verificationGame.run(cmd, claim, sessionId)
+              return verificationGame.run(cmd, claim, sessionId, challenger)
             }
 
             cmd.log('We\'re not the first challenger.')
@@ -119,6 +116,10 @@ module.exports = (web3, api) => ({
       })
 
       await m.start()
+      await m.challenge()
+      await m.timeout()
+      await m.verify()
+
     } catch (error) {
       reject(error)
     }

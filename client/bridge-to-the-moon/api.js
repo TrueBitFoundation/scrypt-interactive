@@ -2,7 +2,7 @@
 const BigNumber = require('bignumber.js')
 const { toSession, toResult } = require('./util/models')
 
-module.exports = async (claimManager, scryptVerifier, scryptRunner) => {
+module.exports = async (claimManager, scryptVerifier, scryptRunner, web3) => {
 
   return {
     /**
@@ -32,20 +32,20 @@ module.exports = async (claimManager, scryptVerifier, scryptRunner) => {
     /**
      * @desc challenges the provided claim
      */
-    challengeClaim: async (claimId) => {
-      return claimManager.challengeClaim.sendTransaction(claimId)
+    challengeClaim: async (...args) => {
+      return claimManager.challengeClaim.sendTransaction(...args)
     },
     /**
      * Runs the next verification game.
      */
-    runNextVerificationGame: async (claimId) => {
-      return claimManager.challengeClaim.sendTransaction(claimId)
+    runNextVerificationGame: async (...args) => {
+      return claimManager.runNextVerificationGame.sendTransaction(...args)
     },
     /**
      * @return BigNumber number of blocks that represent challenge timeout
      */
     getChallengeTimeout: async () => {
-      return claimManager.challengeTimeout.call()
+      return claimManager.defaultChallengeTimeout.call()
     },
     /**
      * @desc get the minimum deposit necessary to challenge
@@ -97,8 +97,8 @@ module.exports = async (claimManager, scryptVerifier, scryptRunner) => {
      * @param claimId
      * @param step
      */
-    query: async (claimId, step) => {
-      return scryptVerifier.query.sendTransaction(claimId, step)
+    query: async (claimId, step, options) => {
+      return scryptVerifier.query.sendTransaction(claimId, step, options)
     },
     /**
      * @desc finalize the verification game by proving the final step's state
