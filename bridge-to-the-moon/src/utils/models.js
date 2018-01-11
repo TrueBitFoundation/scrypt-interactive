@@ -11,4 +11,8 @@ module.exports = {
     proof: data[1],
     stateHash: data[2],
   }),
+  toStateAndProof: (data) => ({
+      state: data[0],
+      proof: data[1],
+  })
 }

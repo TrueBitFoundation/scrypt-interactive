@@ -1,14 +1,16 @@
 
 const BigNumber = require('bignumber.js')
+const { toSession, toResult } = require('./utils/models')
+const offchain = require('./offchain/offchain')
 const contracts = require('./contracts')
-const { toSession, toResult } = require('../utils/models')
 
 module.exports = async (web3, contractAddresses) => {
   const {
     claimManager,
-    scryptRunner,
-    scryptVerifier,
-  } = await contracts(web3, contractAddresses)
+    scryptVerifier
+  } = await contracts(web3, contractAddresses);
+
+  const scryptRunner = offchain.scryptRunner();
 
   return {
     /**
@@ -83,10 +85,24 @@ module.exports = async (web3, contractAddresses) => {
      * @return Result
      */
     getResult: async (input, step) => {
-      return toResult(await scryptRunner.getStateProofAndHash.call(
+      return toResult(await offchain.getStateProofAndHash(
+        scryptRunner,
         input,
-        step,
+        step
       ))
+    },
+    /**
+     * @desc get the state and proof from scryptRunner
+     * @param input original input
+     * @param step compute up to this step
+     * @return Result
+     */
+    getStateAndProof: async (input, step) => {
+        return toStateAndProof(await offchain.getStateAndProof(
+            scryptRunner, 
+            input, 
+            step
+        ))
     },
     /**
      * @desc Claim a state for a step. Called by claimant.
