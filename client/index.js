@@ -13,11 +13,8 @@ const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2
 module.exports = async function(callback) {
     // perform actions
     const offchain = require('../test/helpers/offchain')
-    
     const ClaimManager = artifacts.require('ClaimManager')
     const ScryptVerifier = artifacts.require('ScryptVerifier')
-
-    const scryptRunner = await offchain.scryptRunner();
 
     const [
         dogeRelayAddress,
@@ -25,15 +22,14 @@ module.exports = async function(callback) {
         challenger,
       ] = web3.eth.accounts
 
+    const scryptRunner = await offchain.scryptRunner();
     let scryptVerifier = await ScryptVerifier.new()
     let claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address)
 
     const bridge = await require('./bridge-to-the-moon')(claimManager, scryptVerifier, scryptRunner, web3, challenger)
 
-    await bridge.api.makeDeposit({ from: claimant, value: 1 })
-    //This is meant to be called by DogeRelay which will have to have its own client
-    tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, claimant, { from: dogeRelayAddress })
+    await bridge.createClaim(console, serializedBlockHeader, testScryptHash, claimant, dogeRelayAddress)
 
     //Have to setup event monitor after initial event is fired
-    await bridge.monitor(console, true, true)
+    await bridge.monitorClaims(console, true, true)
 }

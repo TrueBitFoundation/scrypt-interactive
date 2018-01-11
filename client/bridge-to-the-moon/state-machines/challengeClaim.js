@@ -71,6 +71,7 @@ module.exports = (web3, api, challenger) => ({
           onBeforeVerify: async (tsn) => {
             const waitForEventAndGetSessionId = async (resolve) => {
               let vgameStartedEvent = claimManager.ClaimVerificationGameStarted({claimID: claim.id, challenger: challenger})
+              //Need to make sure to kill this process eventually
               vgameStartedEvent.watch((err, result) => {
                 if(!err) {
                   return result.args.sessionId.toNumber()

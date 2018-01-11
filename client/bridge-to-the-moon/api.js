@@ -35,6 +35,9 @@ module.exports = async (claimManager, scryptVerifier, scryptRunner, web3) => {
     challengeClaim: async (...args) => {
       return claimManager.challengeClaim.sendTransaction(...args)
     },
+    createClaim: async (...args) => {
+      return claimManager.checkScrypt.sendTransaction(...args)
+    },
     /**
      * Runs the next verification game.
      */
