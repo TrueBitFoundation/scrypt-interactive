@@ -52,18 +52,10 @@ contract('ClaimManager', function (accounts) {
       tx = await claimManager.challengeClaim(claimID, { from: challenger })
       log = tx.logs.find(l => l.event === 'ClaimChallenged')
       assert.equal(log.args.claimID.toNumber(), claimID)
+      sessionId = log.args.sessionId.toNumber()
       // check that the challenger's deposits were bonded.
       deposit = await claimManager.getBondedDeposit.call(claimID, challenger, { from: claimant })
       assert.equal(deposit.toNumber(), claimDeposit)
-    })
-
-    it('begins verification game', async () => {
-      tx = await claimManager.runNextVerificationGame(claimID, { from: claimant })
-      log = tx.logs.find(l => l.event === 'ClaimVerificationGameStarted')
-      assert.equal(log.args.claimID.toNumber(), claimID)
-      assert.equal(log.args.claimant, claimant)
-      assert.equal(log.args.challenger, challenger)
-      sessionId = log.args.sessionId.toNumber();
     })
 
     it('participates in verification game', async () => {

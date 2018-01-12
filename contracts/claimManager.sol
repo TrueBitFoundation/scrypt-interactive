@@ -24,7 +24,7 @@ contract ClaimManager is DepositsManager {
     event DepositBonded(uint claimID, address account, uint amount);
     event DepositUnbonded(uint claimID, address account, uint amount);
     event ClaimCreated(uint claimID, address claimant, bytes plaintext, bytes blockHash);
-    event ClaimChallenged(uint claimID, address challenger);
+    event ClaimChallenged(uint claimID, address challenger, uint sessionId);
     event ClaimVerificationGameStarted(uint claimID, address claimant, address challenger, uint sessionId);
     event SessionDecided(uint sessionId, address winner, address loser);
     event ClaimSuccessful(uint claimID, address claimant, bytes plaintext, bytes blockHash);
@@ -94,7 +94,7 @@ contract ClaimManager is DepositsManager {
     function unbondDeposit(uint claimID, address account) public returns (uint) {
         ScryptClaim storage claim = claims[claimID];
         require(claimExists(claim));
-        require(claim.decided == true);
+        //require(claim.decided == true);
         uint bondedDeposit = claim.bondedDeposits[account];
         delete claim.bondedDeposits[account];
         deposits[account] = deposits[account].add(bondedDeposit);
@@ -143,35 +143,10 @@ contract ClaimManager is DepositsManager {
         bondDeposit(claimID, msg.sender, minDeposit);
 
         claim.challengeTimeoutBlockNumber = block.number.add(defaultChallengeTimeout);
+        uint sessionId = scryptVerifier.claimComputation(msg.sender, claim.claimant, claim.plaintext, claim.blockHash, 2050);
         claim.challengers.push(msg.sender);
         claim.numChallengers = claim.numChallengers.add(1);
-        ClaimChallenged(claimID, msg.sender);
-    }
-
-    // @dev – runs a verification game between the claimant and
-    // the next queued-up challenger.
-    // @param claimID – the claim id.
-    function runNextVerificationGame(uint claimID) public {
-        ScryptClaim storage claim = claims[claimID];
-
-        require(claimExists(claim));
-        require(!claim.decided);
-
-        // check if there is a challenger who has not the played verificationg game yet.
-        if (claim.numChallengers > claim.currentChallenger) {
-            require(claim.verificationOngoing == false);
-
-            // kick off a verification game.
-            uint sessionId = scryptVerifier.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
-            ClaimVerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger], sessionId);
-
-            claim.verificationOngoing = true;
-            claim.currentChallenger = claim.currentChallenger.add(1);
-        } else {
-            require(claim.verificationOngoing == false);
-            claim.decided = true;
-            ClaimVerificationGamesEnded(claimID);
-        }
+        ClaimChallenged(claimID, msg.sender, sessionId);
     }
 
     // @dev – called when a verification game has ended.
@@ -185,7 +160,7 @@ contract ClaimManager is DepositsManager {
 
         require(claimExists(claim));
 
-        require(claim.verificationOngoing == true);
+        //require(claim.verificationOngoing == true);
         claim.verificationOngoing = false;
 
         // reward the winner, with the loser's bonded deposit.
@@ -194,19 +169,6 @@ contract ClaimManager is DepositsManager {
         claim.bondedDeposits[winner] = claim.bondedDeposits[winner].add(depositToTransfer);
 
         SessionDecided(sessionId, winner, loser);
-
-        if (claim.claimant == loser) {
-            // the claim is over.
-            // note: no callback needed to the DogeRelay contract,
-            // because it by default does not save blocks.
-
-            //Trigger end of verification game
-            claim.numChallengers = 0;
-            runNextVerificationGame(claimID);
-        } else if (claim.claimant == winner) {
-            // the claim continues.
-            runNextVerificationGame(claimID);
-        } else { revert(); }
     }
 
     // @dev – check whether a claim has successfully withstood all challenges.

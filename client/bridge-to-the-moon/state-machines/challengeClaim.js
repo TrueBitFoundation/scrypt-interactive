@@ -10,6 +10,8 @@ module.exports = (web3, api, challenger) => ({
       const { claimManager } = api
       const me = web3.eth.defaultAccount
 
+      let sessionId
+
       const m = new StateMachine({
         init: 'init',
         transitions: [
@@ -51,54 +53,59 @@ module.exports = (web3, api, challenger) => ({
           onBeforeChallenge: async (tsn) => {
             cmd.log('Challenging...')
             console.log(claim.id)
-            api.challengeClaim(claim.id, {from: challenger})
+            api.challengeClaim(claim.id, {from: challenger})//bonds deposit
           },
           onAfterChallenge: async (tsn) => {
             cmd.log('Challenged.')
-          },
-          onBeforeVerify: async (tsn) => {
-            const waitForEventAndGetSessionId = async (resolve) => {
-              let vgameStartedEvent = claimManager.ClaimVerificationGameStarted({claimID: claim.id, challenger: challenger})
-              //Need to make sure to kill this process eventually
-              vgameStartedEvent.watch((err, result) => {
-                if(!err) {
-                  return result.args.sessionId.toNumber()
+            let claimChallengedEvent = api.claimManager.ClaimChallenged({claimID: claim.id, challenger: challenger})
+            await new Promise((resolve, reject) => {
+              claimChallengedEvent.watch((err, result) => {
+                if(err) reject(err)
+                if(result) {
+                  sessionId = result.args.claimID.toNumber()
+                  resolve() 
                 }
               })
-            }
-
-            const runVerificationGameAndGetSessionId = async () => {
-              const [sessionId] = await Promise.all([
-                waitForEventAndGetSessionId(),
-                api.runNextVerificationGame(claim.id, {from: challenger}),
-              ])
-
-              return sessionId
-            }
-
-            const verificationGame = VerificationGame(web3, api)
-            // we either start the first verification game ourselves
-            const weAreFirstChallenger = true
-            if (weAreFirstChallenger) {
-              cmd.log('We\'re the first challenger.')
-              cmd.log('Starting Verification Game...')
-              const sessionId = await runVerificationGameAndGetSessionId()
-              cmd.log('Verification Game Started.')
-              return verificationGame.run(cmd, claim, sessionId, challenger)
-            }
-
-            cmd.log('We\'re not the first challenger.')
-            cmd.log('Waiting up to 1 minute for first challenger to start the verification game.')
-            // otherwise we wait until our verification game has begun
-
-            const sessionId = await Promise.race([
-              waitForEventAndGetSessionId(),
-              timeout(60 * 1000).then(runVerificationGameAndGetSessionId),
-            ])
-
-            cmd.log('Verification Game Started')
-            return verificationGame.run(cmd, claim, sessionId)
+            })
+            claimChallengedEvent.stopWatching()
           },
+          onBeforeVerify: async (tsn) => {
+
+            const getMedStep = async (sessionId) => {
+              const session = await api.getSession(sessionId)
+              return calculateMidpoint(session.lowStep, session.highStep)
+            }
+
+            let medStep = getMedStep(sessionId)
+
+            // now lets request the next medStep
+            await api.query(sessionId, medStep, {from: challenger})
+          }
+
+          //   const verificationGame = VerificationGame(web3, api)
+          //   // we either start the first verification game ourselves
+          //   const weAreFirstChallenger = true
+          //   if (weAreFirstChallenger) {
+          //     cmd.log('We\'re the first challenger.')
+          //     cmd.log('Starting Verification Game...')
+          //     const sessionId = await runVerificationGameAndGetSessionId()
+          //     cmd.log('Verification Game Started.')
+          //     return verificationGame.run(cmd, claim, sessionId, challenger)
+          //   }
+
+          //   cmd.log('We\'re not the first challenger.')
+          //   cmd.log('Waiting up to 1 minute for first challenger to start the verification game.')
+          //   // otherwise we wait until our verification game has begun
+
+          //   const sessionId = await Promise.race([
+          //     waitForEventAndGetSessionId(),
+          //     timeout(60 * 1000).then(runVerificationGameAndGetSessionId),
+          //   ])
+
+          //   cmd.log('Verification Game Started')
+          //   return verificationGame.run(cmd, claim, sessionId)
+          // },
+          ,
           onAfterVerify: (tsn, res) => { resolve(res) },
           onCancel: (tsn, err) => { reject(err) },
         },

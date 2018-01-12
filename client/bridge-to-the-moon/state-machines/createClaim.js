@@ -8,8 +8,6 @@ const models = require('../util/models')
 module.exports = (web3, api) => ({
   run: async (cmd, claim) => new Promise(async (resolve, reject) => {
 
-      let createdAt
-
       const m = new StateMachine({
         init: 'init',
         transitions: [
@@ -64,8 +62,6 @@ module.exports = (web3, api) => ({
                 //   blockHash: result.args.blockHash,
                 //   createdAt: result.blockNumber,
                 // }
-
-                createdAt = result.blockNumber;
               
                 cmd.log(`
                   ClaimCreated(
@@ -81,7 +77,7 @@ module.exports = (web3, api) => ({
           })
           claimCreatedEvents.stopWatching()
         },
-        //Probably change this to its own state machine in verificationGames (claimant.js)
+        //Listen for queries and respond
         onDefend: async (tsn) => {
           cmd.log('Defending claim')
           const queryEvent = api.scryptVerifier.NewQuery()
@@ -95,6 +91,7 @@ module.exports = (web3, api) => ({
                 let results = models.toResult(await api.getStateProofAndHash(session.input, step))
                 await api.respond(sessionId, step, results.stateHash, {from: claim.claimant})
                 
+                //should resolve after 100 blocks of unchallenged?
                 resolve()
               }
             })
