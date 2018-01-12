@@ -15,8 +15,7 @@ module.exports = (web3, api, challenger) => ({
         transitions: [
           { name: 'start', from: 'init', to: 'ready' },
           { name: 'challenge', from: 'ready', to: 'didChallenge' },
-          { name: 'timeout', from: 'didChallenge', to: 'postChallenge' },
-          { name: 'verify', from: 'postChallenge', to: 'done' },
+          { name: 'verify', from: 'didChallenge', to: 'done' },
           { name: 'cancel', from: '*', to: 'cancelled' },
         ],
         methods: {
@@ -56,17 +55,6 @@ module.exports = (web3, api, challenger) => ({
           },
           onAfterChallenge: async (tsn) => {
             cmd.log('Challenged.')
-          },
-          onBeforeTimeout: async (tsn) => {
-            cmd.log('Waiting for challenge timeout...')
-            const challengeTimeout = await api.getChallengeTimeout()
-            cmd.log(`    (which is ${challengeTimeout} blocks)`)
-            const blockEmitter = await BlockEmitter(web3)
-            const timeoutExpiresAt = claim.createdAt + challengeTimeout.toNumber()
-            await blockEmitter.waitForBlock(timeoutExpiresAt)
-          },
-          onAfterTimeout: async (tsn) => {
-            cmd.log('Timeout over.')
           },
           onBeforeVerify: async (tsn) => {
             const waitForEventAndGetSessionId = async (resolve) => {
@@ -118,7 +106,6 @@ module.exports = (web3, api, challenger) => ({
 
       await m.start()
       await m.challenge()
-      await m.timeout()
       await m.verify()
 
     } catch (error) {

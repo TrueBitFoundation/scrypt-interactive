@@ -15,8 +15,7 @@ module.exports = (web3, api) => ({
         transitions: [
           { name: 'start', from: 'init', to: 'ready'},
           { name: 'create', from: 'ready', to: 'createdClaim'},
-          { name: 'timeout', from: 'createdClaim', to: 'defendClaim'},
-          { name: 'defend', from: 'defendClaim', to: 'verifiedClaim'},
+          { name: 'defend', from: 'createdClaim', to: 'verifiedClaim'},
         ],
         methods: {
           onStart: async (tsn) => {
@@ -82,17 +81,6 @@ module.exports = (web3, api) => ({
           })
           claimCreatedEvents.stopWatching()
         },
-        onBeforeTimeout: async (tsn) => {
-          cmd.log('Waiting for challenge timeout...')
-          const challengeTimeout = await api.getChallengeTimeout()
-          cmd.log(`    (which is ${challengeTimeout} blocks)`)
-          const blockEmitter = await BlockEmitter(web3)
-          const timeoutExpiresAt = createdAt + challengeTimeout.toNumber()
-          await blockEmitter.waitForBlock(timeoutExpiresAt)
-        },
-        onAfterTimeout: async (tsn) => {
-          cmd.log('Timeout over.')
-        },
         //Probably change this to its own state machine in verificationGames (claimant.js)
         onDefend: async (tsn) => {
           cmd.log('Defending claim')
@@ -117,7 +105,6 @@ module.exports = (web3, api) => ({
 
     await m.start()
     await m.create()
-    await m.timeout()
     await m.defend()
     
   }),

@@ -42,12 +42,4 @@ module.exports = async function(callback) {
     //Setup separate bridge processes
     bridge.createClaim(console, testClaim)
     bridge.monitorClaims(console, true, true)
-
-    //timeout main thread while bridge initializes
-    await timeout('2000')
-
-    //skip past timeout period
-    mine.mineBlocks(25)
-
-
 }
