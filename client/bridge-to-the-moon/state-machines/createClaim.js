@@ -89,6 +89,7 @@ module.exports = (web3, api) => ({
                 let sessionId = result.args.sessionId.toNumber()
                 let session = await api.getSession(sessionId)
                 let step = session.medStep.toNumber() //Currently only responding with medStep
+                console.log("Defending step " + step)
                 let results = models.toResult(await api.getStateProofAndHash(session.input, step))
                 await api.respond(sessionId, step, results.stateHash, {from: claim.claimant})
                 

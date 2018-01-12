@@ -75,7 +75,7 @@ contract('ScryptVerifier', function (accounts) {
     _.each(resultExpectations, (stepCase) => {
 
       it(`can compute ${stepCase.steps} steps`, async () => {
-        const result = await offchain.run(scryptRunner, getStateAndProofInput, stepCase.steps)
+        const result = await scryptRunner.run.call(getStateAndProofInput, stepCase.steps)
 
         for (let i = 0; i < stepCase.results.length; i++) {
           expect(stepCase.results[i]).to.equal(
@@ -91,7 +91,7 @@ contract('ScryptVerifier', function (accounts) {
 
       //But this is
       try{
-        await offchain.run(scryptRunner, getStateAndProofInput, 2049)
+        await scryptRunner.run.call(getStateAndProofInput, 2049)
       }catch(e) {
         assert(true);
       }
@@ -100,8 +100,8 @@ contract('ScryptVerifier', function (accounts) {
 
   context('prover-verifier combination', () => {
     const verifyStep = async (input, step) => {
-      const state = dataFormatter.newStateAndProof(await offchain.getStateAndProof(scryptRunner, input, step)).state
-      const postData = dataFormatter.newStateAndProof(await offchain.getStateAndProof(scryptRunner, input, step + 1))
+      const state = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step)).state
+      const postData = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step + 1))
 
       const verified = await scryptVerifier.verifyStep(step, state, postData.state, postData.proof || '0x00', {from: accounts[0]})
       return verified
@@ -124,8 +124,8 @@ contract('ScryptVerifier', function (accounts) {
       //const step = random.chooseRandomly([0, 1, 2])
 
       it('correctly fails', async () => {
-        let preState = dataFormatter.newStateAndProof(await offchain.getStateAndProof(scryptRunner, input, step)).state
-        const postData = dataFormatter.newStateAndProof(await offchain.getStateAndProof(scryptRunner, input, step + 1))
+        let preState = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step)).state
+        const postData = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step + 1))
         let postState = postData.state
 
         let proof = postData.proof || '0x00'

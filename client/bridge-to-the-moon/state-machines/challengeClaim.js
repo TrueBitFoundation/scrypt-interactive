@@ -95,6 +95,7 @@ module.exports = (web3, api, challenger) => ({
                 if(result) {
                   console.log("New Response")
                   let medStep = await getNewMedStep(result.args.sessionId.toNumber())
+                  console.log("Querying step: " + medStep)
                   await api.query(sessionId, medStep, {from: challenger})
                 }
               })
