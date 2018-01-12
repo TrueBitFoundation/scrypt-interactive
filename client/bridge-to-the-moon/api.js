@@ -1,6 +1,7 @@
 
 const BigNumber = require('bignumber.js')
 const { toSession, toResult } = require('./util/models')
+const offchain = require('../../test/helpers/offchain')
 
 module.exports = async (claimManager, scryptVerifier, scryptRunner, web3) => {
 
@@ -67,11 +68,11 @@ module.exports = async (claimManager, scryptVerifier, scryptRunner, web3) => {
     },
     /**
      * @desc get the session info from scryptVerifier
-     * @param claimId
+     * @param sessionId
      * @return Session
      */
-    getSession: async (claimId) => {
-      return toSession(await scryptVerifier.getSession.call(claimId))
+    getSession: async (sessionId) => {
+      return toSession(await scryptVerifier.getSession.call(sessionId))
     },
     /**
      * @desc get the state proof and hash from scryptRunner
@@ -87,21 +88,21 @@ module.exports = async (claimManager, scryptVerifier, scryptRunner, web3) => {
     },
     /**
      * @desc Claim a state for a step. Called by claimant.
-     * @param claimId
+     * @param sessionId
      * @param step
      * @param stateHash
      */
-    respond: async (claimId, step, stateHash) => {
-      return scryptVerifier.respond.sendTransaction(claimId, step, stateHash)
+    respond: async (...args) => {
+      return scryptVerifier.respond.sendTransaction(...args)
     },
     /**
      * @desc challenge a claimant to prove a stateHash for a step.
      *       Caled by challenger.
-     * @param claimId
+     * @param sessionId
      * @param step
      */
-    query: async (claimId, step, options) => {
-      return scryptVerifier.query.sendTransaction(claimId, step, options)
+    query: async (sessionId, step, options) => {
+      return scryptVerifier.query.sendTransaction(sessionId, step, options)
     },
     /**
      * @desc finalize the verification game by proving the final step's state
@@ -125,5 +126,9 @@ module.exports = async (claimManager, scryptVerifier, scryptRunner, web3) => {
     testConnection: async () => {
       await claimManager
     },
+
+    getStateProofAndHash: async (input, step) => {
+      return scryptRunner.getStateProofAndHash.call(input, step)
+    }
   }
 }

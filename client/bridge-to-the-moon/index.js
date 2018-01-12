@@ -6,11 +6,11 @@ module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3
 
   return {
     api,
-    createClaim: async (cmd, serializedBlockHeader, testScryptHash, claimant, from) => {
+    createClaim: async (cmd, claim) => {
       return new Promise(async (resolve, reject) => {
         //This should go in the createClaim
          try {
-          stateMachines.createClaim.run(cmd, serializedBlockHeader, testScryptHash, claimant, from)
+          stateMachines.createClaim.run(cmd, claim)
           resolve()
         } catch(e) {
           reject(e)

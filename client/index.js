@@ -32,10 +32,22 @@ module.exports = async function(callback) {
 
     const bridge = await require('./bridge-to-the-moon')(claimManager, scryptVerifier, scryptRunner, web3, challenger)
 
-    bridge.createClaim(console, serializedBlockHeader, testScryptHash, claimant, dogeRelayAddress)
-    
+    const testClaim = {
+        serializedBlockHeader: serializedBlockHeader,
+        scryptHash: testScryptHash,
+        claimant: claimant,
+        dogeRelayAddress: dogeRelayAddress,//this will eventually be taken out when integrated with rsk's code
+    }
+
+    //Setup separate bridge processes
+    bridge.createClaim(console, testClaim)
     bridge.monitorClaims(console, true, true)
 
-    await timeout('5000')
+    //timeout main thread while bridge initializes
+    await timeout('2000')
+
+    //skip past timeout period
     mine.mineBlocks(25)
+
+
 }

@@ -71,7 +71,7 @@ contract('ClaimManager', function (accounts) {
       // Each call to query sets the new medstep
       // Intial high step is currently 2050 (assuming this is the final number of steps)
       tx = await scryptVerifier.query(sessionId, 1, { from: challenger })
-      session = dataFormatter.newSession(await scryptVerifier.getSession.call(claimID))
+      session = dataFormatter.newSession(await scryptVerifier.getSession.call(0))
       // console.log("Session after first query: \n", session, "\n")
 
       // claimant responds to first query.
