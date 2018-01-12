@@ -10,10 +10,6 @@ module.exports = async (web3) => {
     waitForBlock: async (num) => new Promise((resolve, reject) => {
       // var block = web3.eth.getBlock(result, true)
       //console.log(block.number-num)
-      for(i = 0; i < 20; i++) {
-        console.log("Mining block " + i)
-        web3.currentProvider.send({jsonrpc: "2.0", method: "evm_mine", params: [], id: 0})
-      }
       emitter.watch((err, result) => {
         if(err) console.log(err)
         var block = web3.eth.getBlock(result, true);

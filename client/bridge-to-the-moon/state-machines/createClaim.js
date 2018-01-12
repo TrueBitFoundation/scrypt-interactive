@@ -6,13 +6,15 @@ const timeout = require('../util/timeout')
 
 module.exports = (web3, api) => ({
   run: async (cmd, serializedBlockHeader, testScryptHash, claimant, from) => new Promise(async (resolve, reject) => {
-     try {
+
+      let claim
 
       const m = new StateMachine({
         init: 'init',
         transitions: [
           { name: 'start', from: 'init', to: 'ready'},
-          { name: 'create', from: 'ready', to: 'done'}
+          { name: 'create', from: 'ready', to: 'createdClaim'},
+          { name: 'timeout', from: 'createdClaim', to: 'defendClaim'}
         ],
         methods: {
           onStart: async (tsn) => {
@@ -43,22 +45,56 @@ module.exports = (web3, api) => ({
               }
             }
         },
-        onBeforeCreate: (tsn) => { console.log("Creating claim") },
-        onCreate: async (tsn) => {
-          await api.createClaim(serializedBlockHeader, testScryptHash, claimant, {from: from})
+        onBeforeCreate: async (tsn) => { 
+          console.log("Creating claim"); 
+          await api.createClaim(serializedBlockHeader, testScryptHash, claimant, {from: from}) 
         },
         onAfterCreate: async (tsn) => {
           //Check for ClaimCreated event
-          console.log("Claim created")
-        }
+          const claimCreatedEvents = api.claimManager.ClaimCreated()
+            await new Promise((resolve, reject) => {
+              claimCreatedEvents.watch((error, result) => {
+                if(error) reject(error)
+
+                claim = {
+                  id: result.args.claimID.toNumber(),
+                  claimant: result.args.claimant,
+                  plaintext: result.args.plaintext,
+                  blockHash: result.args.blockHash,
+                  createdAt: result.blockNumber,
+                }
+              
+                cmd.log(`
+                  ClaimCreated(
+                    id: ${claim.id}
+                    claimant: ${claim.claimant}
+                    plaintext: ${claim.plaintext}
+                    blockHash: ${claim.blockHash}
+                    createdAt: ${claim.createdAt}
+                  )
+                `)
+              resolve()
+            })
+          })
+          claimCreatedEvents.stopWatching()
+        },
+        onBeforeTimeout: async (tsn) => {
+          cmd.log('Waiting for challenge timeout...')
+          const challengeTimeout = await api.getChallengeTimeout()
+          cmd.log(`    (which is ${challengeTimeout} blocks)`)
+          const blockEmitter = await BlockEmitter(web3)
+          const timeoutExpiresAt = claim.createdAt + challengeTimeout.toNumber()
+          await blockEmitter.waitForBlock(timeoutExpiresAt)
+        },
+        onAfterTimeout: async (tsn) => {
+          cmd.log('Timeout over.')
+        },
       }
     })
 
     await m.start()
     await m.create()
-
-    } catch (error) {
-      reject(error)
-    }
+    await m.timeout()
+    
   }),
 })
