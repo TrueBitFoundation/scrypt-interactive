@@ -3,6 +3,7 @@ const VerificationGame = require('./verificationGames/challenger')
 const BlockEmitter = require('../util/blockemitter')
 const waitForEvent = require('../util/waitForEvent')
 const timeout = require('../util/timeout')
+const calculateMidpoint = require('../util/math').calculateMidpoint
 
 module.exports = (web3, api, challenger) => ({
   run: async (cmd, claim, autoDeposit = false) => new Promise(async (resolve, reject) => {
@@ -52,11 +53,10 @@ module.exports = (web3, api, challenger) => ({
           onAfterStart: async (tsn) => { console.log("Beginning challenge") },
           onBeforeChallenge: async (tsn) => {
             cmd.log('Challenging...')
-            console.log(claim.id)
+            //console.log(claim.id)
             api.challengeClaim(claim.id, {from: challenger})//bonds deposit
           },
           onAfterChallenge: async (tsn) => {
-            cmd.log('Challenged.')
             let claimChallengedEvent = api.claimManager.ClaimChallenged({claimID: claim.id, challenger: challenger})
             await new Promise((resolve, reject) => {
               claimChallengedEvent.watch((err, result) => {
@@ -68,44 +68,38 @@ module.exports = (web3, api, challenger) => ({
               })
             })
             claimChallengedEvent.stopWatching()
+            cmd.log('Challenged.')
           },
           onBeforeVerify: async (tsn) => {
 
+            //Works for initial query
             const getMedStep = async (sessionId) => {
-              const session = await api.getSession(sessionId)
-              return calculateMidpoint(session.lowStep, session.highStep)
+              let session = await api.getSession(sessionId)
+              return calculateMidpoint(session.lowStep.toNumber(), session.highStep)
             }
 
-            let medStep = getMedStep(sessionId)
 
-            // now lets request the next medStep
+            const getNewMedStep = async (sessionId) => {
+              let session = await api.getSession(sessionId)
+              return calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())
+            }
+
+            //Initial query
+            let medStep = await getMedStep(sessionId)
             await api.query(sessionId, medStep, {from: challenger})
-          }
 
-          //   const verificationGame = VerificationGame(web3, api)
-          //   // we either start the first verification game ourselves
-          //   const weAreFirstChallenger = true
-          //   if (weAreFirstChallenger) {
-          //     cmd.log('We\'re the first challenger.')
-          //     cmd.log('Starting Verification Game...')
-          //     const sessionId = await runVerificationGameAndGetSessionId()
-          //     cmd.log('Verification Game Started.')
-          //     return verificationGame.run(cmd, claim, sessionId, challenger)
-          //   }
-
-          //   cmd.log('We\'re not the first challenger.')
-          //   cmd.log('Waiting up to 1 minute for first challenger to start the verification game.')
-          //   // otherwise we wait until our verification game has begun
-
-          //   const sessionId = await Promise.race([
-          //     waitForEventAndGetSessionId(),
-          //     timeout(60 * 1000).then(runVerificationGameAndGetSessionId),
-          //   ])
-
-          //   cmd.log('Verification Game Started')
-          //   return verificationGame.run(cmd, claim, sessionId)
-          // },
-          ,
+            let newResponseEvent = api.scryptVerifier.NewResponse()
+            await new Promise(async (resolve, reject) => {
+              newResponseEvent.watch(async (err, result) => {
+                if(err) reject(err)
+                if(result) {
+                  console.log("New Response")
+                  let medStep = await getNewMedStep(result.args.sessionId.toNumber())
+                  await api.query(sessionId, medStep, {from: challenger})
+                }
+              })
+            })
+          },
           onAfterVerify: (tsn, res) => { resolve(res) },
           onCancel: (tsn, err) => { reject(err) },
         },

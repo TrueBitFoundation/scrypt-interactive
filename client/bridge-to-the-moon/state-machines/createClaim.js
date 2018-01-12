@@ -55,13 +55,13 @@ module.exports = (web3, api) => ({
               claimCreatedEvents.watch((error, result) => {
                 if(error) reject(error)
 
-                // const claim = {
-                //   id: result.args.claimID.toNumber(),
-                //   claimant: result.args.claimant,
-                //   plaintext: result.args.plaintext,
-                //   blockHash: result.args.blockHash,
-                //   createdAt: result.blockNumber,
-                // }
+                const claim = {
+                  id: result.args.claimID.toNumber(),
+                  claimant: result.args.claimant,
+                  plaintext: result.args.plaintext,
+                  blockHash: result.args.blockHash,
+                  createdAt: result.blockNumber,
+                }
               
                 cmd.log(`
                   ClaimCreated(
@@ -85,6 +85,7 @@ module.exports = (web3, api) => ({
             queryEvent.watch(async (err, result) => {
               if(err) reject(err)
               if(result) {
+                console.log("New Query")
                 let sessionId = result.args.sessionId.toNumber()
                 let session = await api.getSession(sessionId)
                 let step = session.medStep.toNumber() //Currently only responding with medStep
@@ -92,7 +93,7 @@ module.exports = (web3, api) => ({
                 await api.respond(sessionId, step, results.stateHash, {from: claim.claimant})
                 
                 //should resolve after 100 blocks of unchallenged?
-                resolve()
+                //resolve()
               }
             })
           })
