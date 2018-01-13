@@ -60,7 +60,7 @@ module.exports = (web3, api, challenger) => ({
               claimChallengedEvent.watch((err, result) => {
                 if(err) reject(err)
                 if(result) {
-                  sessionId = result.args.claimID.toNumber()
+                  sessionId = result.args.sessionId.toNumber()
                   resolve() 
                 }
               })

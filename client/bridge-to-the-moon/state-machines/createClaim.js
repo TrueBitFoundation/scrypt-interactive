@@ -80,9 +80,11 @@ module.exports = (web3, api) => ({
           })
           claimCreatedEvents.stopWatching()
         },
+        onBeforeDefend: async (tsn) => {
+          cmd.log("Ready to defend claim")
+        },
         //Listen for queries and respond
         onDefend: async (tsn) => {
-          cmd.log('Defending claim')
           const queryEvent = api.scryptVerifier.NewQuery()
           await new Promise(async (resolve, reject) => {
             queryEvent.watch(async (err, result) => {

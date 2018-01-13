@@ -37,6 +37,7 @@ contract ClaimManager is DepositsManager {
         bytes blockHash;    // the Dogecoin blockhash.
         uint createdAt;     // the block number at which the claim was created.
         address[] challengers;      // all current challengers.
+        mapping(address => uint) sessions; //map challengers to sessionId's
         uint numChallengers;
         uint currentChallenger;    // index of next challenger to play a verification game.
         bool verificationOngoing;   // is the claim waiting for results from an ongoing verificationg game.
@@ -138,13 +139,14 @@ contract ClaimManager is DepositsManager {
 
         require(claimExists(claim));
         require(!claim.decided);
+        require(claim.sessions[msg.sender] == 0);
 
         require(deposits[msg.sender] >= minDeposit);
         bondDeposit(claimID, msg.sender, minDeposit);
 
         claim.challengeTimeoutBlockNumber = block.number.add(defaultChallengeTimeout);
         uint sessionId = scryptVerifier.claimComputation(msg.sender, claim.claimant, claim.plaintext, claim.blockHash, 2050);
-        claim.challengers.push(msg.sender);
+        claim.sessions[msg.sender] = sessionId;
         claim.numChallengers = claim.numChallengers.add(1);
         ClaimChallenged(claimID, msg.sender, sessionId);
     }
@@ -214,5 +216,10 @@ contract ClaimManager is DepositsManager {
     function createdAt(uint claimID) public view returns(uint) {
         require(claimID < numClaims);
         return claims[claimID].createdAt;
+    }
+
+    //Only one challenger can have a session
+    function getSession(uint claimID) public view returns(uint) {
+        return claims[claimID].sessions[msg.sender];
     }
 }

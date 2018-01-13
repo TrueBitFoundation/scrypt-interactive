@@ -58,13 +58,14 @@ contract('ClaimManager', function (accounts) {
       assert.equal(deposit.toNumber(), claimDeposit)
     })
 
+    //Need to throw some asserts in here lol >:D
     it('participates in verification game', async () => {
       // First challenge
       // Each call to query sets the new medstep
       // Intial high step is currently 2050 (assuming this is the final number of steps)
       tx = await scryptVerifier.query(sessionId, 1, { from: challenger })
-      session = dataFormatter.newSession(await scryptVerifier.getSession.call(0))
-      // console.log("Session after first query: \n", session, "\n")
+      session = dataFormatter.newSession(await scryptVerifier.getSession.call(sessionId))
+      //console.log("Session after first query: \n", session, "\n")
 
       // claimant responds to first query.
       results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, { from: claimant }))

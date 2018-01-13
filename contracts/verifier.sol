@@ -34,7 +34,9 @@ contract Verifier {
         uint highStep;
         bytes32 highHash;
     }
-    VerificationSession[] public sessions;
+
+    mapping(uint => VerificationSession) public sessions;
+    uint sessionsCount = 0;
 
     function claimComputation(
         address challenger,
@@ -48,8 +50,9 @@ contract Verifier {
     {
         require(steps > 2);
 
-        uint sessionId = sessions.length;
-        sessions.push(VerificationSession({
+        //ClaimManager constraints don't allow for sessionId 0
+        uint sessionId = sessionsCount+1;
+        sessions[sessionId] = VerificationSession({
             id: sessionId,
             claimant: claimant,
             challenger: challenger,
@@ -63,9 +66,10 @@ contract Verifier {
             medHash: 0,
             highStep: steps,
             highHash: keccak256(_output)
-        }));
+        });
 
         require(isInitiallyValid(sessions[sessionId]));
+        sessionsCount+=1;
 
         NewSession(sessionId);
         return sessionId;
