@@ -71,7 +71,7 @@ contract('ClaimManager', function (accounts) {
       tx = await scryptVerifier.respond(sessionId, session.medStep, results.stateHash, { from: claimant })
       session = dataFormatter.newSession(await scryptVerifier.getSession.call(sessionId))
       // console.log("Session after first response: \n", session, "\n")
-      results = dataFormatter.newResult(await offchain.getStateProofAndHash(scryptRunner, session.input, session.medStep))
+      results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep))
       // console.log("Results after first response: \n", session, "\n")
       // second query from the challenger.
       tx = await scryptVerifier.query(sessionId, 0, { from: challenger })
@@ -81,8 +81,8 @@ contract('ClaimManager', function (accounts) {
       session = dataFormatter.newSession(await scryptVerifier.getSession.call(sessionId))
       // console.log("Session after second query: \n", session, "\n")
 
-      var preState = dataFormatter.newResult(await offchain.getStateProofAndHash(scryptRunner, session.input, session.lowStep)).state
-      var postStateAndProof = dataFormatter.newResult(await offchain.getStateProofAndHash(scryptRunner, session.input, session.highStep))
+      var preState = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.lowStep)).state
+      var postStateAndProof = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.highStep))
       var postState = postStateAndProof.state
       var proof = postStateAndProof.proof || '0x00'
       // console.log("... using\n   PreState:  ".yellow + preState + "\n   PostState: ".yellow + postState + "\n   Proof:    ".yellow + proof + "\n")

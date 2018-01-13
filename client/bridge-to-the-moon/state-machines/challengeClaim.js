@@ -1,5 +1,4 @@
 const StateMachine = require('javascript-state-machine')
-const VerificationGame = require('./verificationGames/challenger')
 const BlockEmitter = require('../util/blockemitter')
 const waitForEvent = require('../util/waitForEvent')
 const timeout = require('../util/timeout')
@@ -9,7 +8,6 @@ module.exports = (web3, api, challenger) => ({
   run: async (cmd, claim, autoDeposit = false) => new Promise(async (resolve, reject) => {
     try {
       const { claimManager } = api
-      const me = web3.eth.defaultAccount
 
       let sessionId
 
@@ -18,7 +16,7 @@ module.exports = (web3, api, challenger) => ({
         transitions: [
           { name: 'start', from: 'init', to: 'ready' },
           { name: 'challenge', from: 'ready', to: 'didChallenge' },
-          { name: 'verify', from: 'didChallenge', to: 'done' },
+          { name: 'playGame', from: 'didChallenge', to: 'done'},
           { name: 'cancel', from: '*', to: 'cancelled' },
         ],
         methods: {
@@ -70,22 +68,15 @@ module.exports = (web3, api, challenger) => ({
             claimChallengedEvent.stopWatching()
             cmd.log('Challenged.')
           },
-          onBeforeVerify: async (tsn) => {
-
-            //Works for initial query
-            const getMedStep = async (sessionId) => {
-              let session = await api.getSession(sessionId)
-              return calculateMidpoint(session.lowStep.toNumber(), session.highStep)
-            }
-
-
+          onBeforePlayGame: async (tsn) => {
             const getNewMedStep = async (sessionId) => {
               let session = await api.getSession(sessionId)
               return calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())
             }
 
             //Initial query
-            let medStep = await getMedStep(sessionId)
+            let session = await api.getSession(sessionId)
+            let medStep = calculateMidpoint(session.lowStep.toNumber(), session.highStep)
             await api.query(sessionId, medStep, {from: challenger})
 
             let newResponseEvent = api.scryptVerifier.NewResponse()
@@ -93,22 +84,36 @@ module.exports = (web3, api, challenger) => ({
               newResponseEvent.watch(async (err, result) => {
                 if(err) reject(err)
                 if(result) {
-                  console.log("New Response")
                   let medStep = await getNewMedStep(result.args.sessionId.toNumber())
                   console.log("Querying step: " + medStep)
                   await api.query(sessionId, medStep, {from: challenger})
+                  if(medStep == 0) resolve()
                 }
               })
             })
+            newResponseEvent.stopWatching()
           },
-          onAfterVerify: (tsn, res) => { resolve(res) },
+          onAfterPlayGame: async (tsn) => {
+            let sessionDecidedEvent = api.claimManager.SessionDecided({sessionId: sessionId})
+            await new Promise((resolve, reject) => {
+              sessionDecidedEvent.watch(async (err, result) => {
+                if(err) reject(err)
+                if(result) {
+                  console.log(result)
+                  resolve()
+                }
+              })
+            })
+            sessionDecidedEvent.stopWatching()
+            resolve()
+          },
           onCancel: (tsn, err) => { reject(err) },
         },
       })
 
       await m.start()
       await m.challenge()
-      await m.verify()
+      await m.playGame()
 
     } catch (error) {
       reject(error)

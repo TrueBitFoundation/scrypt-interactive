@@ -40,12 +40,6 @@ module.exports = async (claimManager, scryptVerifier, scryptRunner, web3) => {
       return claimManager.checkScrypt.sendTransaction(...args)
     },
     /**
-     * Runs the next verification game.
-     */
-    runNextVerificationGame: async (...args) => {
-      return claimManager.runNextVerificationGame.sendTransaction(...args)
-    },
-    /**
      * @return BigNumber number of blocks that represent challenge timeout
      */
     getChallengeTimeout: async () => {
@@ -111,14 +105,8 @@ module.exports = async (claimManager, scryptVerifier, scryptRunner, web3) => {
      * @param postState
      * @param proof
      */
-    performStepVerification: async (claimId, preState, postState, proof) => {
-      return scryptVerifier.performStepVerification.sendTransaction(
-        claimId,
-        preState,
-        postState,
-        proof,
-        claimManager.address
-      )
+    performStepVerification: async (...args) => {
+      return scryptVerifier.performStepVerification.sendTransaction(...args)
     },
     /**
      * @desc just test the connection
