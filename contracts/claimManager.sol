@@ -25,10 +25,8 @@ contract ClaimManager is DepositsManager {
     event DepositUnbonded(uint claimID, address account, uint amount);
     event ClaimCreated(uint claimID, address claimant, bytes plaintext, bytes blockHash);
     event ClaimChallenged(uint claimID, address challenger, uint sessionId);
-    event ClaimVerificationGameStarted(uint claimID, address claimant, address challenger, uint sessionId);
     event SessionDecided(uint sessionId, address winner, address loser);
     event ClaimSuccessful(uint claimID, address claimant, bytes plaintext, bytes blockHash);
-    event ClaimVerificationGamesEnded(uint claimID);
 
     struct ScryptClaim {
         uint id;
@@ -52,8 +50,6 @@ contract ClaimManager is DepositsManager {
         require(msg.sender == _account);
         _;
     }
-
-
 
     // @dev – the constructor
     function ClaimManager(DogeRelay _dogeRelay, ScryptVerifier _scryptVerifier) public {

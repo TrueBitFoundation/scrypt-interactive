@@ -11,11 +11,11 @@ import {ClaimManager} from "./claimManager.sol";
 */
 contract Verifier {
 
-    event NewSession(uint sessionId);
-    event NewQuery(uint sessionId);
-    event NewResponse(uint sessionId);
-    event ChallengerConvicted(uint sessionId);
-    event ClaimantConvicted(uint sessionId);
+    event NewSession(uint sessionId, address claimant, address challenger);
+    event NewQuery(uint sessionId, address claimant);
+    event NewResponse(uint sessionId, address challenger);
+    event ChallengerConvicted(uint sessionId, address challenger);
+    event ClaimantConvicted(uint sessionId, address claimant);
 
     uint constant responseTime = 1 hours;
 
@@ -71,7 +71,7 @@ contract Verifier {
         require(isInitiallyValid(sessions[sessionId]));
         sessionsCount+=1;
 
-        NewSession(sessionId);
+        NewSession(sessionId, claimant, challenger);
         return sessionId;
     }
 
@@ -136,7 +136,7 @@ contract Verifier {
             s.medHash = bytes32(0);
         }
         s.lastChallengerMessage = now;
-        NewQuery(sessionId);
+        NewQuery(sessionId, s.claimant);
     }
 
     function respond(uint sessionId, uint step, bytes32 hash)
@@ -156,7 +156,7 @@ contract Verifier {
         s.lastClaimantMessage = now;
 
         // notify watchers
-        NewResponse(sessionId);
+        NewResponse(sessionId, s.challenger);
     }
 
     function performStepVerification(
@@ -179,10 +179,10 @@ contract Verifier {
 
         if (performStepVerificationSpecific(s, s.lowStep, preValue, postValue, proofs)) {
             claimManager.sessionDecided(sessionId, claimID, s.claimant, s.challenger);
-            challengerConvicted(sessionId);
+            challengerConvicted(sessionId, s.challenger);
         } else {
             claimManager.sessionDecided(sessionId, claimID, s.challenger, s.claimant);
-            claimantConvicted(sessionId);
+            claimantConvicted(sessionId, s.claimant);
         }
     }
 
@@ -209,29 +209,29 @@ contract Verifier {
             session.lastChallengerMessage > session.lastClaimantMessage &&
             now > session.lastChallengerMessage + responseTime
         ) {
-            claimantConvicted(sessionId);
+            claimantConvicted(sessionId, session.claimant);
         } else if (
             session.lastClaimantMessage > session.lastChallengerMessage &&
             now > session.lastClaimantMessage + responseTime
         ) {
-            challengerConvicted(sessionId);
+            challengerConvicted(sessionId, session.challenger);
         } else {
             require(false);
         }
     }
 
-    function challengerConvicted(uint sessionId)
+    function challengerConvicted(uint sessionId, address challenger)
         internal
     {
         disable(sessionId);
-        ChallengerConvicted(sessionId);
+        ChallengerConvicted(sessionId, challenger);
     }
 
-    function claimantConvicted(uint sessionId)
+    function claimantConvicted(uint sessionId, address claimant)
         internal
     {
         disable(sessionId);
-        ClaimantConvicted(sessionId);
+        ClaimantConvicted(sessionId, claimant);
     }
 
     function disable(uint sessionId)

@@ -59,6 +59,7 @@ contract('ClaimManager', function (accounts) {
     })
 
     //Need to throw some asserts in here lol >:D
+    //Might need more verification steps
     it('participates in verification game', async () => {
       // First challenge
       // Each call to query sets the new medstep
@@ -105,14 +106,6 @@ contract('ClaimManager', function (accounts) {
         assert.equal(sessionDecidedEvent.args.loser, challenger)
       })
       sessionDecidedEvent.stopWatching()
-
-      const gamesEndedEvent = claimManager.ClaimVerificationGamesEnded({ fromBlock: 0, toBlock: 'latest' })
-      gamesEndedEvent.watch((err, resp) => {
-        assert.equal(gamesEndedEvent.args.claimID, claimID)
-        assert.equal(gamesEndedEvent.args.winner, claimant)
-        assert.equal(gamesEndedEvent.args.loser, challenger)
-      })
-      gamesEndedEvent.stopWatching()
     })
 
     it('checks bonded deposits', async () => {

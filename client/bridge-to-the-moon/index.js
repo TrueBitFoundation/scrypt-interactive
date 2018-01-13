@@ -48,7 +48,7 @@ module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3
             //if (!blockheader.validProofOfWork(claim.serialized)) {
             if (true) {
               cmd.log('Proof of Work: INVALID')
-
+              
               if (!autoChallenge) {
                 // @TODO(shrugs) - prompt for challenge confirmation
                 cmd.log('...but not configured to challenge, ignoring.')
