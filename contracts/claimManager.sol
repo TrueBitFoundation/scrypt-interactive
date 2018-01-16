@@ -144,6 +144,7 @@ contract ClaimManager is DepositsManager {
         claim.challengeTimeoutBlockNumber = block.number.add(defaultChallengeTimeout);
         uint sessionId = scryptVerifier.claimComputation(msg.sender, claim.claimant, claim.plaintext, claim.blockHash, 2050);
         claim.sessions[msg.sender] = sessionId;
+        claim.challengers.push(msg.sender);
         claim.numChallengers = claim.numChallengers.add(1);
         //Need to include claimant address
         ClaimChallenged(claimID, msg.sender, sessionId);
@@ -211,15 +212,16 @@ contract ClaimManager is DepositsManager {
         return claims[claimID].challengers[0];
     }
 
-    //What is this being used for?
     function createdAt(uint claimID) public view returns(uint) {
         //require(claimID < numClaims);
         return claims[claimID].createdAt;
     }
 
-    //Only one challenger can have a session
-    //function getSession(address claimant, uint claimID)
-    function getSession(uint claimID) public view returns(uint) {
-        return claims[claimID].sessions[msg.sender];
+    function getSession(uint claimID, address challenger) public view returns(uint) {
+        return claims[claimID].sessions[challenger];
+    }
+
+    function getChallengers(uint claimID) public view returns(address[]) {
+        return claims[claimID].challengers;
     }
 }

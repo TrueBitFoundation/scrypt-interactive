@@ -1,4 +1,5 @@
 const blockheader = require('./util/blockheader')
+const fs = require('fs')
 
 module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3, challenger) {
   const api = await require('./api')(claimManager, scryptVerifier, scryptRunner, web3)
@@ -6,6 +7,15 @@ module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3
 
   return {
     api,
+    initClaimant: async(cmd) => {
+      return new Promise(async (resolve, reject) => {
+        let claimFiles = fs.readdirSync('./claims')
+        fs.readdirSync('./claims').forEach(file => {
+          let claimData = JSON.parse(fs.readFileSync('./claims/'+file))
+          stateMachines.createClaim.run(cmd, claimData.claim, claimData)
+        })
+      })
+    },
     createClaim: async (cmd, claim) => {
       return new Promise(async (resolve, reject) => {
         //This should go in the createClaim
@@ -46,6 +56,7 @@ module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3
             
             //not working, is serialized supposed to be plaintext
             //if (!blockheader.validProofOfWork(claim.serialized)) {
+            //Replace with scryptRunner???
             if (true) {
               cmd.log('Proof of Work: INVALID')
               

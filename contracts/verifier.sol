@@ -254,4 +254,13 @@ contract Verifier {
             session.medHash
         );
     }
+
+    function getLastSteps(uint sessionId)
+        public 
+        view
+        returns (uint, uint)
+    {
+        VerificationSession storage session = sessions[sessionId];
+        return (session.lastClaimantMessage, session.lastChallengerMessage);
+    }
 }

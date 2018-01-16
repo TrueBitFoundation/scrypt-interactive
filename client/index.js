@@ -40,6 +40,7 @@ module.exports = async function(callback) {
     }
 
     //Setup separate bridge processes
+    //bridge.initClaimant(console)
     bridge.createClaim(console, testClaim)
     bridge.monitorClaims(console, true, true)
 }
