@@ -8,12 +8,10 @@ module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3
   return {
     api,
     initClaimant: async(cmd) => {
-      return new Promise(async (resolve, reject) => {
-        let claimFiles = fs.readdirSync('./claims')
-        fs.readdirSync('./claims').forEach(file => {
-          let claimData = JSON.parse(fs.readFileSync('./claims/'+file))
-          stateMachines.createClaim.run(cmd, claimData.claim, claimData)
-        })
+      let claimFiles = fs.readdirSync('./claims')
+      fs.readdirSync('./claims').forEach(file => {
+        let claimData = JSON.parse(fs.readFileSync('./claims/'+file))
+        stateMachines.createClaim.run(cmd, claimData.claim, claimData)
       })
     },
     createClaim: async (cmd, claim) => {
