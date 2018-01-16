@@ -47,38 +47,11 @@ module.exports = (web3, api) => ({
         },
         onBeforeCreate: async (tsn) => {
           console.log("Creating claim"); 
-          await api.createClaim(claim.serializedBlockHeader, claim.scryptHash, claim.claimant, {from: claim.dogeRelayAddress}) 
+          await api.createClaim(claim.serializedBlockHeader, claim.scryptHash, claim.claimant, {from: claim.dogeRelayAddress})
         },
         onAfterCreate: async (tsn) => {
-          //Check for ClaimCreated event
-          const claimCreatedEvents = api.claimManager.ClaimCreated()
-            await new Promise((resolve, reject) => {
-              claimCreatedEvents.watch((error, result) => {
-                if(error) reject(error)
-
-                claimID = result.args.claimID.toNumber()
-
-                const claim = {
-                  id: claimID,
-                  claimant: result.args.claimant,
-                  plaintext: result.args.plaintext,
-                  blockHash: result.args.blockHash,
-                  createdAt: result.blockNumber,
-                }
-              
-                cmd.log(`
-                  ClaimCreated(
-                    id: ${claim.id}
-                    claimant: ${claim.claimant}
-                    plaintext: ${claim.plaintext}
-                    blockHash: ${claim.blockHash}
-                    createdAt: ${claim.createdAt}
-                  )
-                `)
-              resolve()
-            })
-          })
-          claimCreatedEvents.stopWatching()
+          claimID = (await api.claimManager.claimantClaims(claim.claimant)).toNumber()
+          createdAt = (await api.claimManager.createdAt.call(claimID)).toNumber()
         },
         onBeforeDefend: async (tsn) => {
           cmd.log("Ready to defend claim")

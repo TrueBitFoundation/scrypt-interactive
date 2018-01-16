@@ -7,7 +7,7 @@ import {DogeRelay} from "./DogeRelay.sol";
 // ClaimManager: queues a sequence of challengers to play with a claimant.
 
 contract ClaimManager is DepositsManager {
-    uint private numClaims = 0;     // index as key for the claims mapping.
+    uint private numClaims = 1;     // index as key for the claims mapping.
     uint public minDeposit = 1;    // TODO: what should the minimum deposit be?
 
     //default initial amount of blocks for challenge timeout
@@ -29,7 +29,6 @@ contract ClaimManager is DepositsManager {
     event ClaimSuccessful(uint claimID, address claimant, bytes plaintext, bytes blockHash);
 
     struct ScryptClaim {
-        uint id;
         address claimant;
         bytes plaintext;    // the plaintext Dogecoin block header.
         bytes blockHash;    // the Dogecoin blockhash.
@@ -44,6 +43,7 @@ contract ClaimManager is DepositsManager {
         uint challengeTimeoutBlockNumber;
     }
 
+    mapping(address => uint) public claimantClaims;
     mapping(uint => ScryptClaim) private claims;
 
     modifier onlyBy(address _account) {
@@ -105,10 +105,11 @@ contract ClaimManager is DepositsManager {
     // @param _plaintext – the plaintext blockHeader.
     // @param _blockHash – the blockHash.
     // @param claimant – the address of the Dogecoin block submitter.
-    function checkScrypt(bytes _plaintext, bytes _blockHash, address claimant) onlyBy(dogeRelay) public returns (uint) {
+    function checkScrypt(bytes _plaintext, bytes _blockHash, address claimant) onlyBy(dogeRelay) public {
         require(deposits[claimant] >= minDeposit);
+        require(claimantClaims[claimant] == 0);//claimant can only do one claim at a time
 
-        ScryptClaim storage claim = claims[numClaims];
+        ScryptClaim storage claim = claims[numClaims]; 
         claim.claimant = claimant;
         claim.plaintext = _plaintext;
         claim.blockHash = _blockHash;
@@ -117,12 +118,11 @@ contract ClaimManager is DepositsManager {
         claim.verificationOngoing = false;
         claim.createdAt = block.number;
         claim.decided = false;
+        claimantClaims[claimant] = numClaims;
 
         bondDeposit(numClaims, claimant, minDeposit);
         ClaimCreated(numClaims, claim.claimant, claim.plaintext, claim.blockHash);
-
         numClaims.add(1);
-        return numClaims;
     }
 
     // @dev – challenge an existing Scrypt claim.
@@ -131,6 +131,7 @@ contract ClaimManager is DepositsManager {
     //
     // @param claimID – the claim ID.
     function challengeClaim(uint claimID) public {
+        //ScryptClaim storage claim = claimantClaims[claimant][claimID]
         ScryptClaim storage claim = claims[claimID];
 
         require(claimExists(claim));
@@ -144,6 +145,7 @@ contract ClaimManager is DepositsManager {
         uint sessionId = scryptVerifier.claimComputation(msg.sender, claim.claimant, claim.plaintext, claim.blockHash, 2050);
         claim.sessions[msg.sender] = sessionId;
         claim.numChallengers = claim.numChallengers.add(1);
+        //Need to include claimant address
         ClaimChallenged(claimID, msg.sender, sessionId);
     }
 
@@ -193,7 +195,7 @@ contract ClaimManager is DepositsManager {
 
         require(claim.decided);
 
-        unbondDeposit(claim.id, claim.claimant);
+        unbondDeposit(claimID, claim.claimant);
 
         dogeRelay.scryptVerified(claim.plaintext, claim.blockHash);
 
@@ -209,12 +211,14 @@ contract ClaimManager is DepositsManager {
         return claims[claimID].challengers[0];
     }
 
+    //What is this being used for?
     function createdAt(uint claimID) public view returns(uint) {
-        require(claimID < numClaims);
+        //require(claimID < numClaims);
         return claims[claimID].createdAt;
     }
 
     //Only one challenger can have a session
+    //function getSession(address claimant, uint claimID)
     function getSession(uint claimID) public view returns(uint) {
         return claims[claimID].sessions[msg.sender];
     }

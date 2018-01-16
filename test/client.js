@@ -39,9 +39,13 @@ contract('ClaimManager', function (accounts) {
     it('claimant checks scrypt', async () => {
       await claimManager.makeDeposit({ from: claimant, value: claimDeposit })
 
-      tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, claimant, { from: dogeRelayAddress })
-      log = tx.logs.find(l => l.event === 'ClaimCreated')
-      claimID = log.args.claimID.toNumber()
+      try {
+        tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, claimant, { from: dogeRelayAddress })
+        log = tx.logs.find(l => l.event === 'ClaimCreated')
+        claimID = log.args.claimID.toNumber()
+      }catch(e) {
+        console.log(e)
+      }
       // check that the claimant's deposits were bonded.
       deposit = await claimManager.getBondedDeposit.call(claimID, claimant, { from: claimant })
       assert.equal(deposit.toNumber(), claimDeposit)
@@ -54,7 +58,7 @@ contract('ClaimManager', function (accounts) {
       assert.equal(log.args.claimID.toNumber(), claimID)
       sessionId = log.args.sessionId.toNumber()
       // check that the challenger's deposits were bonded.
-      deposit = await claimManager.getBondedDeposit.call(claimID, challenger, { from: claimant })
+      deposit = await claimManager.getBondedDeposit.call(claimID, challenger, { from: challenger })
       assert.equal(deposit.toNumber(), claimDeposit)
     })
 

@@ -55,6 +55,8 @@ module.exports = (web3, api, challenger) => ({
             api.challengeClaim(claim.id, {from: challenger})//bonds deposit
           },
           onAfterChallenge: async (tsn) => {
+            //Query claims challenges
+            //api.getChallengeData(claimant, claim.id)
             let claimChallengedEvent = api.claimManager.ClaimChallenged({claimID: claim.id, challenger: challenger})
             await new Promise((resolve, reject) => {
               claimChallengedEvent.watch((err, result) => {
