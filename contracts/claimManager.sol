@@ -24,9 +24,11 @@ contract ClaimManager is DepositsManager {
     event DepositBonded(uint claimID, address account, uint amount);
     event DepositUnbonded(uint claimID, address account, uint amount);
     event ClaimCreated(uint claimID, address claimant, bytes plaintext, bytes blockHash);
-    event ClaimChallenged(uint claimID, address challenger, uint sessionId);
+    event ClaimChallenged(uint claimID, address challenger);
     event SessionDecided(uint sessionId, address winner, address loser);
     event ClaimSuccessful(uint claimID, address claimant, bytes plaintext, bytes blockHash);
+    event VerificationGameStarted(uint claimID, address claimant, address challenger, uint sessionId);//Rename to SessionStarted?
+    event ClaimVerificationGamesEnded(uint claimID);
 
     struct ScryptClaim {
         address claimant;
@@ -142,13 +144,37 @@ contract ClaimManager is DepositsManager {
         bondDeposit(claimID, msg.sender, minDeposit);
 
         claim.challengeTimeoutBlockNumber = block.number.add(defaultChallengeTimeout);
-        uint sessionId = scryptVerifier.claimComputation(msg.sender, claim.claimant, claim.plaintext, claim.blockHash, 2050);
-        claim.sessions[msg.sender] = sessionId;
         claim.challengers.push(msg.sender);
         claim.numChallengers = claim.numChallengers.add(1);
-        //Need to include claimant address
-        ClaimChallenged(claimID, msg.sender, sessionId);
+        ClaimChallenged(claimID, msg.sender);
     }
+
+    // @dev – runs a verification game between the claimant and
+    // the next queued-up challenger.
+    // @param claimID – the claim id.
+    function runNextVerificationGame(uint claimID) public {
+        ScryptClaim storage claim = claims[claimID];
+
+        require(claimExists(claim));
+        require(!claim.decided);
+
+        // check if there is a challenger who has not the played verification game yet.
+        if (claim.numChallengers > claim.currentChallenger) {
+            require(claim.verificationOngoing == false);
+
+            // kick off a verification game.
+            uint sessionId = scryptVerifier.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
+            claim.sessions[claim.challengers[claim.currentChallenger]] = sessionId;
+            VerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger], sessionId);
+
+            claim.verificationOngoing = true;
+            claim.currentChallenger = claim.currentChallenger.add(1);
+        } else {
+            require(claim.verificationOngoing == false);
+            claim.decided = true;
+            ClaimVerificationGamesEnded(claimID);
+        }
+    }     
 
     // @dev – called when a verification game has ended.
     // only callable by the scryptVerifier contract.
@@ -168,6 +194,19 @@ contract ClaimManager is DepositsManager {
         uint depositToTransfer = claim.bondedDeposits[loser];
         delete claim.bondedDeposits[loser];
         claim.bondedDeposits[winner] = claim.bondedDeposits[winner].add(depositToTransfer);
+
+        if (claim.claimant == loser) {
+            // the claim is over.
+            // note: no callback needed to the DogeRelay contract,
+            // because it by default does not save blocks.
+
+            //Trigger end of verification game
+            claim.numChallengers = 0;
+            runNextVerificationGame(claimID);
+        } else if (claim.claimant == winner) {
+            // the claim continues.
+            runNextVerificationGame(claimID);
+        } else { revert(); }
 
         SessionDecided(sessionId, winner, loser);
     }

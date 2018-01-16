@@ -66,11 +66,27 @@ module.exports = (web3, api, challenger) => ({
             await api.challengeClaim(claim.id, {from: challenger})//bonds deposit
           },
           onAfterChallenge: async (tsn) => {
-            claim.sessionId = await api.claimManager.getSession.call(claim.id, challenger)
 
-            //write cache here
+            //Figure out if first challenger
+            let challengers = await api.claimManager.getChallengers.call(claim.id)
+            if(challengers[0] == challenger) {
+              await api.claimManager.runNextVerificationGame(claim.id, {from: challenger})
+            }else{
+              //Wait for turn
+              const verificationGameStartedEvent = api.claimManager.VerificationGameStarted({claimID: claim.id, challenger: challenger})
+              await new Promise(async (resolve, reject) => {
+                verificationGameStartedEvent.watch(async (err, result) => {
+                  if(err) reject(err)
+                  if(result) resolve()
+                })
+              })
+              verificationGameStartedEvent.stopWatching()
+            }
+
+            claim.sessionId = await api.claimManager.getSession.call(claim.id, challenger)
             //Initial query
             fs.writeFile('./challenges/'+claim.id+'.json', JSON.stringify(claim), (err) => {if(err) console.log(err)})
+
             let session = await api.getSession(claim.sessionId)
             let medStep = calculateMidpoint(session.lowStep.toNumber(), session.highStep.toNumber())
             await api.query(claim.sessionId, medStep, {from: challenger})
