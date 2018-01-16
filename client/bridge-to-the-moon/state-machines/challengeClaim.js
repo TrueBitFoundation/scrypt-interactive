@@ -3,9 +3,15 @@ const BlockEmitter = require('../util/blockemitter')
 const waitForEvent = require('../util/waitForEvent')
 const timeout = require('../util/timeout')
 const calculateMidpoint = require('../util/math').calculateMidpoint
+const fs = require('fs')
 
 module.exports = (web3, api, challenger) => ({
   run: async (cmd, claim, autoDeposit = false) => new Promise(async (resolve, reject) => {
+    const getNewMedStep = async (sessionId) => {
+      let session = await api.getSession(sessionId)
+      return calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())
+    }  
+
     try {
       const { claimManager } = api
 
@@ -18,65 +24,67 @@ module.exports = (web3, api, challenger) => ({
           { name: 'challenge', from: 'ready', to: 'didChallenge' },
           { name: 'playGame', from: 'didChallenge', to: 'done'},
           { name: 'cancel', from: '*', to: 'cancelled' },
+          { name: 'skipChallenge', from: 'ready', to: 'didChallenge'}
         ],
         methods: {
-          onBeforeStart: async (tsn) => {
-            cmd.log('Checking deposits...')
+          onStart: async (tsn) => {
+            if('sessionId' in claim) {
+              return true;
+            }else{
+              cmd.log('Checking deposits...')
 
-            const minDeposit = await api.getMinDeposit()
-            const currentDeposit = await api.getDeposit(challenger)
-            if (currentDeposit.lt(minDeposit)) {
-              cmd.log('Not enough ETH deposited.')
-              // if we don't have enough deposit, either add some or throw
-              // let's just add exactly the right amount for now
-              if (autoDeposit) {
-                const neededAmount = minDeposit.sub(currentDeposit)
-                const myBalance = await api.getBalance(challenger)
-                if (myBalance.gte(neededAmount)) {
-                  cmd.log(`Depositing ${web3.fromWei(neededAmount, 'ether')} ETH...`)
-                  await api.makeDeposit({from: challenger, value: neededAmount})
-                  cmd.log(`Deposited ${web3.fromWei(neededAmount, 'ether')} ETH.`)
+              const minDeposit = await api.getMinDeposit()
+              const currentDeposit = await api.getDeposit(challenger)
+              if (currentDeposit.lt(minDeposit)) {
+                cmd.log('Not enough ETH deposited.')
+                // if we don't have enough deposit, either add some or throw
+                // let's just add exactly the right amount for now
+                if (autoDeposit) {
+                  const neededAmount = minDeposit.sub(currentDeposit)
+                  const myBalance = await api.getBalance(challenger)
+                  if (myBalance.gte(neededAmount)) {
+                    cmd.log(`Depositing ${web3.fromWei(neededAmount, 'ether')} ETH...`)
+                    await api.makeDeposit({from: challenger, value: neededAmount})
+                    cmd.log(`Deposited ${web3.fromWei(neededAmount, 'ether')} ETH.`)
+                  } else {
+                    throw new Error(`
+                            You don't have enough ETH to submit a deposit that would be greater than minDeposit.
+                          `)
+                  }
                 } else {
                   throw new Error(`
-                          You don't have enough ETH to submit a deposit that would be greater than minDeposit.
-                        `)
+                          Your deposited ETH in ClaimManager is lower than minDeposit and --deposit was not enabled.`
+                  )
                 }
-              } else {
-                throw new Error(`
-                        Your deposited ETH in ClaimManager is lower than minDeposit and --deposit was not enabled.`
-                )
               }
+              return false;
             }
           },
-          onAfterStart: async (tsn) => { console.log("Beginning challenge") },
           onBeforeChallenge: async (tsn) => {
             cmd.log('Challenging...')
             //console.log(claim.id)
-            api.challengeClaim(claim.id, {from: challenger})//bonds deposit
+            await api.challengeClaim(claim.id, {from: challenger})//bonds deposit
           },
           onAfterChallenge: async (tsn) => {
-            sessionId = await api.claimManager.getSession.call(claim.id, challenger)
-            cmd.log('Challenged.')
+            claim.sessionId = await api.claimManager.getSession.call(claim.id, challenger)
+
+            //write cache here
+            //Initial query
+            fs.writeFile('./challenges/'+claim.id+'.json', JSON.stringify(claim), (err) => {if(err) console.log(err)})
+            let session = await api.getSession(claim.sessionId)
+            let medStep = calculateMidpoint(session.lowStep.toNumber(), session.highStep.toNumber())
+            await api.query(claim.sessionId, medStep, {from: challenger})
           },
           onBeforePlayGame: async (tsn) => {
-            const getNewMedStep = async (sessionId) => {
-              let session = await api.getSession(sessionId)
-              return calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())
-            }
-
-            //Initial query
-            let session = await api.getSession(sessionId)
-            let medStep = calculateMidpoint(session.lowStep.toNumber(), session.highStep)
-            await api.query(sessionId, medStep, {from: challenger})
-
-            let newResponseEvent = api.scryptVerifier.NewResponse()
+            let newResponseEvent = api.scryptVerifier.NewResponse({sessionId: claim.sessionId, challenger: challenger})
             await new Promise(async (resolve, reject) => {
               newResponseEvent.watch(async (err, result) => {
                 if(err) reject(err)
                 if(result) {
-                  let medStep = await getNewMedStep(result.args.sessionId.toNumber())
+
+                  let medStep = await getNewMedStep(claim.sessionId)
                   console.log("Querying step: " + medStep)
-                  await api.query(sessionId, medStep, {from: challenger})
+                  await api.query(claim.sessionId, medStep, {from: challenger})
                   if(medStep == 0) resolve()
                 }
               })
@@ -84,7 +92,7 @@ module.exports = (web3, api, challenger) => ({
             newResponseEvent.stopWatching()
           },
           onAfterPlayGame: async (tsn) => {
-            let sessionDecidedEvent = api.claimManager.SessionDecided({sessionId: sessionId})
+            let sessionDecidedEvent = api.claimManager.SessionDecided({sessionId: claim.sessionId})
             await new Promise((resolve, reject) => {
               sessionDecidedEvent.watch(async (err, result) => {
                 if(err) reject(err)
@@ -95,14 +103,29 @@ module.exports = (web3, api, challenger) => ({
               })
             })
             sessionDecidedEvent.stopWatching()
+            fs.unlinkSync('./challenges/'+claim.id+'.json')
             resolve()
           },
           onCancel: (tsn, err) => { reject(err) },
         },
+        onSkipChallenge: async (tsn) => {
+          let lastSteps = api.scryptVerifier.getLastSteps.call(claim.sessionId)
+          let claimantLastStep = lastSteps[0].toNumber()
+          let challengerLastStep = lastSteps[0].toNumber()
+          if(claimantLastStep == challengerLastStep) {
+            let medStep = await getNewMedStep(result.args.sessionId.toNumber())
+            console.log("Querying step: " + medStep)
+            await api.query(sessionId, medStep, {from: challenger})
+            if(medStep == 0) resolve()
+          }
+        }
       })
 
-      await m.start()
-      await m.challenge()
+      if(await m.start()) {
+        await m.skipChallenge()
+      }else{
+        await m.challenge()
+      }
       await m.playGame()
 
     } catch (error) {

@@ -8,7 +8,6 @@ module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3
   return {
     api,
     initClaimant: async(cmd) => {
-      let claimFiles = fs.readdirSync('./claims')
       fs.readdirSync('./claims').forEach(file => {
         let claimData = JSON.parse(fs.readFileSync('./claims/'+file))
         stateMachines.createClaim.run(cmd, claimData.claim, claimData)
@@ -23,8 +22,14 @@ module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3
         } catch(e) {
           reject(e)
         }
-    })
-  },
+      })
+    },
+    initChallenges: async (cmd, claim) => {
+      fs.readdirSync('./challenges').forEach(file => {
+        let challengeData = JSON.parse(fs.readFileSync('./challenges/'+file))
+        stateMachines.challengeClaim.run(cmd, challengeData)
+      })
+    },
   monitorClaims: async (cmd, autoChallenge = false, autoDeposit = false) => {
       return new Promise(async (resolve, reject) => {
         let inProgressClaims = []
