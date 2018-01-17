@@ -178,11 +178,9 @@ contract Verifier {
         require(keccak256(postValue) == s.highHash);
 
         if (performStepVerificationSpecific(s, s.lowStep, preValue, postValue, proofs)) {
-            claimManager.sessionDecided(sessionId, claimID, s.claimant, s.challenger);
-            challengerConvicted(sessionId, s.challenger);
+            challengerConvicted(sessionId, s.challenger, claimID, claimManager);
         } else {
-            claimManager.sessionDecided(sessionId, claimID, s.challenger, s.claimant);
-            claimantConvicted(sessionId, s.claimant);
+            claimantConvicted(sessionId, s.claimant, claimID, claimManager);
         }
     }
 
@@ -200,7 +198,7 @@ contract Verifier {
         internal
         returns (bool);
 
-    function timeout(uint sessionId)
+    function timeout(uint sessionId, uint claimID, ClaimManager claimManager)
         public
     {
         var session = sessions[sessionId];
@@ -209,27 +207,31 @@ contract Verifier {
             session.lastChallengerMessage > session.lastClaimantMessage &&
             now > session.lastChallengerMessage + responseTime
         ) {
-            claimantConvicted(sessionId, session.claimant);
+            claimantConvicted(sessionId, session.claimant, claimID, claimManager);
         } else if (
             session.lastClaimantMessage > session.lastChallengerMessage &&
             now > session.lastClaimantMessage + responseTime
         ) {
-            challengerConvicted(sessionId, session.challenger);
+            challengerConvicted(sessionId, session.challenger, claimID, claimManager);
         } else {
             require(false);
         }
     }
 
-    function challengerConvicted(uint sessionId, address challenger)
+    function challengerConvicted(uint sessionId, address challenger, uint claimID, ClaimManager claimManager)
         internal
     {
+        VerificationSession storage s = sessions[sessionId];
+        claimManager.sessionDecided(sessionId, claimID, s.claimant, s.challenger);
         disable(sessionId);
         ChallengerConvicted(sessionId, challenger);
     }
 
-    function claimantConvicted(uint sessionId, address claimant)
+    function claimantConvicted(uint sessionId, address claimant, uint claimID,  ClaimManager claimManager)
         internal
     {
+        VerificationSession storage s = sessions[sessionId];
+        claimManager.sessionDecided(sessionId, claimID, s.challenger, s.claimant);
         disable(sessionId);
         ClaimantConvicted(sessionId, claimant);
     }
