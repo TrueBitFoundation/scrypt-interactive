@@ -263,4 +263,12 @@ contract ClaimManager is DepositsManager {
     function getChallengers(uint claimID) public view returns(address[]) {
         return claims[claimID].challengers;
     }
+
+    function getCurrentChallenger(uint claimID) public view returns(address) {
+        return claims[claimID].challengers[claims[claimID].currentChallenger];
+    }
+
+    function getVerificationOngoing(uint claimID) public view returns(bool) {
+        return claims[claimID].verificationOngoing;
+    }
 }

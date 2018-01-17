@@ -10,7 +10,7 @@ module.exports = (web3, api, challenger) => ({
     const getNewMedStep = async (sessionId) => {
       let session = await api.getSession(sessionId)
       return calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())
-    }  
+    }
 
     try {
       const { claimManager } = api
@@ -63,16 +63,38 @@ module.exports = (web3, api, challenger) => ({
           onBeforeChallenge: async (tsn) => {
             cmd.log('Challenging...')
             //console.log(claim.id)
-            await api.challengeClaim(claim.id, {from: challenger})//bonds deposit
+            if(!('sessionId' in claim)) {
+              await api.challengeClaim(claim.id, {from: challenger})//bonds deposit
+            }
           },
           onAfterChallenge: async (tsn) => {
+            const sendQuery = async () => {
+              claim.sessionId = await api.claimManager.getSession.call(claim.id, challenger)
+              //Initial query
+              fs.writeFile('./challenges/'+claim.id+'.json', JSON.stringify(claim), (err) => {if(err) console.log(err)})
+  
+              let session = await api.getSession(claim.sessionId)
+              let medStep = calculateMidpoint(session.lowStep.toNumber(), session.highStep.toNumber())
+              await api.query(claim.sessionId, medStep, {from: challenger})
+            }
 
             //Figure out if first challenger
-            let challengers = await api.claimManager.getChallengers.call(claim.id)
-            if(challengers[0] == challenger) {
+            let currentChallenger = await api.claimManager.getCurrentChallenger.call(claim.id)
+            let verificationOngoing = await api.claimManager.getVerificationOngoing.call(claim.id)
+            if(currentChallenger == challenger && !verificationOngoing) {
               await api.claimManager.runNextVerificationGame(claim.id, {from: challenger})
-            }else{
-              //Wait for turn
+              await sendQuery()
+            }else if(currentChallenger == challenger && verificationOngoing) {//should only happen if rebooting during game
+              let lastSteps = api.scryptVerifier.getLastSteps.call(claim.sessionId)
+              let claimantLastStep = lastSteps[0].toNumber()
+              let challengerLastStep = lastSteps[0].toNumber()
+              if(claimantLastStep == challengerLastStep) {
+                let medStep = await getNewMedStep(result.args.sessionId.toNumber())
+                console.log("Querying step: " + medStep)
+                await api.query(sessionId, medStep, {from: challenger})
+                if(medStep == 0) resolve()
+              }
+            }else if(currentChallenger != challenger && verificationOngoing) {
               const verificationGameStartedEvent = api.claimManager.VerificationGameStarted({claimID: claim.id, challenger: challenger})
               await new Promise(async (resolve, reject) => {
                 verificationGameStartedEvent.watch(async (err, result) => {
@@ -81,17 +103,22 @@ module.exports = (web3, api, challenger) => ({
                 })
               })
               verificationGameStartedEvent.stopWatching()
+              sendQuery()
+            }else{//this case probably won't happen but this should cover us if it does
+              await api.claimManager.runNextVerificationGame(claim.id, {from: challenger})
+              const verificationGameStartedEvent = api.claimManager.VerificationGameStarted({claimID: claim.id, challenger: challenger})
+              await new Promise(async (resolve, reject) => {
+                verificationGameStartedEvent.watch(async (err, result) => {
+                  if(err) reject(err)
+                  if(result) resolve()
+                })
+              })
+              verificationGameStartedEvent.stopWatching()
+              sendQuery()    
             }
-
-            claim.sessionId = await api.claimManager.getSession.call(claim.id, challenger)
-            //Initial query
-            fs.writeFile('./challenges/'+claim.id+'.json', JSON.stringify(claim), (err) => {if(err) console.log(err)})
-
-            let session = await api.getSession(claim.sessionId)
-            let medStep = calculateMidpoint(session.lowStep.toNumber(), session.highStep.toNumber())
-            await api.query(claim.sessionId, medStep, {from: challenger})
           },
           onBeforePlayGame: async (tsn) => {
+            //playGame
             let newResponseEvent = api.scryptVerifier.NewResponse({sessionId: claim.sessionId, challenger: challenger})
             await new Promise(async (resolve, reject) => {
               newResponseEvent.watch(async (err, result) => {
@@ -105,7 +132,7 @@ module.exports = (web3, api, challenger) => ({
                 }
               })
             })
-            newResponseEvent.stopWatching()
+            newResponseEvent.stopWatching()            
           },
           onAfterPlayGame: async (tsn) => {
             let sessionDecidedEvent = api.claimManager.SessionDecided({sessionId: claim.sessionId})
@@ -123,26 +150,15 @@ module.exports = (web3, api, challenger) => ({
             resolve()
           },
           onCancel: (tsn, err) => { reject(err) },
-        },
-        onSkipChallenge: async (tsn) => {
-          let lastSteps = api.scryptVerifier.getLastSteps.call(claim.sessionId)
-          let claimantLastStep = lastSteps[0].toNumber()
-          let challengerLastStep = lastSteps[0].toNumber()
-          if(claimantLastStep == challengerLastStep) {
-            let medStep = await getNewMedStep(result.args.sessionId.toNumber())
-            console.log("Querying step: " + medStep)
-            await api.query(sessionId, medStep, {from: challenger})
-            if(medStep == 0) resolve()
-          }
         }
       })
 
       if(await m.start()) {
-        await m.skipChallenge()
+        await m.playGame()
       }else{
         await m.challenge()
+        await m.playGame()
       }
-      await m.playGame()
 
     } catch (error) {
       reject(error)
