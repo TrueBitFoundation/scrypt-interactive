@@ -43,6 +43,7 @@ contract ClaimManager is DepositsManager {
         mapping (address => uint) bondedDeposits;   // all deposits bonded in this claim.
         bool decided;
         uint challengeTimeoutBlockNumber;
+        bytes32 proposalId;
     }
 
     mapping(address => uint) public claimantClaims;
@@ -107,7 +108,7 @@ contract ClaimManager is DepositsManager {
     // @param _plaintext – the plaintext blockHeader.
     // @param _blockHash – the blockHash.
     // @param claimant – the address of the Dogecoin block submitter.
-    function checkScrypt(bytes _plaintext, bytes _blockHash, address claimant) onlyBy(dogeRelay) public {
+    function checkScrypt(bytes _plaintext, bytes _blockHash, address claimant, bytes32 proposalId) onlyBy(dogeRelay) public {
         require(deposits[claimant] >= minDeposit);
         require(claimantClaims[claimant] == 0);//claimant can only do one claim at a time
 
@@ -120,6 +121,7 @@ contract ClaimManager is DepositsManager {
         claim.verificationOngoing = false;
         claim.createdAt = block.number;
         claim.decided = false;
+        claim.proposalId = proposalId;
         claimantClaims[claimant] = numClaims;
 
         bondDeposit(numClaims, claimant, minDeposit);
@@ -237,7 +239,7 @@ contract ClaimManager is DepositsManager {
 
         unbondDeposit(claimID, claim.claimant);
 
-        dogeRelay.scryptVerified(claim.plaintext, claim.blockHash);
+        dogeRelay.scryptVerified(claim.proposalId);
 
         ClaimSuccessful(claimID, claim.claimant, claim.plaintext, claim.blockHash);
     }

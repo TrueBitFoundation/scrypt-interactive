@@ -53,7 +53,8 @@ module.exports = (web3, api) => ({
         },
         onBeforeCreate: async (tsn) => {
           console.log("Creating claim");
-          await api.createClaim(claim.serializedBlockHeader, claim.scryptHash, claim.claimant, {from: claim.dogeRelayAddress})
+          let testProposalId = "foo";
+          await api.createClaim(claim.serializedBlockHeader, claim.scryptHash, claim.claimant, testProposalId, {from: claim.dogeRelayAddress})
         },
         onAfterCreate: async (tsn) => {
           claimData.claimID = (await api.claimManager.claimantClaims(claim.claimant)).toNumber()
