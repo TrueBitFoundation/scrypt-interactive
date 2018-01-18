@@ -4,7 +4,7 @@ wget https://parity-downloads-mirror.parity.io/v1.8.5/x86_64-unknown-linux-gnu/p
 
 chmod 755 ./parity
 
-npm install --dev
+npm install
 
 ./parity --chain dev 2>&1 &
 PARITY_PID=$!
