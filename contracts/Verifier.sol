@@ -1,5 +1,5 @@
 pragma solidity ^0.4.0;
-import {ClaimManager} from "./claimManager.sol";
+import {ClaimManager} from "./ClaimManager.sol";
 // Simple generic challenge-response computation verifier.
 //
 // @TODO:
@@ -11,11 +11,11 @@ import {ClaimManager} from "./claimManager.sol";
 */
 contract Verifier {
 
-    event NewSession(uint sessionId);
-    event NewQuery(uint sessionId);
-    event NewResponse(uint sessionId);
-    event ChallengerConvicted(uint sessionId);
-    event ClaimantConvicted(uint sessionId);
+    event NewSession(uint sessionId, address claimant, address challenger);
+    event NewQuery(uint sessionId, address claimant);
+    event NewResponse(uint sessionId, address challenger);
+    event ChallengerConvicted(uint sessionId, address challenger);
+    event ClaimantConvicted(uint sessionId, address claimant);
 
     uint constant responseTime = 1 hours;
 
@@ -34,7 +34,9 @@ contract Verifier {
         uint highStep;
         bytes32 highHash;
     }
-    VerificationSession[] public sessions;
+
+    mapping(uint => VerificationSession) public sessions;
+    uint sessionsCount = 0;
 
     function claimComputation(
         address challenger,
@@ -48,8 +50,9 @@ contract Verifier {
     {
         require(steps > 2);
 
-        uint sessionId = sessions.length;
-        sessions.push(VerificationSession({
+        //ClaimManager constraints don't allow for sessionId 0
+        uint sessionId = sessionsCount+1;
+        sessions[sessionId] = VerificationSession({
             id: sessionId,
             claimant: claimant,
             challenger: challenger,
@@ -63,11 +66,12 @@ contract Verifier {
             medHash: 0,
             highStep: steps,
             highHash: keccak256(_output)
-        }));
+        });
 
         require(isInitiallyValid(sessions[sessionId]));
+        sessionsCount+=1;
 
-        NewSession(sessionId);
+        NewSession(sessionId, claimant, challenger);
         return sessionId;
     }
 
@@ -132,7 +136,7 @@ contract Verifier {
             s.medHash = bytes32(0);
         }
         s.lastChallengerMessage = now;
-        NewQuery(sessionId);
+        NewQuery(sessionId, s.claimant);
     }
 
     function respond(uint sessionId, uint step, bytes32 hash)
@@ -152,7 +156,7 @@ contract Verifier {
         s.lastClaimantMessage = now;
 
         // notify watchers
-        NewResponse(sessionId);
+        NewResponse(sessionId, s.challenger);
     }
 
     function performStepVerification(
@@ -174,11 +178,9 @@ contract Verifier {
         require(keccak256(postValue) == s.highHash);
 
         if (performStepVerificationSpecific(s, s.lowStep, preValue, postValue, proofs)) {
-            claimManager.sessionDecided(sessionId, claimID, s.claimant, s.challenger);
-            challengerConvicted(sessionId);
+            challengerConvicted(sessionId, s.challenger, claimID, claimManager);
         } else {
-            claimManager.sessionDecided(sessionId, claimID, s.challenger, s.claimant);
-            claimantConvicted(sessionId);
+            claimantConvicted(sessionId, s.claimant, claimID, claimManager);
         }
     }
 
@@ -196,7 +198,8 @@ contract Verifier {
         internal
         returns (bool);
 
-    function timeout(uint sessionId)
+    //Able to trigger conviction if time of response is too high
+    function timeout(uint sessionId, uint claimID, ClaimManager claimManager)
         public
     {
         var session = sessions[sessionId];
@@ -205,29 +208,33 @@ contract Verifier {
             session.lastChallengerMessage > session.lastClaimantMessage &&
             now > session.lastChallengerMessage + responseTime
         ) {
-            claimantConvicted(sessionId);
+            claimantConvicted(sessionId, session.claimant, claimID, claimManager);
         } else if (
             session.lastClaimantMessage > session.lastChallengerMessage &&
             now > session.lastClaimantMessage + responseTime
         ) {
-            challengerConvicted(sessionId);
+            challengerConvicted(sessionId, session.challenger, claimID, claimManager);
         } else {
             require(false);
         }
     }
 
-    function challengerConvicted(uint sessionId)
+    function challengerConvicted(uint sessionId, address challenger, uint claimID, ClaimManager claimManager)
         internal
     {
+        VerificationSession storage s = sessions[sessionId];
+        claimManager.sessionDecided(sessionId, claimID, s.claimant, s.challenger);
         disable(sessionId);
-        ChallengerConvicted(sessionId);
+        ChallengerConvicted(sessionId, challenger);
     }
 
-    function claimantConvicted(uint sessionId)
+    function claimantConvicted(uint sessionId, address claimant, uint claimID,  ClaimManager claimManager)
         internal
     {
+        VerificationSession storage s = sessions[sessionId];
+        claimManager.sessionDecided(sessionId, claimID, s.challenger, s.claimant);
         disable(sessionId);
-        ClaimantConvicted(sessionId);
+        ClaimantConvicted(sessionId, claimant);
     }
 
     function disable(uint sessionId)
@@ -249,5 +256,14 @@ contract Verifier {
             session.input,
             session.medHash
         );
+    }
+
+    function getLastSteps(uint sessionId)
+        public 
+        view
+        returns (uint, uint)
+    {
+        VerificationSession storage session = sessions[sessionId];
+        return (session.lastClaimantMessage, session.lastChallengerMessage);
     }
 }

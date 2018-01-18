@@ -75,7 +75,15 @@ Kill it. Then do:
 ./parity --config config.toml --geth
 ```
 
-To run the parity dev chain needed for the offchain component.
+Which runs the parity dev chain needed for the offchain component.
+
+## Testing out the client (bridge-to-the-moon)
+
+Ensure you have followed all installation instructions above, and have ganache-cli at 8545 and parity dev at 4242 for the offchain computations.
+
+```
+truffle exec client/index.js
+```
 
 ## Doge-Ethereum bounty split contract
 

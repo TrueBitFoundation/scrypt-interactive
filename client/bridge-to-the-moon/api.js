@@ -1,14 +1,9 @@
 
 const BigNumber = require('bignumber.js')
-const contracts = require('./contracts')
-const { toSession, toResult } = require('../utils/models')
+const { toSession, toResult } = require('./util/models')
+const offchain = require('../../test/helpers/offchain')
 
-module.exports = async (web3, contractAddresses) => {
-  const {
-    claimManager,
-    scryptRunner,
-    scryptVerifier,
-  } = await contracts(web3, contractAddresses)
+module.exports = async (claimManager, scryptVerifier, scryptRunner, web3) => {
 
   return {
     /**
@@ -38,20 +33,17 @@ module.exports = async (web3, contractAddresses) => {
     /**
      * @desc challenges the provided claim
      */
-    challengeClaim: async (claimId) => {
-      return claimManager.challengeClaim.sendTransaction(claimId)
+    challengeClaim: async (...args) => {
+      return claimManager.challengeClaim.sendTransaction(...args)
     },
-    /**
-     * Runs the next verification game.
-     */
-    runNextVerificationGame: async (claimId) => {
-      return claimManager.challengeClaim.sendTransaction(claimId)
+    createClaim: async (...args) => {
+      return claimManager.checkScrypt.sendTransaction(...args)
     },
     /**
      * @return BigNumber number of blocks that represent challenge timeout
      */
     getChallengeTimeout: async () => {
-      return claimManager.challengeTimeout.call()
+      return claimManager.defaultChallengeTimeout.call()
     },
     /**
      * @desc get the minimum deposit necessary to challenge
@@ -70,11 +62,11 @@ module.exports = async (web3, contractAddresses) => {
     },
     /**
      * @desc get the session info from scryptVerifier
-     * @param claimId
+     * @param sessionId
      * @return Session
      */
-    getSession: async (claimId) => {
-      return toSession(await scryptVerifier.getSession.call(claimId))
+    getSession: async (sessionId) => {
+      return toSession(await scryptVerifier.getSession.call(sessionId))
     },
     /**
      * @desc get the state proof and hash from scryptRunner
@@ -90,21 +82,21 @@ module.exports = async (web3, contractAddresses) => {
     },
     /**
      * @desc Claim a state for a step. Called by claimant.
-     * @param claimId
+     * @param sessionId
      * @param step
      * @param stateHash
      */
-    respond: async (claimId, step, stateHash) => {
-      return scryptVerifier.respond.sendTransaction(claimId, step, stateHash)
+    respond: async (...args) => {
+      return scryptVerifier.respond.sendTransaction(...args)
     },
     /**
      * @desc challenge a claimant to prove a stateHash for a step.
      *       Caled by challenger.
-     * @param claimId
+     * @param sessionId
      * @param step
      */
-    query: async (claimId, step) => {
-      return scryptVerifier.query.sendTransaction(claimId, step)
+    query: async (sessionId, step, options) => {
+      return scryptVerifier.query.sendTransaction(sessionId, step, options)
     },
     /**
      * @desc finalize the verification game by proving the final step's state
@@ -113,14 +105,8 @@ module.exports = async (web3, contractAddresses) => {
      * @param postState
      * @param proof
      */
-    performStepVerification: async (claimId, preState, postState, proof) => {
-      return scryptVerifier.performStepVerification.sendTransaction(
-        claimId,
-        preState,
-        postState,
-        proof,
-        claimManager.address
-      )
+    performStepVerification: async (...args) => {
+      return scryptVerifier.performStepVerification.sendTransaction(...args)
     },
     /**
      * @desc just test the connection
@@ -128,5 +114,9 @@ module.exports = async (web3, contractAddresses) => {
     testConnection: async () => {
       await claimManager
     },
+
+    getStateProofAndHash: async (input, step) => {
+      return scryptRunner.getStateProofAndHash.call(input, step)
+    }
   }
 }

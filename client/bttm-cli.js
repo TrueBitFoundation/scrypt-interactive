@@ -2,18 +2,31 @@ require('dotenv').config()
 const vorpal = require('vorpal')()
 const asDefault = require('vorpal-as-default')
 const Web3 = require('web3')
-const selfText = require('./src/utils/selfText')
-const setup = require('./src/utils/setup')
+const selfText = require('./bridge-to-the-moon/util/selfText')
+const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'))
 
-// let's monekypatch web3 cause it doesn't play nice with truffle yet
-Web3.providers.WebsocketProvider.prototype.sendAsync = Web3.providers.WebsocketProvider.prototype.send
+// sets up bridge
+const connectToBridge = async function (cmd) {
+  // TODO: FIX TO BE RUN WITH PLAIN NODE NOT TRUFFLE
+  const offchain = require('../test/helpers/offchain')
+  const ClaimManager = artifacts.require('ClaimManager')
+  const ScryptVerifier = artifacts.require('ScryptVerifier')
 
-// run the setup function to connect to bridge
-const connect = async function (cmd) {
+  const [
+    dogeRelayAddress,
+    claimant,
+    challenger,
+  ] = web3.eth.accounts
+
+  let scryptVerifier = await ScryptVerifier.new()
+  let claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address)
+
+  // Don't need to change
   cmd.log('Connecting to bridge...')
-  const res = await setup()
+  const scryptRunner = await offchain.scryptRunner()
+  const bridge = await require('./bridge-to-the-moon')(claimManager, scryptVerifier, scryptRunner, web3)
   cmd.log('Connected!')
-  return res
+  return bridge
 }
 
 vorpal
@@ -25,7 +38,7 @@ vorpal
 vorpal
   .command('status', 'Display the status of the bridge.')
   .action(async function (args) {
-    const { api, web3 } = await connect(this)
+    const { api, web3 } = await connectToBridge(this)
 
     try {
       const deposited = await api.getDeposit(web3.eth.defaultAccount)
@@ -44,7 +57,7 @@ vorpal
     Only applies when challenging (--challenge)
   `)
   .action(async function (args) {
-    const { bridge } = await connect(this)
+    const { bridge } = await connectToBridge(this)
 
     await bridge.monitor(this,
       !!args.options.challenge,
