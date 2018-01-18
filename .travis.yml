@@ -19,3 +19,4 @@ install:
 
 script:
   - bash ./bin/run.sh
+  - npm run test:integration
