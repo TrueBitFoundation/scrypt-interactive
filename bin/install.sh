@@ -5,6 +5,7 @@ wget https://parity-downloads-mirror.parity.io/v1.8.5/x86_64-unknown-linux-gnu/p
 chmod 755 ./parity
 
 npm install
+npm i -g ganache-cli truffle
 
 ./parity --chain dev 2>&1 &
 PARITY_PID=$!
