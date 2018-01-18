@@ -5,7 +5,7 @@ const dataFormatter = require('./helpers/dataFormatter')
 const offchain = require('./helpers/offchain')
 
 const ScryptVerifier = artifacts.require('ScryptVerifier')
-//const ScryptRunner = artifacts.require('ScryptRunner')
+// const ScryptRunner = artifacts.require('ScryptRunner')
 
 const random = require('./helpers/random')
 
@@ -73,7 +73,6 @@ contract('ScryptVerifier', function (accounts) {
 
   context('Testing step values', () => {
     _.each(resultExpectations, (stepCase) => {
-
       it(`can compute ${stepCase.steps} steps`, async () => {
         const result = await scryptRunner.run.call(getStateAndProofInput, stepCase.steps)
 
@@ -86,14 +85,14 @@ contract('ScryptVerifier', function (accounts) {
     })
 
     it('should fail on step 2049', async () => {
-      //This is not working :/
-      //expect(await offchain.run(scryptRunner, getStateAndProofInput, 2049)).to.be.rejected
+      // This is not working :/
+      // expect(await offchain.run(scryptRunner, getStateAndProofInput, 2049)).to.be.rejected
 
-      //But this is
-      try{
+      // But this is
+      try {
         await scryptRunner.run.call(getStateAndProofInput, 2049)
-      }catch(e) {
-        assert(true);
+      } catch (e) {
+        assert(true)
       }
     })
   })
@@ -103,7 +102,7 @@ contract('ScryptVerifier', function (accounts) {
       const state = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step)).state
       const postData = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step + 1))
 
-      const verified = await scryptVerifier.verifyStep(step, state, postData.state, postData.proof || '0x00', {from: accounts[0]})
+      const verified = await scryptVerifier.verifyStep(step, state, postData.state, postData.proof || '0x00', { from: accounts[0] })
       return verified
     }
 
@@ -116,12 +115,12 @@ contract('ScryptVerifier', function (accounts) {
   })
 
   context('random bit flipping', () => {
-    _.times(30, () => {//change 5 to higher number when out of gas error issue resolved
+    _.times(30, () => { // change 5 to higher number when out of gas error issue resolved
       const input = random.randomHexString()
       const step = random.chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048])
 
-      //Keeping this list smaller for now to get meaningful test results
-      //const step = random.chooseRandomly([0, 1, 2])
+      // Keeping this list smaller for now to get meaningful test results
+      // const step = random.chooseRandomly([0, 1, 2])
 
       it('correctly fails', async () => {
         let preState = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step)).state
@@ -142,20 +141,19 @@ contract('ScryptVerifier', function (accounts) {
         }
 
         expect(
-          await scryptVerifier.verifyStep(step, preState, postState, proof, {from: accounts[0]})
+          await scryptVerifier.verifyStep(step, preState, postState, proof, { from: accounts[0] })
         ).to.be.equal(false)
       })
     })
   })
 
-  //@TODO(shrugs) - port these tests as well
+  // @TODO(shrugs) - port these tests as well
 
-  //(hswick) To be honest these tests below are outdated since we've created ClaimManager.
-  //The key functions being tested here are query, respond, and performStepVerification which are all integrated into client.js tests.
-  //The real benefit of these would be an adverserial test which is basically happening above
+  // (hswick) To be honest these tests below are outdated since we've created ClaimManager.
+  // The key functions being tested here are query, respond, and performStepVerification which are all integrated into client.js tests.
+  // The real benefit of these would be an adverserial test which is basically happening above
 
-
-  //session = dataFormatter.newSession(await scryptVerifier.getSession.call(claimID))
+  // session = dataFormatter.newSession(await scryptVerifier.getSession.call(claimID))
   // function Info(account, prover, verifier) {
   //     this.getSession = async function(id) {
   //         return dataFormatter.newSession(await verifier.getSession.call(id, {from: account}))

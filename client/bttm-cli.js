@@ -3,12 +3,11 @@ const vorpal = require('vorpal')()
 const asDefault = require('vorpal-as-default')
 const Web3 = require('web3')
 const selfText = require('./bridge-to-the-moon/util/selfText')
-const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"))
+const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'))
 
-//sets up bridge
+// sets up bridge
 const connectToBridge = async function (cmd) {
-
-  //TODO: FIX TO BE RUN WITH PLAIN NODE NOT TRUFFLE
+  // TODO: FIX TO BE RUN WITH PLAIN NODE NOT TRUFFLE
   const offchain = require('../test/helpers/offchain')
   const ClaimManager = artifacts.require('ClaimManager')
   const ScryptVerifier = artifacts.require('ScryptVerifier')
@@ -22,9 +21,9 @@ const connectToBridge = async function (cmd) {
   let scryptVerifier = await ScryptVerifier.new()
   let claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address)
 
-  //Don't need to change
+  // Don't need to change
   cmd.log('Connecting to bridge...')
-  const scryptRunner = await offchain.scryptRunner();
+  const scryptRunner = await offchain.scryptRunner()
   const bridge = await require('./bridge-to-the-moon')(claimManager, scryptVerifier, scryptRunner, web3)
   cmd.log('Connected!')
   return bridge

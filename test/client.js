@@ -27,10 +27,9 @@ contract('ClaimManager', function (accounts) {
 
   context('normal conditions', function () {
     before(async () => {
-
-      scryptRunner = await offchain.scryptRunner();
+      scryptRunner = await offchain.scryptRunner()
       
-      console.log("scryptRunner deployed")
+      console.log('scryptRunner deployed')
       scryptVerifier = await ScryptVerifier.new()
       claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address)
     })
@@ -39,10 +38,10 @@ contract('ClaimManager', function (accounts) {
       await claimManager.makeDeposit({ from: claimant, value: claimDeposit })
 
       try {
-        tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, claimant, "foo", { from: dogeRelayAddress })
+        tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, claimant, 'foo', { from: dogeRelayAddress })
         log = tx.logs.find(l => l.event === 'ClaimCreated')
         claimID = log.args.claimID.toNumber()
-      }catch(e) {
+      } catch (e) {
         console.log(e)
       }
       // check that the claimant's deposits were bonded.
@@ -67,15 +66,15 @@ contract('ClaimManager', function (accounts) {
       sessionId = await claimManager.getSession.call(claimID, challenger)
     })
 
-    //Need to throw some asserts in here lol >:D
-    //Might need more verification steps
+    // Need to throw some asserts in here lol >:D
+    // Might need more verification steps
     it('participates in verification game', async () => {
       // First challenge
       // Each call to query sets the new medstep
       // Intial high step is currently 2050 (assuming this is the final number of steps)
       tx = await scryptVerifier.query(sessionId, 1, { from: challenger })
       session = dataFormatter.newSession(await scryptVerifier.getSession.call(sessionId))
-      //console.log("Session after first query: \n", session, "\n")
+      // console.log("Session after first query: \n", session, "\n")
 
       // claimant responds to first query.
       results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, { from: claimant }))
@@ -126,11 +125,11 @@ contract('ClaimManager', function (accounts) {
     })
 
     it('checks unbonded deposits', async () => {
-      //Check that participants can unbond their deposit
-      await claimManager.unbondDeposit(claimID, claimant, {from: claimant})
-      deposit = await claimManager.getDeposit.call(claimant, {from: claimant})
+      // Check that participants can unbond their deposit
+      await claimManager.unbondDeposit(claimID, claimant, { from: claimant })
+      deposit = await claimManager.getDeposit.call(claimant, { from: claimant })
       await claimManager.unbondDeposit(claimID, challenger, { from: challenger })
-      deposit = await claimManager.getDeposit.call(challenger, {from: challenger})
+      deposit = await claimManager.getDeposit.call(challenger, { from: challenger })
     })
   })
 })
