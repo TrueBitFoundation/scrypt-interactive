@@ -1,12 +1,13 @@
 const blockheader = require('./util/blockheader')
 const fs = require('fs')
 
-module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3, challenger) {
+module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3) {
   const api = await require('./api')(claimManager, scryptVerifier, scryptRunner, web3)
-  const stateMachines = await require('./state-machines')(web3, api, challenger)
+  const stateMachines = await require('./state-machines')(web3, api)
 
   return {
     api,
+    //In case of reboot
     initClaimant: async(cmd) => {
       fs.readdirSync('./claims').forEach(file => {
         let claimData = JSON.parse(fs.readFileSync('./claims/'+file))
@@ -30,7 +31,7 @@ module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3
         stateMachines.challengeClaim.run(cmd, challengeData)
       })
     },
-  monitorClaims: async (cmd, autoChallenge = false, autoDeposit = false) => {
+    monitorClaims: async (cmd, challenger, autoChallenge = false, autoDeposit = false) => {
       return new Promise(async (resolve, reject) => {
         let inProgressClaims = []
 
@@ -75,7 +76,7 @@ module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3
               // this promise also always resolves positively
               // so that Promise.all works correctly
               inProgressClaims.push(
-                stateMachines.challengeClaim.run(cmd, claim, autoDeposit)
+                stateMachines.challengeClaim.run(cmd, claim, challenger, autoDeposit)
                   .then(() => {
                     cmd.log(`Finished Challenging Claim: ${claim.id}`)
                   })

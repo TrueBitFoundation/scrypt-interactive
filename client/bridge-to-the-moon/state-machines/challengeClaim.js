@@ -4,8 +4,8 @@ const timeout = require('../util/timeout')
 const calculateMidpoint = require('../util/math').calculateMidpoint
 const fs = require('fs')
 
-module.exports = (web3, api, challenger) => ({
-  run: async (cmd, claim, autoDeposit = false) => new Promise(async (resolve, reject) => {
+module.exports = (web3, api) => ({
+  run: async (cmd, claim, challenger, autoDeposit = false) => new Promise(async (resolve, reject) => {
     const getNewMedStep = async (sessionId) => {
       let session = await api.getSession(sessionId)
       return calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())

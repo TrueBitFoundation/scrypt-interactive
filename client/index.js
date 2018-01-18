@@ -1,7 +1,5 @@
 
 
-const bttm = require('./bridge-to-the-moon')
-
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"))
 const mine = require('./bridge-to-the-moon/util/mine')(web3)
@@ -30,7 +28,7 @@ module.exports = async function(callback) {
     let scryptVerifier = await ScryptVerifier.new()
     let claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address)
 
-    const bridge = await require('./bridge-to-the-moon')(claimManager, scryptVerifier, scryptRunner, web3, challenger)
+    const bridge = await require('./bridge-to-the-moon')(claimManager, scryptVerifier, scryptRunner, web3)
 
     const testClaim = {
         serializedBlockHeader: serializedBlockHeader,
@@ -42,5 +40,5 @@ module.exports = async function(callback) {
     //Setup separate bridge processes
     //bridge.initClaimant(console)
     bridge.createClaim(console, testClaim)
-    bridge.monitorClaims(console, true, true)
+    bridge.monitorClaims(console, challenger, true, true)
 }
