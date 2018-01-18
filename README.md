@@ -16,73 +16,110 @@ For more context on how relays work, look at the [BTCRelay](https://github.com/e
 
 ## Running the Tests
 
-If you are on a Linux machine you can simply install dependencies with this command:
-```
-./install.sh
-```
+You will need to have parity, which can be done by downloading a binary release for your machine from [here](https://github.com/paritytech/parity/releases)
 
-Else you will need to have parity, which can be done by downloading a binary release for your machine from [here](https://github.com/paritytech/parity/releases)
+```bash
+# install parity however you want, but this is an easy way to do it if you're on a mac
+cd ~/
+wget https://parity-downloads-mirror.parity.io/v1.8.5/x86_64-unknown-linux-gnu/parity
+chmod 755 ./parity
+```
 
 Ensure you have the latest version of node installed.
 
 You will need a testrpc and truffle:
-
-```
+```bash
 npm install -g ganache-cli truffle
 ```
 
 Then install packages deps:
-
-```
+```bash
 npm install
 ```
 
 Then, you can run tests by executing the `run.sh` script:
-```
-./run.sh
-
+```bash
+./bin/run.sh
 ```
 
 Or you can run parity with this config:
 
-```
+```bash
 parity --config config.toml --geth
 ```
 
 In a separate terminal window run ganache-cli
-```
+```bash
 ganache-cli
 ```
 
 Then run the tests with:
-```
+```bash
 truffle test
 ```
 
 ## Easy Parity Installation
 
-Download latest binary relase for your OS from [here](https://github.com/paritytech/parity/releases)
+For MacOS
+
+```bash
+brew install parity
+```
+
+Everyone else, download latest binary relase for your OS from [here](https://github.com/paritytech/parity/releases)
 
 You might need to run parity and kill it once if you are getting an issue with accounts.
 
-```
+```bash
 ./parity --chain dev
 ```
 
 Kill it. Then do:
 
-```
+```bash
 ./parity --config config.toml --geth
 ```
 
 Which runs the parity dev chain needed for the offchain component.
 
+## Running Normally
+
+Deploy the contracts (or reference the addresses on the network you're using) and add them to your environment.
+
+```bash
+export WEB3_HTTP_PROVIDER=http://localhost:8545
+export WEB3_PARITY_PROVIDER=http://localhost:4242
+export DOGE_RELAY_ADDRESS=0x0
+export SCRYPT_VERIFIER_ADDRESS=0x0
+export SCRYPT_RUNNER_ADDRESS=0x0
+export CLAIM_MANAGER_ADDRESS=0x0
+```
+
+Then
+
+```
+npm start
+```
+
+Type `help` for help.
+
 ## Testing out the client (bridge-to-the-moon)
 
 Ensure you have followed all installation instructions above, and have ganache-cli at 8545 and parity dev at 4242 for the offchain computations.
 
+```bash
+export WEB3_HTTP_PROVIDER=http://localhost:8545
+export WEB3_PARITY_PROVIDER=http://localhost:4242
+export DOGE_RELAY_ADDRESS=0x0
+export SCRYPT_VERIFIER_ADDRESS=0x0
+export SCRYPT_RUNNER_ADDRESS=0x0
+export CLAIM_MANAGER_ADDRESS=0x0
 ```
-truffle exec client/index.js
+
+Then run the integration tests (TODO) with
+
+```bash
+npm run test:integration
 ```
 
 ## Doge-Ethereum bounty split contract

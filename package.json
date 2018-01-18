@@ -2,21 +2,22 @@
   "name": "scrypt-interactive",
   "version": "0.1.0",
   "description": "Interactive Scrypt computation verification",
+  "main": "client/cli.js",
   "scripts": {
-    "lint": "standard",
+    "start": "node client/cli.js",
+    "lint": "eslint .",
     "test": "tape ./test/index.js"
   },
   "author": "chriseth",
   "license": "MIT",
   "dependencies": {
     "chai": "^4.1.2",
+    "commander": "^2.13.0",
+    "dotenv": "^4.0.0",
     "es6-promisify": "^5.0.0",
     "javascript-state-machine": "^3.0.1",
     "litecore-lib": "^0.13.22",
     "lodash": "^4.17.4",
-    "truffle": "^4.0.4",
-    "vorpal": "^1.12.0",
-    "vorpal-as-default": "0.0.2",
     "web3": "^0.19.0",
     "zeppelin-solidity": "^1.5.0"
   },
@@ -29,9 +30,11 @@
     "eslint-plugin-node": "^5.2.1",
     "eslint-plugin-standard": "^3.0.1",
     "ethereumjs-testrpc": "^6.0.3",
+    "ganache-cli": "^6.0.3",
     "semistandard": "^8.0.0",
     "solc": "^0.4.19",
     "tape": "^4.5.1",
-    "tape-spawn": "^1.4.2"
+    "tape-spawn": "^1.4.2",
+    "truffle": "^4.0.5"
   }
 }

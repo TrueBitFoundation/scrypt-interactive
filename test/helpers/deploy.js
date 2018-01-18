@@ -7,7 +7,7 @@ const process = require('process')
 const color = require('colors')
 const child_process = require('child_process')
 
-const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:4242'))
+const web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_PARITY_PROVIDER))
 
 function compile () {
   runnerCode = Buffer(fs.readFileSync(__dirname + '/offchain_evm'))
