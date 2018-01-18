@@ -1,5 +1,4 @@
 const StateMachine = require('javascript-state-machine')
-const BlockEmitter = require('../util/blockemitter')
 const waitForEvent = require('../util/waitForEvent')
 const timeout = require('../util/timeout')
 const calculateMidpoint = require('../util/math').calculateMidpoint

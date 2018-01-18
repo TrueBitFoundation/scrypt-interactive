@@ -26,7 +26,6 @@ contract('ClaimManager', function (accounts) {
   const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2bd6e5682'
 
   context('normal conditions', function () {
-
     before(async () => {
 
       scryptRunner = await offchain.scryptRunner();
