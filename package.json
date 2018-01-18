@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node client/cli.js",
     "lint": "eslint .",
-    "test": "tape ./test/index.js"
+    "test": "tape ./test/index.js",
+    "test:integration": "./test/integration.js"
   },
   "author": "chriseth",
   "license": "MIT",

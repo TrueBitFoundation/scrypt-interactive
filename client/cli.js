@@ -1,8 +1,9 @@
 require('dotenv').config()
 
 const program = require('commander')
-const Web3 = require('web3')
 const selfText = require('./bridge-to-the-moon/util/selfText')
+
+const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER))
 
 const operator = process.env.OPERATOR_ADDRESS || web3.eth.defaultAccount || web3.eth.coinbase

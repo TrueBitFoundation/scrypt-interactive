@@ -8,14 +8,14 @@ matrix:
   include:
     - os: linux
       dist: trusty
-      before_install: 
+      before_install:
       - sudo add-apt-repository ppa:ethereum/ethereum -y
       - sudo apt-get update
       - sudo apt-get install build-essential -y
       - sudo apt-get install gcc g++ libssl-dev libudev-dev pkg-config
 
-install: 
-  - bash ./install.sh
+install:
+  - bash ./bin/install.sh
 
-script: 
-  - bash ./run.sh
+script:
+  - bash ./bin/run.sh
