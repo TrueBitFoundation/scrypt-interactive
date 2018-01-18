@@ -98,10 +98,10 @@ export CLAIM_MANAGER_ADDRESS=0x0
 Then
 
 ```
-npm start
+node client/cli.js
 ```
 
-Type `help` for help.
+use `--help` to see help, `status` for bridge status, and `monitor` to operate as a potential challenger.
 
 ## Testing out the client (bridge-to-the-moon)
 
