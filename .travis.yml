@@ -15,7 +15,7 @@ matrix:
       - sudo apt-get install gcc g++ libssl-dev libudev-dev pkg-config
 
 install:
-  - bash ./bin/install.sh
+  - bash ./bin/travis-install.sh
 
 script:
   - bash ./bin/run.sh
