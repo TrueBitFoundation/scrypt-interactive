@@ -5,7 +5,7 @@ cd bin
 wget https://parity-downloads-mirror.parity.io/v1.8.5/x86_64-unknown-linux-gnu/parity
 
 chmod 755 ./parity
-touch passfile
+echo > passfile
 
 npm cache verify
 npm install
@@ -15,4 +15,4 @@ npm install -g ganache-cli truffle
 
 PARITY_PID=$!
 sleep 10
-kill $PARITY_PID
+kill -9 $(lsof -t -i:8545)

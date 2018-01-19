@@ -19,11 +19,9 @@ set -e
 #if [[ $? == 1 ]]; then echo "node version is too old. please use v.7.6.0 or newer." && exit 1; fi
 
 ganache-cli > ./ganache-log 2>&1 &
-GANACHE_PID=$!
-./parity --config config.toml --geth > ./parity-log 2>&1 &
-PARITY_PID=$!
+./bin/parity --config config.toml --geth > ./parity-log 2>&1 &
 truffle compile
 truffle test
 sleep 10
-kill -9 $GANACHE_PID
-kill -9 $PARITY_PID
+kill -9 $(lsof -t -i:8545)
+kill -9 $(lsof -t -i:4242)
