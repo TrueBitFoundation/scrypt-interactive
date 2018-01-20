@@ -7,7 +7,9 @@ const process = require('process')
 const color = require('colors')
 const child_process = require('child_process')
 
-const web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_PARITY_PROVIDER))
+//this is undefined => process.env.WEB3_PARITY_PROVIDER
+
+const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:4242'))
 
 function compile () {
   runnerCode = Buffer(fs.readFileSync(__dirname + '/offchain_evm'))
@@ -36,7 +38,7 @@ async function setupAccount (_account) {
   await web3.personal.unlockAccount(account, '', '0x1000000')
   // await web3.miner.start(2)
   // var account = "0x292248f34a6e929dd4820535b41219ba81d79255"
-  return account
+  return _account
 }
 
 console.log('Compiling contracts...'.green)

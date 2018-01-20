@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#just to be safe
+echo > passfile
+
 cd bin
 
 wget https://parity-downloads-mirror.parity.io/v1.8.5/x86_64-unknown-linux-gnu/parity
