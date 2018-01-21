@@ -31,15 +31,15 @@ async function scryptRunner () {
 
   parity.personal.unlockAccount('0x00a329c0648769a73afac7f9381e08fb43dbea72', '')
 
-  const thisContract = parity.eth.contract(ScryptRunner.abi).new({
+  parity.eth.contract(ScryptRunner.abi).new({
     data: ScryptRunner.bytecode,
     from: '0x00a329c0648769a73afac7f9381e08fb43dbea72',
     gas: 4000000,
   })
 
-  console.log('end')
+  // console.log('end')
 
-  return thisContract
+  return ScryptRunner.new()
 }
 
 module.exports = {
