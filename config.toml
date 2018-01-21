@@ -1,5 +1,12 @@
 [parity]
 chain ="dev"
+no_consensus = true
+
+[mining]
+gas_floor_target = "1"
+tx_gas_limit="8000000"
+reseal_min_period = 0
+min_gas_price = 0
 
 [account]
 unlock=["0x00a329c0648769a73afac7f9381e08fb43dbea72"]
@@ -7,4 +14,10 @@ password=["passfile"]
 
 [rpc]
 port=4242
-apis=["web3", "eth", "net", "personal", "parity", "parity_set", "traces", "rpc", "parity_accounts"]
+interface = "all"
+apis = ["all"]
+hosts = ["all"]
+
+[misc]
+logging="own_tx=trace"
+color=true
