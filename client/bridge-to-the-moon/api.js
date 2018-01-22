@@ -1,9 +1,8 @@
 
 const BigNumber = require('bignumber.js')
 const { toSession, toResult } = require('./util/models')
-const offchain = require('../../test/helpers/offchain')
 
-module.exports = async (claimManager, scryptVerifier, scryptRunner, web3) => {
+module.exports = async ({ claimManager, scryptVerifier, scryptRunner }, web3) => {
 
   return {
     /**

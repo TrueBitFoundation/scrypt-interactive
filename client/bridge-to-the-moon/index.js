@@ -1,33 +1,29 @@
-const blockheader = require('./util/blockheader')
+const promisify = require('es6-promisify')
 const fs = require('fs')
+const readdir = promisify(fs.readdir, fs)
+const blockheader = require('./util/blockheader')
+const getContracts = require('./util/getContracts')
 
-module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3) {
-  const api = await require('./api')(claimManager, scryptVerifier, scryptRunner, web3)
+module.exports = async function(web3) {
+  const contracts = await getContracts(web3)
+  const api = await require('./api')(contracts, web3)
   const stateMachines = await require('./state-machines')(web3, api)
 
   return {
     api,
     //In case of reboot
-    initClaimant: async(cmd) => {
+    initClaimant: async (cmd) => {
       fs.readdirSync('./claims').forEach(file => {
-        let claimData = JSON.parse(fs.readFileSync('./claims/'+file))
+        const claimData = JSON.parse(fs.readFileSync('./claims/'+file))
         stateMachines.createClaim.run(cmd, claimData.claim, claimData)
       })
     },
     createClaim: async (cmd, claim) => {
-      return new Promise(async (resolve, reject) => {
-        //This should go in the createClaim
-         try {
-          stateMachines.createClaim.run(cmd, claim)
-          resolve()
-        } catch(e) {
-          reject(e)
-        }
-      })
+      return stateMachines.createClaim.run(cmd, claim)
     },
     initChallenges: async (cmd, claim) => {
       fs.readdirSync('./challenges').forEach(file => {
-        let challengeData = JSON.parse(fs.readFileSync('./challenges/'+file))
+        const challengeData = JSON.parse(fs.readFileSync('./challenges/'+file))
         stateMachines.challengeClaim.run(cmd, challengeData)
       })
     },
@@ -36,6 +32,7 @@ module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3
         let inProgressClaims = []
 
         try {
+          cmd.log('Monitoring for claims...')
           // first, monitor all ClaimCreated events from claimManager
           const claimCreatedEvents = api.claimManager.ClaimCreated()
           claimCreatedEvents.watch((error, result) => {
@@ -57,13 +54,13 @@ module.exports = async function(claimManager, scryptVerifier, scryptRunner, web3
                 createdAt: ${claim.createdAt}
               )
             `)
-            
+
             //not working, is serialized supposed to be plaintext
             //if (!blockheader.validProofOfWork(claim.serialized)) {
             //Replace with scryptRunner???
             if (true) {
               cmd.log('Proof of Work: INVALID')
-              
+
               if (!autoChallenge) {
                 // @TODO(shrugs) - prompt for challenge confirmation
                 cmd.log('...but not configured to challenge, ignoring.')

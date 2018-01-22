@@ -1,10 +1,8 @@
-const timeout = require('./helpers/timeout')
 const dataFormatter = require('./helpers/dataFormatter')
 const offchain = require('./helpers/offchain')
 
 const ClaimManager = artifacts.require('ClaimManager')
 const ScryptVerifier = artifacts.require('ScryptVerifier')
-const ScryptRunner = artifacts.require('ScryptRunner')
 
 contract('ClaimManager', function (accounts) {
   const steps = 2050
@@ -28,7 +26,7 @@ contract('ClaimManager', function (accounts) {
   context('normal conditions', function () {
     before(async () => {
       scryptRunner = await offchain.scryptRunner()
-      
+
       console.log('scryptRunner deployed')
       scryptVerifier = await ScryptVerifier.new()
       claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address)
