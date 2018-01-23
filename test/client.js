@@ -12,7 +12,7 @@ contract('ClaimManager', function (accounts) {
     dogeRelayAddress,
     claimant,
     otherClaimant,
-    challenger
+    challenger,
   ] = accounts
 
   let claimManager,
@@ -31,19 +31,19 @@ contract('ClaimManager', function (accounts) {
       console.log('scryptRunner deployed')
       scryptVerifier = await ScryptVerifier.new()
       claimManager = await ClaimManager.new(scryptVerifier.address)
-      await claimManager.setDogeRelay(dogeRelayAddress, {from: dogeRelayAddress})
+      await claimManager.setDogeRelay(dogeRelayAddress, { from: dogeRelayAddress })
     })
-    
+
     it('claimant checks scrypt, after implicitly making a deposit', async () => {
       try {
-        tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, otherClaimant, 'bar', {from: dogeRelayAddress, value: claimDeposit})
+        tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, otherClaimant, 'bar', { from: dogeRelayAddress, value: claimDeposit })
         log = tx.logs.find(l => l.event === 'ClaimCreated')
         claimID = log.args.claimID.toNumber()
       } catch (e) {
         console.log(e)
       }
       deposit = await claimManager.getBondedDeposit.call(claimID, otherClaimant, { from: claimant })
-      assert.equal(deposit.toNumber(), claimDeposit);
+      assert.equal(deposit.toNumber(), claimDeposit)
     })
 
     it('claimant checks scrypt, after explicitely making a deposit', async () => {
