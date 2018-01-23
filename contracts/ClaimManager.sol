@@ -188,23 +188,6 @@ contract ClaimManager is DepositsManager {
       ClaimVerificationGamesEnded(claimID);
     }
   }
-
-    // @dev – locks up part of the a user's deposit into a claim.
-    // @param claimID – the claim id.
-    // @param account – the user's address.
-    // @param amount – the amount of deposit to lock up.
-    // @return – the user's deposit bonded for the claim.
-    function bondDeposit(uint claimID, address account, uint amount) private returns (uint) {
-        ScryptClaim storage claim = claims[claimID];
-
-        require(claimExists(claim));
-        require(deposits[account] >= amount);
-        deposits[account] -= amount;
-
-        claim.bondedDeposits[account] = claim.bondedDeposits[account].add(amount);
-        DepositBonded(claimID, account, amount);
-        return claim.bondedDeposits[account];
-    }
     
   // @dev – called when a verification game has ended.
   // only callable by the scryptVerifier contract.
