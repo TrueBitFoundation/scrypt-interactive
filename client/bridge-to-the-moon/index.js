@@ -11,6 +11,9 @@ module.exports = async function(web3) {
 
   return {
     api,
+    getContracts: () => {
+      return contracts
+    },
     //In case of reboot
     initClaimant: async (cmd) => {
       fs.readdirSync('./claims').forEach(file => {
