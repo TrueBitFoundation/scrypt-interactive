@@ -3,7 +3,7 @@ pragma solidity ^0.4.0;
 import {ScryptFramework} from "./ScryptFramework.sol";
 
 /**
-* @title
+* @title ScryptRunner
 * @author Christian Reitwiessner
 */
 contract ScryptRunner is ScryptFramework {

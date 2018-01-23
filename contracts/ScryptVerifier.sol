@@ -4,7 +4,7 @@ import {ScryptFramework} from "./ScryptFramework.sol";
 import {Verifier} from "./Verifier.sol";
 
 /**
-* @title
+* @title ScryptVerifier
 * @author Christian Reitwiessner
 */
 contract ScryptVerifier is ScryptFramework, Verifier {
@@ -133,7 +133,7 @@ contract ScryptVerifier is ScryptFramework, Verifier {
     }
 
     /**
-    * @dev
+    * @dev preCheckProof
     *
     * @param state the state vars
     * @param index the index of fullMemory
@@ -162,7 +162,7 @@ contract ScryptVerifier is ScryptFramework, Verifier {
     }
 
     /**
-    * @dev
+    * @dev executeProof
     *
     * @param proof something
     * @param index something

@@ -1,7 +1,7 @@
 pragma solidity ^0.4.0;
 
 /**
-* @title
+* @title ScryptFramework
 * @author Christian Reitwiessner
 */
 contract ScryptFramework {
