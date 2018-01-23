@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node client/cli.js",
     "lint": "eslint .",
-    "test": "truffle test"
+    "test": "truffle test",
+    "test:integration": "truffle test test/integration.js"
   },
   "author": "chriseth",
   "license": "MIT",

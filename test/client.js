@@ -1,3 +1,4 @@
+require('dotenv').config()
 const dataFormatter = require('./helpers/dataFormatter')
 const offchain = require('./helpers/offchain')
 
