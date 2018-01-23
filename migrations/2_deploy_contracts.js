@@ -10,6 +10,6 @@ module.exports = function (deployer, network) {
       ScryptVerifier.address
     )
 
-    deployer.deploy(ScryptRunner)
+    //deployer.deploy(ScryptRunner)
   })
 }
