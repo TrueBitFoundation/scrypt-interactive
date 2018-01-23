@@ -11,7 +11,8 @@ contract('ClaimManager', function (accounts) {
   const [
     dogeRelayAddress,
     claimant,
-    challenger,
+    otherClaimant,
+    challenger
   ] = accounts
 
   let claimManager,
@@ -31,8 +32,20 @@ contract('ClaimManager', function (accounts) {
       scryptVerifier = await ScryptVerifier.new()
       claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address)
     })
+    
+    it('claimant checks scrypt, after implicitly making a deposit', async () => {
+      try {
+        tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, otherClaimant, 'bar', {from: dogeRelayAddress, value: claimDeposit})
+        log = tx.logs.find(l => l.event === 'ClaimCreated')
+        claimID = log.args.claimID.toNumber()
+      } catch (e) {
+        console.log(e)
+      }
+      deposit = await claimManager.getBondedDeposit.call(claimID, otherClaimant, { from: claimant })
+      assert.equal(deposit.toNumber(), claimDeposit);
+    })
 
-    it('claimant checks scrypt', async () => {
+    it('claimant checks scrypt, after explicitely making a deposit', async () => {
       await claimManager.makeDeposit({ from: claimant, value: claimDeposit })
 
       try {
@@ -42,7 +55,6 @@ contract('ClaimManager', function (accounts) {
       } catch (e) {
         console.log(e)
       }
-      // check that the claimant's deposits were bonded.
       deposit = await claimManager.getBondedDeposit.call(claimID, claimant, { from: claimant })
       assert.equal(deposit.toNumber(), claimDeposit)
     })
