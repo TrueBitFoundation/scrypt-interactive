@@ -53,12 +53,17 @@ contract ClaimManager is DepositsManager {
     require(msg.sender == _account);
     _;
   }
+  
+    // @dev – the constructor
+    function ClaimManager(ScryptVerifier _scryptVerifier) public {
+        scryptVerifier = _scryptVerifier;
+    }
 
-  // @dev – the constructor
-  function ClaimManager(DogeRelay _dogeRelay, ScryptVerifier _scryptVerifier) public {
-    dogeRelay = _dogeRelay;
-    scryptVerifier = _scryptVerifier;
-  }
+    //This should be able to only be called once
+    function setDogeRelay(DogeRelay _dogeRelay) public {
+        require(uint(dogeRelay) == 0x0);
+        dogeRelay = _dogeRelay;
+    }
 
   // @dev – locks up part of the a user's deposit into a claim.
   // @param claimID – the claim id.
@@ -182,8 +187,8 @@ contract ClaimManager is DepositsManager {
       claim.decided = true;
       ClaimVerificationGamesEnded(claimID);
     }
-  }     
-
+  }
+    
   // @dev – called when a verification game has ended.
   // only callable by the scryptVerifier contract.
   //
