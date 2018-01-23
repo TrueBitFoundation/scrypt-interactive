@@ -25,12 +25,17 @@ contract DepositsManager {
   // @dev – allows a user to deposit eth.
   // @return – the user's updated deposit amount.
   function makeDeposit() public payable returns (uint) {
-    deposits[msg.sender] += msg.value;
-
-    require(deposits[msg.sender] <= this.balance);
-
-    DepositMade(msg.sender, msg.value);
+    increaseDeposit(msg.sender, msg.value);
     return deposits[msg.sender];
+  }
+
+  // @dev – increases an account's deposit.
+  // @return – the user's updated deposit amount.
+  function increaseDeposit(address who, uint amount) internal {
+    deposits[who] += amount;
+    require(deposits[who] <= this.balance);
+
+    DepositMade(who, amount);
   }
 
   // @dev – allows a user to withdraw eth from their deposit.
