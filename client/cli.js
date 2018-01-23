@@ -53,8 +53,17 @@ const main = async () => {
       Only applies when challenging (--challenge)
     `)
     .action(async function (options) {
+
+      let stop
+      const stopper = new Promise((resolve) => {
+        stop = resolve
+      })
+
+      process.on('SIGINT', stop)
+
       await bridge.monitorClaims(cmd,
         operator,
+        stopper,
         !!options.challenge,
         !!options.deposit
       )

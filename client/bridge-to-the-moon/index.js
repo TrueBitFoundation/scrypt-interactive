@@ -30,7 +30,7 @@ module.exports = async function(web3) {
         stateMachines.challengeClaim.run(cmd, challengeData)
       })
     },
-    monitorClaims: async (cmd, challenger, autoChallenge = false, autoDeposit = false) => {
+    monitorClaims: async (cmd, challenger, stopper, autoChallenge = false, autoDeposit = false) => {
       return new Promise(async (resolve, reject) => {
         let inProgressClaims = []
 
@@ -98,10 +98,17 @@ module.exports = async function(web3) {
           //   reject(error)
           // })
 
-          process.on('SIGINT', function () {
-            claimCreatedEvents.stopWatching()
-            Promise.all(inProgressClaims).then(resolve)
-          })
+          // wait for an external stop
+          await stopper
+
+          // stop watching
+          claimCreatedEvents.stopWatching()
+
+          // wait for exisiting claims to finish
+          await Promise.all(inProgressClaims)
+
+          // resolve self
+          resolve()
         } catch (error) {
           reject(error)
         }
