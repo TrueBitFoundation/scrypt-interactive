@@ -6,7 +6,7 @@ import {ClaimManager} from "./ClaimManager.sol";
 // * Multiple challangers (proposer should not win just because one challenger fails)
 // * Require "gas available" proof for timeout
 /**
-  * @title
+  * @title Verifier
   * @author Christian Reitwiessner
 */
 contract Verifier {
@@ -146,7 +146,7 @@ contract Verifier {
         VerificationSession storage s = sessions[sessionId];
         // Require step to avoid replay problems
         require(step == s.medStep);
-        
+
         // provided hash cannot be zero; as that is a special flag.
         require(hash != 0);
 
@@ -259,7 +259,7 @@ contract Verifier {
     }
 
     function getLastSteps(uint sessionId)
-        public 
+        public
         view
         returns (uint, uint)
     {
