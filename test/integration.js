@@ -13,6 +13,7 @@ describe('Integration!!', () => {
     // spin up ganache-cli
     // deploy contracts
     // set addresses in ENV
+    // set dogeRelayAddress for claimManager
   })
 
   after(async () => {

@@ -29,7 +29,8 @@ contract('ClaimManager', function (accounts) {
 
       console.log('scryptRunner deployed')
       scryptVerifier = await ScryptVerifier.new()
-      claimManager = await ClaimManager.new(dogeRelayAddress, scryptVerifier.address)
+      claimManager = await ClaimManager.new(scryptVerifier.address)
+      await claimManager.setDogeRelay(dogeRelayAddress, {from: dogeRelayAddress})
     })
 
     it('claimant checks scrypt', async () => {
