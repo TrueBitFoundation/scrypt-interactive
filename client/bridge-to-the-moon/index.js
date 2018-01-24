@@ -4,8 +4,13 @@ const readdir = promisify(fs.readdir, fs)
 const blockheader = require('./util/blockheader')
 const getContracts = require('./util/getContracts')
 
-module.exports = async function(web3) {
-  const contracts = await getContracts(web3)
+module.exports = async function(web3, _contracts) {
+  let contracts = await getContracts(web3)
+
+  contracts.scryptVerifier = _contracts.scryptVerifier
+  contracts.claimManager = _contracts.claimManager
+  contracts.scryptRunner = _contracts.scryptRunner
+
   const api = await require('./api')(contracts, web3)
   const stateMachines = await require('./state-machines')(web3, api)
 

@@ -87,7 +87,7 @@ module.exports = (web3, api) => ({
                   
                   if(session.medHash == "0x0000000000000000000000000000000000000000000000000000000000000000") {
                     console.log("Defending step " + step)
-                    if(step in claimData.stepResponses) {
+                    if(step in claimData.stepResponses) {//check claim cache
                       let stateHash = claimData.stepResponses[step].stateHash;
                       await api.respond(sessionId, step, stateHash, {from: claim.claimant})
                     } else {
