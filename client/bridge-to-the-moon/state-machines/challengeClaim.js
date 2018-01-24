@@ -70,7 +70,7 @@ module.exports = (web3, api) => ({
             const sendQuery = async () => {
               claim.sessionId = await api.claimManager.getSession.call(claim.id, challenger)
               //Initial query
-              fs.writeFile('./challenges/'+claim.id+'.json', JSON.stringify(claim), (err) => {if(err) console.log(err)})
+              fs.writeFile('./client/challenges/'+claim.id+'.json', JSON.stringify(claim), (err) => {if(err) console.log(err)})
   
               let session = await api.getSession(claim.sessionId)
               let medStep = calculateMidpoint(session.lowStep.toNumber(), session.highStep.toNumber())
@@ -145,7 +145,7 @@ module.exports = (web3, api) => ({
               })
             })
             sessionDecidedEvent.stopWatching()
-            fs.unlinkSync('./challenges/'+claim.id+'.json')
+            fs.unlinkSync('./client/challenges/'+claim.id+'.json')
             resolve()
           },
           onCancel: (tsn, err) => { reject(err) },

@@ -12,8 +12,10 @@ module.exports = async (web3) => {
 
   const claimManager = await getContract('ClaimManager', process.env.CLAIM_MANAGER_ADDRESS)
   const scryptVerifier = await getContract('ScryptVerifier', process.env.SCRYPT_VERIFIER_ADDRESS)
-  const scryptRunner = await getContract('ScryptVerifier', process.env.SCRYPT_RUNNER_ADDRESS)
   const dogeRelay = await getContract('DogeRelay', process.env.DOGE_RELAY_ADDRESS)
+
+  //need web3 that points to 4242 to get this to work
+  const scryptRunner = await getContract('ScryptRunner', process.env.SCRYPT_RUNNER_ADDRESS)
 
   return {
     claimManager,
