@@ -1,6 +1,7 @@
 const promisify = require('es6-promisify')
 const fs = require('fs')
 const readdir = promisify(fs.readdir, fs)
+const readFile = promisify(fs.readFile, fs)
 const blockheader = require('./util/blockheader')
 const getContracts = require('./util/getContracts')
 
@@ -16,19 +17,19 @@ module.exports = async function(web3) {
     },
     //In case of reboot
     initClaimant: async (cmd) => {
-      fs.readdirSync('./claims').forEach(file => {
-        const claimData = JSON.parse(fs.readFileSync('./claims/'+file))
+      for (file in await readdir('./claims')) {
+        const claimData = JSON.parse(await readFile(`./claims/${file}`))
         stateMachines.createClaim.run(cmd, claimData.claim, claimData)
-      })
+      }
     },
-    createClaim: async (cmd, claim) => {
-      return stateMachines.createClaim.run(cmd, claim)
+    createClaim: async (cmd, claim, stopper) => {
+      return stateMachines.createClaim.run(cmd, claim, stopper)
     },
     initChallenges: async (cmd, claim) => {
-      fs.readdirSync('./challenges').forEach(file => {
-        const challengeData = JSON.parse(fs.readFileSync('./challenges/'+file))
+      for (file in await readdir('./challenges')) {
+        const challengeData = JSON.parse(await readFile(`./challenges/${file}`))
         stateMachines.challengeClaim.run(cmd, challengeData)
-      })
+      }
     },
     monitorClaims: async (cmd, challenger, stopper, autoChallenge = false, autoDeposit = false) => {
       return new Promise(async (resolve, reject) => {
@@ -110,6 +111,10 @@ module.exports = async function(web3) {
           // resolve self
           resolve()
         } catch (error) {
+          // wait for exisiting claims to finish
+          // @TODO(shrugs) - there's a better way to architect this
+          await Promise.all(inProgressClaims)
+
           reject(error)
         }
       })

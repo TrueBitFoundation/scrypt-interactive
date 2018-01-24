@@ -2,6 +2,7 @@ require('dotenv').config()
 
 const program = require('commander')
 const selfText = require('./bridge-to-the-moon/util/selfText')
+const newStopper = require('./bridge-to-the-moon/util/stopper')
 
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER))
@@ -27,6 +28,9 @@ const main = async () => {
   const cmd = { log: console.log.bind(console) }
   const bridge = await connectToBridge(cmd)
 
+  const { stop, stopper } = newStopper()
+  process.on('SIGINT', stop)
+
   program
     .version('0.0.1')
     .description(selfText)
@@ -45,6 +49,19 @@ const main = async () => {
     })
 
   program
+    .command('claim <blockheader> <hash>')
+    .description('Claim a blockheader on the DogeRelay')
+    .action(async function (blockheader, hash) {
+      const claim = {
+        claimant: operator,
+        serializedBlockHeader: blockheader,
+        scryptHash: hash,
+      }
+
+      await bridge.createClaim(cmd, claim, stopper)
+    })
+
+  program
     .command('monitor')
     .description('Monitors the Doge-Eth bridge and validates blockheader claims.')
     .option('-c, --challenge', 'Challenge incorrect claims.')
@@ -53,14 +70,6 @@ const main = async () => {
       Only applies when challenging (--challenge)
     `)
     .action(async function (options) {
-
-      let stop
-      const stopper = new Promise((resolve) => {
-        stop = resolve
-      })
-
-      process.on('SIGINT', stop)
-
       await bridge.monitorClaims(cmd,
         operator,
         stopper,

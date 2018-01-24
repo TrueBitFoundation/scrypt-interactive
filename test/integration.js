@@ -6,6 +6,7 @@ require('./helpers/chai').should()
 
 const getAccounts = require('./helpers/getAccounts')
 const timeout = require('./helpers/timeout')
+const newStopper = require('../client/bridge-to-the-moon/util/stopper')
 
 const serializedBlockHeader = '030162002adb34dfa6574cf127a781ecb9683ca28f911a59020628c90c72b4a3d9942233a3b905b2388b020085dbd9e03209db4493f5420336d882d0b78b54f728b8f90058f7115a2c83221a00000000'
 const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2bd6e5682'
@@ -45,16 +46,30 @@ describe('Integration!', () => {
     context('monitorClaims', () => {
       let stopper, stop
       beforeEach(async () => {
-        stopper = new Promise((resolve) => {
-          stop = resolve
-        })
+        const stoppers = newStopper()
+        stopper = stoppers.stopper
+        stop = stoppers.stop
       })
 
       it('should begin monitoring and accept outside stop', async () => {
         const monitor = bridge.monitorClaims(console, challenger, stopper, true, true)
-        await timeout(1500)
+        await timeout(500)
         stop()
         await monitor
+      })
+
+      context('while monitoring', () => {
+        let monitor
+        before(async () => {
+          monitor = bridge.monitorClaims(console, challenger, stopper, true, true)
+        })
+
+
+
+        after(async () => {
+          stop()
+          await monitor
+        })
       })
     })
   })
