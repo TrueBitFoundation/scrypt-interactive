@@ -2,6 +2,7 @@ require('dotenv').config()
 
 const program = require('commander')
 const selfText = require('./bridge-to-the-moon/util/selfText')
+const newStopper = require('./bridge-to-the-moon/util/stopper')
 
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER))
@@ -23,9 +24,22 @@ const connectToBridge = async function (cmd) {
   return this.bridge
 }
 
+const doThenExit = async (promise) => {
+  try {
+    await promise
+    process.exit(0)
+  } catch (error) {
+    console.error(error)
+    process.exit(1)
+  }
+}
+
 const main = async () => {
   const cmd = { log: console.log.bind(console) }
   const bridge = await connectToBridge(cmd)
+
+  const { stop, stopper } = newStopper()
+  process.on('SIGINT', stop)
 
   program
     .version('0.0.1')
@@ -35,13 +49,31 @@ const main = async () => {
     .command('status')
     .description('Display the status of the bridge.')
     .action(async function () {
-      try {
-        const deposited = await bridge.api.getDeposit(operator)
+      const status = async () => {
+        try {
+          const deposited = await bridge.api.getDeposit(operator)
 
-        console.log(`Deposited: ${web3.fromWei(deposited, 'ether')} ETH`)
-      } catch (error) {
-        console.log(`Unable to connect to bridge: ${error.stack}`)
+          console.log(`Deposited: ${web3.fromWei(deposited, 'ether')} ETH`)
+        } catch (error) {
+          console.log(`Unable to connect to bridge: ${error.stack}`)
+        }
       }
+      await doThenExit(status())
+    })
+
+  program
+    .command('claim <blockheader> <hash>')
+    .description('Claim a blockheader on the DogeRelay')
+    .action(async function (blockheader, hash) {
+      const claim = {
+        claimant: operator,
+        serializedBlockHeader: blockheader,
+        scryptHash: hash,
+      }
+
+      await doThenExit(
+        bridge.createClaim(cmd, claim)
+      )
     })
 
   program
@@ -53,11 +85,12 @@ const main = async () => {
       Only applies when challenging (--challenge)
     `)
     .action(async function (options) {
-      await bridge.monitorClaims(cmd,
+      await doThenExit(bridge.monitorClaims(cmd,
         operator,
+        stopper,
         !!options.challenge,
         !!options.deposit
-      )
+      ))
     })
 
   program.parse(process.argv)

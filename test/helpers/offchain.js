@@ -1,6 +1,6 @@
 const Web3 = require('web3')
 
-const parityProvider = new Web3.providers.HttpProvider('http://localhost:4242')
+const parityProvider = new Web3.providers.HttpProvider(process.env.WEB3_PARITY_PROVIDER)
 const parity = new Web3(parityProvider)
 
 const ScryptRunner = artifacts.require('ScryptRunner')

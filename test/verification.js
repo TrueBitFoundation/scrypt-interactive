@@ -1,4 +1,4 @@
-
+require('dotenv').config()
 const _ = require('lodash')
 const { expect } = require('./helpers/chai')
 const dataFormatter = require('./helpers/dataFormatter')
