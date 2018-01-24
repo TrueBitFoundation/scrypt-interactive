@@ -18,7 +18,7 @@ const saveClaimData = async (claimData) => {
 }
 
 module.exports = (web3, api) => ({
-  run: async (cmd, claim, stopper, initClaimData = null) =>
+  run: async (cmd, claim, initClaimData = null) =>
     new Promise(async (resolve, reject) => {
       let claimantConvictedEvent, queryEvent
       let claimData = initClaimData || { stepResponses: {} }
@@ -162,21 +162,11 @@ module.exports = (web3, api) => ({
         }
       })
 
-      const main = async () => {
-        if (await m.start()) {
-          await m.skipCreate()
-        } else {
-          await m.create()
-        }
-        await m.defend()
+      if (await m.start()) {
+        await m.skipCreate()
+      } else {
+        await m.create()
       }
-
-      await stopper
-      console.log('done!')
-
-      await Promise.race([
-        main(),
-        stopper
-      ])
+      await m.defend()
     }),
 })

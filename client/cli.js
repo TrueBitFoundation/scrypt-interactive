@@ -24,6 +24,16 @@ const connectToBridge = async function (cmd) {
   return this.bridge
 }
 
+const doThenExit = async (promise) => {
+  try {
+    await promise
+    process.exit(0)
+  } catch (error) {
+    console.error(error)
+    process.exit(1)
+  }
+}
+
 const main = async () => {
   const cmd = { log: console.log.bind(console) }
   const bridge = await connectToBridge(cmd)
@@ -39,13 +49,16 @@ const main = async () => {
     .command('status')
     .description('Display the status of the bridge.')
     .action(async function () {
-      try {
-        const deposited = await bridge.api.getDeposit(operator)
+      const status = async () => {
+        try {
+          const deposited = await bridge.api.getDeposit(operator)
 
-        console.log(`Deposited: ${web3.fromWei(deposited, 'ether')} ETH`)
-      } catch (error) {
-        console.log(`Unable to connect to bridge: ${error.stack}`)
+          console.log(`Deposited: ${web3.fromWei(deposited, 'ether')} ETH`)
+        } catch (error) {
+          console.log(`Unable to connect to bridge: ${error.stack}`)
+        }
       }
+      await doThenExit(status())
     })
 
   program
@@ -58,7 +71,9 @@ const main = async () => {
         scryptHash: hash,
       }
 
-      await bridge.createClaim(cmd, claim, stopper)
+      await doThenExit(
+        bridge.createClaim(cmd, claim)
+      )
     })
 
   program
@@ -70,12 +85,12 @@ const main = async () => {
       Only applies when challenging (--challenge)
     `)
     .action(async function (options) {
-      await bridge.monitorClaims(cmd,
+      await doThenExit(bridge.monitorClaims(cmd,
         operator,
         stopper,
         !!options.challenge,
         !!options.deposit
-      )
+      ))
     })
 
   program.parse(process.argv)

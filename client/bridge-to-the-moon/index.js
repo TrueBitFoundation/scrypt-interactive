@@ -22,8 +22,8 @@ module.exports = async function(web3) {
         stateMachines.createClaim.run(cmd, claimData.claim, claimData)
       }
     },
-    createClaim: async (cmd, claim, stopper) => {
-      return stateMachines.createClaim.run(cmd, claim, stopper)
+    createClaim: async (cmd, claim) => {
+      return stateMachines.createClaim.run(cmd, claim)
     },
     initChallenges: async (cmd, claim) => {
       for (file in await readdir('./challenges')) {
@@ -111,10 +111,6 @@ module.exports = async function(web3) {
           // resolve self
           resolve()
         } catch (error) {
-          // wait for exisiting claims to finish
-          // @TODO(shrugs) - there's a better way to architect this
-          await Promise.all(inProgressClaims)
-
           reject(error)
         }
       })
