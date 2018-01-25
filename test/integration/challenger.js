@@ -1,9 +1,12 @@
+/*
+This tests the client's functionality on the challenger side of things. Code is meant to simulate the claimant by proxy.
+*/
 
 require('dotenv').config()
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER))
 
-require('./helpers/chai').should()
+require('../helpers/chai').should()
 
 const ClaimManager = artifacts.require('ClaimManager')
 const ScryptVerifier = artifacts.require('ScryptVerifier')
@@ -11,10 +14,10 @@ const ScryptVerifier = artifacts.require('ScryptVerifier')
 const serializedBlockHeader = '030162002adb34dfa6574cf127a781ecb9683ca28f911a59020628c90c72b4a3d9942233a3b905b2388b020085dbd9e03209db4493f5420336d882d0b78b54f728b8f90058f7115a2c83221a00000000'
 const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2bd6e5682'
 
-const timeout = require('./helpers/timeout')
-const models = require('../client/bridge-to-the-moon/util/models')
+const timeout = require('../helpers/timeout')
+const models = require('../../client/bridge-to-the-moon/util/models')
 
-describe('Integration!!', function() {
+describe('Challenger Client Integration Tests', function() {
   this.timeout(60000)//set max timeout to 30 seconds
 
   let bridge, claimant, challenger, dogeRelay
@@ -22,7 +25,7 @@ describe('Integration!!', function() {
   before(async () => {
     scryptVerifier = await ScryptVerifier.new()
     claimManager = await ClaimManager.new(scryptVerifier.address)
-    scryptRunner = await require('./helpers/offchain').scryptRunner()
+    scryptRunner = await require('../helpers/offchain').scryptRunner()
 
     contracts = {
       scryptVerifier: scryptVerifier,
@@ -30,12 +33,7 @@ describe('Integration!!', function() {
       scryptRunner: scryptRunner
     }
 
-    bridge = await require('../client/bridge-to-the-moon')(web3, contracts)
-    // spin up parity
-    // spin up ganache-cli
-    // deploy contracts
-    // set addresses in ENV
-    // set dogeRelayAddress for claimManager
+    bridge = await require('../../client/bridge-to-the-moon')(web3, contracts)
     let accounts = web3.eth.accounts
     dogeRelay = accounts[0]
     claimant = accounts[1]
@@ -47,7 +45,7 @@ describe('Integration!!', function() {
     // teardown processes
   })
 
-  describe('ClaimManager', () => {
+  describe('Challenger reacting to verificaiton game', () => {
     it('should let claimant make a deposit and check scrypt', async () => {
 
       //early indicator if contract deployment is correct
@@ -57,10 +55,9 @@ describe('Integration!!', function() {
       deposit.should.be.bignumber.equal(1)
 
       await bridge.api.claimManager.checkScrypt(serializedBlockHeader, testScryptHash, claimant, 'bar', { from: dogeRelay, value: 1 })
-
     })
 
-    it('should start monitoring claims', async () => {
+    it('should start monitoring claims medHash==0x0', async () => {
       bridge.monitorClaims(console, challenger, true, true)
     })
 
@@ -87,15 +84,13 @@ describe('Integration!!', function() {
       }
     })
 
-    it('should respond to query special case', async () => {
-
+    it('should respond to query special case medHash!=0x0', async () => {
       bridge.api.scryptVerifier.NewQuery({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
         let sessionId = result[0].args.sessionId.toNumber()
         let _claimant = result[0].args.claimant
         assert.equal(_claimant, claimant)
 
         let session = await bridge.api.getSession(sessionId)
-        console.log(session.medHash)
         let step = session.medStep.toNumber()
         let highStep = session.highStep.toNumber()
         let lowStep = session.lowStep.toNumber()
@@ -109,7 +104,6 @@ describe('Integration!!', function() {
 
         await bridge.api.scryptVerifier.performStepVerification(sessionId, claimID, preState, postState, proof, bridge.api.claimManager.address, { from: claimant, gas: 3000000 })
       })
-
     })
   })
 })
