@@ -5,6 +5,8 @@ const timeout = require('../util/timeout')
 const models = require('../util/models')
 const fs = require('fs')
 
+const claimCachePath = __dirname + '/../../claims/'
+
 module.exports = (web3, api) => ({
   run: async (cmd, claim, initClaimData = null) => new Promise(async (resolve, reject) => {
 
@@ -54,13 +56,14 @@ module.exports = (web3, api) => ({
         onBeforeCreate: async (tsn) => {
           console.log("Creating claim");
           let testProposalId = "foo";
-          await api.createClaim(claim.serializedBlockHeader, claim.scryptHash, claim.claimant, testProposalId, {from: claim.dogeRelayAddress})
+          //api.createClaim needs to be updated with how Oscar's team is submitting claims
+          await api.createClaim(claim.serializedBlockHeader, claim.scryptHash, claim.claimant, claim.proposalId, {from: claim.dogeRelay})
         },
         onAfterCreate: async (tsn) => {
           claimData.claimID = (await api.claimManager.claimantClaims(claim.claimant)).toNumber()
           claimData.createdAt = (await api.claimManager.createdAt.call(claimData.claimID)).toNumber()
           claimData.claim = claim;
-          fs.writeFile('./claims/'+claimData.claimID+'.json', JSON.stringify(claimData), (err) => { if(err) console.log(err)})
+          fs.writeFile(claimCachePath+claimData.claimID+'.json', JSON.stringify(claimData), (err) => { if(err) console.log(err)})
         },
         onBeforeDefend: async (tsn) => {
           cmd.log("Ready to defend claim")
@@ -93,7 +96,7 @@ module.exports = (web3, api) => ({
                     } else {
                       let results = models.toResult(await api.getStateProofAndHash(session.input, step))
                       claimData.stepResponses[step] = results;
-                      fs.writeFile('./claims/'+claimData.claimID+'.json', JSON.stringify(claimData), (err) => { if(err) console.log(err)})
+                      fs.writeFile(claimCachePath+claimData.claimID+'.json', JSON.stringify(claimData), (err) => { if(err) console.log(err)})
                       await api.respond(sessionId, step, results.stateHash, {from: claim.claimant})
                     }
                   }else{
@@ -108,7 +111,7 @@ module.exports = (web3, api) => ({
                       postStateAndProof = models.toResult(await api.getStateProofAndHash(session.input, highStep))
                       claimData.preState = preState;
                       claimData.postStateAndProof = postStateAndProof;
-                      fs.writeFile('./claims/'+claimData.claimID+'.json', JSON.stringify(claimData), (err) => { if(err) console.log(err)})
+                      fs.writeFile(claimCachePath+claimData.claimID+'.json', JSON.stringify(claimData), (err) => { if(err) console.log(err)})
                     }
                     postState = postStateAndProof.state
                     proof = postStateAndProof.proof || '0x00'
@@ -141,7 +144,7 @@ module.exports = (web3, api) => ({
                 let step = session.medStep.toNumber()
                 let results = models.toResult(await api.getStateProofAndHash(session.input, step))
                 claimData.stepResponses[step] = results;
-                fs.writeFile('./claims/'+claimData.claimID+'.json', JSON.stringify(claimData), (err) => { if(err) console.log(err)})
+                fs.writeFile(claimCachePath+claimData.claimID+'.json', JSON.stringify(claimData), (err) => { if(err) console.log(err)})
                 await api.respond(sessionId, step, results.stateHash, {from: claim.claimant})
               }
             }
