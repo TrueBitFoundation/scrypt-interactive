@@ -113,11 +113,16 @@ contract ClaimManager is DepositsManager {
   // @param _plaintext – the plaintext blockHeader.
   // @param _blockHash – the blockHash.
   // @param claimant – the address of the Dogecoin block submitter.
-  function checkScrypt(bytes _plaintext, bytes _blockHash, address claimant, bytes32 proposalId) onlyBy(dogeRelay) public payable {
+  function checkScrypt(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) onlyBy(dogeRelay) public payable {
     // dogeRelay can directly make a deposit on behalf of the claimant.
     if (msg.value != 0) {
       // only call if eth is included (to save gas)
       increaseDeposit(claimant, msg.value);
+    }
+
+    bytes memory _blockHash = new bytes(32);
+    assembly {
+        mstore(add(_blockHash, 0x20), _hash)
     }
 
     require(deposits[claimant] >= minDeposit);
