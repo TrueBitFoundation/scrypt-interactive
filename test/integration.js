@@ -14,7 +14,9 @@ const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2
 const timeout = require('./helpers/timeout')
 const models = require('../client/bridge-to-the-moon/util/models')
 
-describe('Integration!!', () => {
+describe('Integration!!', function() {
+  this.timeout(60000)//set max timeout to 30 seconds
+
   let bridge, claimant, challenger, dogeRelay
 
   before(async () => {
@@ -62,22 +64,52 @@ describe('Integration!!', () => {
       bridge.monitorClaims(console, challenger, true, true)
     })
 
-    it('should respond to query', async () => {
+    it('should respond to query normal cases', async () => {
+
       await timeout(1000)
+
+      for(i = 0; i < 11; i++) {
+        bridge.api.scryptVerifier.NewQuery({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
+          let sessionId = result[0].args.sessionId.toNumber()
+          let _claimant = result[0].args.claimant
+          assert.equal(_claimant, claimant)
+  
+          let session = await bridge.api.getSession(sessionId)
+          let step = session.medStep.toNumber()
+          let highStep = session.highStep.toNumber()
+          let lowStep = session.lowStep.toNumber()
+  
+          let results = models.toResult(await bridge.api.getStateProofAndHash(session.input, step))
+  
+          await bridge.api.respond(sessionId, step, results.stateHash, {from: claimant})
+        })
+        await timeout(5000)
+      }
+    })
+
+    it('should respond to query special case', async () => {
+
       bridge.api.scryptVerifier.NewQuery({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
         let sessionId = result[0].args.sessionId.toNumber()
         let _claimant = result[0].args.claimant
         assert.equal(_claimant, claimant)
 
         let session = await bridge.api.getSession(sessionId)
+        console.log(session.medHash)
         let step = session.medStep.toNumber()
         let highStep = session.highStep.toNumber()
         let lowStep = session.lowStep.toNumber()
 
-        let results = models.toResult(await bridge.api.getStateProofAndHash(session.input, step))
+        let preState = models.toResult(await bridge.api.getStateProofAndHash(session.input, lowStep)).state
+        let postStateAndProof = models.toResult(await bridge.api.getStateProofAndHash(session.input, highStep))
+        let postState = postStateAndProof.state
+        let proof = postStateAndProof.proof || '0x00'
 
-        await bridge.api.respond(sessionId, step, results.stateHash, {from: claimant})
+        let claimID = (await bridge.api.claimManager.claimantClaims(claimant)).toNumber()
+
+        await bridge.api.scryptVerifier.performStepVerification(sessionId, claimID, preState, postState, proof, bridge.api.claimManager.address, { from: claimant, gas: 3000000 })
       })
+
     })
   })
 })
