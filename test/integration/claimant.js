@@ -17,8 +17,10 @@ const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2
 const timeout = require('../helpers/timeout')
 const models = require('../../client/bridge-to-the-moon/util/models')
 
+const calculateMidpoint = require(__dirname + '/../../client/bridge-to-the-moon/util/math').calculateMidpoint
+
 describe('Challenger Client Integration Tests', function() {
-  this.timeout(60000)//set max timeout to 60 seconds
+  this.timeout(120000)//set max timeout to 120 seconds
 
   let bridge, claimant, challenger, dogeRelay
   let sessionId = null
@@ -89,28 +91,24 @@ describe('Challenger Client Integration Tests', function() {
     it('should respond to query normal case', async () => {
       assert.notEqual(sessionId, null)
 
-      await timeout(2000)
-      bridge.api.scryptVerifier.NewResponse({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
-        console.log(result)  
-      })
+      await timeout(5000)
 
-      // for(i = 0; i < 11; i++) {
-      //   bridge.api.scryptVerifier.NewQuery({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
-      //     let sessionId = result[0].args.sessionId.toNumber()
-      //     let _claimant = result[0].args.claimant
-      //     assert.equal(_claimant, claimant)
+      for(i = 0; i < 11; i++) {
+        bridge.api.scryptVerifier.NewResponse({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
+          let sessionId = result[0].args.sessionId.toNumber()
+          let _challenger = result[0].args.challenger
+          assert.equal(_challenger, challenger)
   
-      //     let session = await bridge.api.getSession(sessionId)
-      //     let step = session.medStep.toNumber()
-      //     let highStep = session.highStep.toNumber()
-      //     let lowStep = session.lowStep.toNumber()
-  
-      //     let results = models.toResult(await bridge.api.getStateProofAndHash(session.input, step))
-  
-      //     await bridge.api.respond(sessionId, step, results.stateHash, {from: claimant})
-      //   })
-      //   await timeout(5000)
-      // }
+          let session = await bridge.api.getSession(sessionId)
+          let step = session.medStep.toNumber()
+          let highStep = session.highStep.toNumber()
+          let lowStep = session.lowStep.toNumber()
+
+          let medStep = calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())
+          await bridge.api.query(sessionId, medStep, {from: challenger})
+        })
+        await timeout(5000)
+      }
     })
   })
 })
