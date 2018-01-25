@@ -4,6 +4,8 @@ const timeout = require('../util/timeout')
 const calculateMidpoint = require('../util/math').calculateMidpoint
 const fs = require('fs')
 
+const challengeCachePath = __dirname+'/../../challenges/'
+
 module.exports = (web3, api) => ({
   run: async (cmd, claim, challenger, autoDeposit = false) => new Promise(async (resolve, reject) => {
     const getNewMedStep = async (sessionId) => {
@@ -70,7 +72,7 @@ module.exports = (web3, api) => ({
             const sendQuery = async () => {
               claim.sessionId = await api.claimManager.getSession.call(claim.id, challenger)
               //Initial query
-              fs.writeFile('./client/challenges/'+claim.id+'.json', JSON.stringify(claim), (err) => {if(err) console.log(err)})
+              fs.writeFile(challengeCachePath+claim.id+'.json', JSON.stringify(claim), (err) => {if(err) console.log(err)})
   
               let session = await api.getSession(claim.sessionId)
               let medStep = calculateMidpoint(session.lowStep.toNumber(), session.highStep.toNumber())
@@ -145,7 +147,7 @@ module.exports = (web3, api) => ({
               })
             })
             sessionDecidedEvent.stopWatching()
-            fs.unlinkSync('./client/challenges/'+claim.id+'.json')
+            fs.unlinkSync(challengeCachePath+claim.id+'.json')
             resolve()
           },
           onCancel: (tsn, err) => { reject(err) },
