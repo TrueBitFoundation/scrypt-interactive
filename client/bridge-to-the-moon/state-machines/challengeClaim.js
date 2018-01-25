@@ -4,7 +4,7 @@ const timeout = require('../util/timeout')
 const calculateMidpoint = require('../util/math').calculateMidpoint
 const fs = require('fs')
 
-const challengeCachePath = __dirname+'/../../challenges/'
+const challengeCachePath = __dirname+'/../../cache/challenges/'
 
 module.exports = (web3, api) => ({
   run: async (cmd, claim, challenger, autoDeposit = false) => new Promise(async (resolve, reject) => {

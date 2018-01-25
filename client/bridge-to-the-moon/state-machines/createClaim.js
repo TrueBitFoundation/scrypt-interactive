@@ -5,7 +5,7 @@ const timeout = require('../util/timeout')
 const models = require('../util/models')
 const fs = require('fs')
 
-const claimCachePath = __dirname + '/../../claims/'
+const claimCachePath = __dirname + '/../../cache/claims/'
 
 module.exports = (web3, api) => ({
   run: async (cmd, claim, initClaimData = null) => new Promise(async (resolve, reject) => {
