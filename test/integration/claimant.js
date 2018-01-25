@@ -18,9 +18,10 @@ const timeout = require('../helpers/timeout')
 const models = require('../../client/bridge-to-the-moon/util/models')
 
 describe('Challenger Client Integration Tests', function() {
-  this.timeout(60000)//set max timeout to 30 seconds
+  this.timeout(60000)//set max timeout to 60 seconds
 
   let bridge, claimant, challenger, dogeRelay
+  let sessionId = null
 
   before(async () => {
     scryptVerifier = await ScryptVerifier.new()
@@ -50,8 +51,12 @@ describe('Challenger Client Integration Tests', function() {
 
       //early indicator if contract deployment is correct
       await bridge.api.makeDeposit({from: claimant, value: 1})
+      await bridge.api.makeDeposit({from: challenger, value: 1})
 
       let deposit = await bridge.api.getDeposit(claimant)
+      deposit.should.be.bignumber.equal(1)
+
+      deposit = await bridge.api.getDeposit(challenger)
       deposit.should.be.bignumber.equal(1)
     })
 
@@ -64,6 +69,48 @@ describe('Challenger Client Integration Tests', function() {
         proposalId: 'foobar'
       }
       bridge.createClaim(console, testClaim)
+    })
+
+    it('should challenge claim and send initial query', async () => {
+      await timeout(1000)
+      let claimID = (await bridge.api.claimManager.claimantClaims(claimant)).toNumber()
+
+      await bridge.api.challengeClaim(claimID, {from: challenger})
+
+      await bridge.api.claimManager.runNextVerificationGame(claimID, {from: challenger})
+
+      sessionId = (await bridge.api.claimManager.getSession.call(claimID, challenger)).toNumber()
+
+      let medStep = 1025;
+      await bridge.api.query(sessionId, medStep, {from: challenger})
+
+    })
+
+    it('should respond to query normal case', async () => {
+      assert.notEqual(sessionId, null)
+
+      await timeout(2000)
+      bridge.api.scryptVerifier.NewResponse({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
+        console.log(result)  
+      })
+
+      // for(i = 0; i < 11; i++) {
+      //   bridge.api.scryptVerifier.NewQuery({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
+      //     let sessionId = result[0].args.sessionId.toNumber()
+      //     let _claimant = result[0].args.claimant
+      //     assert.equal(_claimant, claimant)
+  
+      //     let session = await bridge.api.getSession(sessionId)
+      //     let step = session.medStep.toNumber()
+      //     let highStep = session.highStep.toNumber()
+      //     let lowStep = session.lowStep.toNumber()
+  
+      //     let results = models.toResult(await bridge.api.getStateProofAndHash(session.input, step))
+  
+      //     await bridge.api.respond(sessionId, step, results.stateHash, {from: claimant})
+      //   })
+      //   await timeout(5000)
+      // }
     })
   })
 })

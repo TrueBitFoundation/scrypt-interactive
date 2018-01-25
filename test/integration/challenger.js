@@ -18,7 +18,7 @@ const timeout = require('../helpers/timeout')
 const models = require('../../client/bridge-to-the-moon/util/models')
 
 describe('Challenger Client Integration Tests', function() {
-  this.timeout(60000)//set max timeout to 30 seconds
+  this.timeout(60000)//set max timeout to 60 seconds
 
   let bridge, claimant, challenger, dogeRelay
 
@@ -57,11 +57,11 @@ describe('Challenger Client Integration Tests', function() {
       await bridge.api.claimManager.checkScrypt(serializedBlockHeader, testScryptHash, claimant, 'bar', { from: dogeRelay, value: 1 })
     })
 
-    it('should start monitoring claims medHash==0x0', async () => {
+    it('should start monitoring claims', async () => {
       bridge.monitorClaims(console, challenger, true, true)
     })
 
-    it('should respond to query normal cases', async () => {
+    it('should query to normal case medHash==0x0', async () => {
 
       await timeout(1000)
 
@@ -84,7 +84,7 @@ describe('Challenger Client Integration Tests', function() {
       }
     })
 
-    it('should respond to query special case medHash!=0x0', async () => {
+    it('should query special case medHash!=0x0', async () => {
       bridge.api.scryptVerifier.NewQuery({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
         let sessionId = result[0].args.sessionId.toNumber()
         let _claimant = result[0].args.claimant
