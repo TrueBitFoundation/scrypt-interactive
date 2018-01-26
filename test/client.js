@@ -130,12 +130,15 @@ contract('ClaimManager', function (accounts) {
 
     it('waits for timeout of block number when claim is decided', async () => {
       await new Promise(async (resolve, reject) => {
-        for(i = 0; i<300; i++) {
+        for(i = 0; i<50; i++) {
           web3.currentProvider.send({jsonrpc: "2.0", method: "evm_mine", params: [], id: 0})
         }
+        resolve()
       })
 
+      //trigger claim decided
       await claimManager.runNextVerificationGame(claimID, {from: claimant})
+
       claimManager.ClaimVerificationGamesEnded({}, {fromBlock: 0, toBlock: 'latest'}).get((err, result) => {
         assert.equal(claimID, result[0].args.claimID.toNumber())
       })

@@ -13,11 +13,6 @@ contract ClaimManager is DepositsManager {
   //default initial amount of blocks for challenge timeout
   uint public defaultChallengeTimeout = 20;
 
-  // blocks to wait for callback from scryptVerifier,
-  // before moving onto the next.
-  // TODO: we're not using this yet.
-  uint public verificationGameTimeout = 40;
-
   DogeRelay public dogeRelay;
   ScryptVerifier public scryptVerifier;
 
