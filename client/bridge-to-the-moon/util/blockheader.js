@@ -8,5 +8,5 @@ module.exports = {
    */
   validProofOfWork: (serializedBlockHeader) => {
     return lc.BlockHeader.fromBuffer(Buffer.from(serializedBlockHeader, 'hex')).validProofOfWork()
-  },
+  }
 }

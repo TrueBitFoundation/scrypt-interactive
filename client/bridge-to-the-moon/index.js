@@ -1,10 +1,11 @@
 const promisify = require('es6-promisify')
 const fs = require('fs')
 const readdir = promisify(fs.readdir, fs)
-const blockheader = require('./util/blockheader')
+const lc = require('litecore-lib')
 const getContracts = require('./util/getContracts')
 
 module.exports = async function(web3, _contracts) {
+
   let contracts = await getContracts(web3)
 
   contracts.scryptVerifier = _contracts.scryptVerifier
@@ -40,7 +41,7 @@ module.exports = async function(web3, _contracts) {
           cmd.log('Monitoring for claims...')
           // first, monitor all ClaimCreated events from claimManager
           const claimCreatedEvents = api.claimManager.ClaimCreated()
-          claimCreatedEvents.watch((error, result) => {
+          claimCreatedEvents.watch(async (error, result) => {
 
             const claim = {
               id: result.args.claimID.toNumber(),
@@ -60,10 +61,8 @@ module.exports = async function(web3, _contracts) {
               )
             `)
 
-            //not working, is serialized supposed to be plaintext
-            //if (!blockheader.validProofOfWork(claim.serialized)) {
-            //Replace with scryptRunner???
-            if (true) {
+            let scryptHash = lc.crypto.Hash.scrypt(Buffer(claim.plaintext, 'hex')).toString('hex')
+            if (scryptHash != claim.blockHash) {
               cmd.log('Proof of Work: INVALID')
 
               if (!autoChallenge) {
