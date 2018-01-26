@@ -99,7 +99,7 @@ contract ClaimManager is DepositsManager {
   function unbondDeposit(uint claimID, address account) public returns (uint) {
     ScryptClaim storage claim = claims[claimID];
     require(claimExists(claim));
-    //require(claim.decided == true);
+    require(claim.decided == true);
     uint bondedDeposit = claim.bondedDeposits[account];
     delete claim.bondedDeposits[account];
     deposits[account] = deposits[account].add(bondedDeposit);

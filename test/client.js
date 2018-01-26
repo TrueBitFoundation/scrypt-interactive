@@ -123,6 +123,10 @@ contract('ClaimManager', function (accounts) {
         assert.equal(sessionDecidedEvent.args.loser, challenger)
       })
       sessionDecidedEvent.stopWatching()
+
+      claimManager.ClaimVerificationGamesEnded({}, {fromBlock: 0, toBlock: 'latest'}).get((err, result) => {
+        assert.equal(claimID, result[0].args.claimID.toNumber())
+      })
     })
 
     it('checks bonded deposits', async () => {
@@ -137,8 +141,10 @@ contract('ClaimManager', function (accounts) {
       // Check that participants can unbond their deposit
       await claimManager.unbondDeposit(claimID, claimant, { from: claimant })
       deposit = await claimManager.getDeposit.call(claimant, { from: claimant })
+      assert.equal(deposit.toNumber(), 2 * claimDeposit)
       await claimManager.unbondDeposit(claimID, challenger, { from: challenger })
       deposit = await claimManager.getDeposit.call(challenger, { from: challenger })
+      assert.equal(deposit.toNumber(), 0)
     })
   })
 })
