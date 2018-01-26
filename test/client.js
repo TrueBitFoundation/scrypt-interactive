@@ -27,8 +27,6 @@ contract('ClaimManager', function (accounts) {
   context('normal conditions', function () {
     before(async () => {
       scryptRunner = await offchain.scryptRunner()
-
-      console.log('scryptRunner deployed')
       scryptVerifier = await ScryptVerifier.new()
       claimManager = await ClaimManager.new(scryptVerifier.address)
       await claimManager.setDogeRelay(dogeRelayAddress, { from: dogeRelayAddress })

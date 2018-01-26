@@ -8,6 +8,8 @@ const challengeCachePath = __dirname+'/../../cache/challenges/'
 
 module.exports = (web3, api) => ({
   run: async (cmd, claim, challenger, autoDeposit = false) => new Promise(async (resolve, reject) => {
+    // TODO: getNewMedStep needs to compare challenger's state hash with the claimant's value
+    // and decide whether to ask for midpoint of first OR second half interval.
     const getNewMedStep = async (sessionId) => {
       let session = await api.getSession(sessionId)
       return calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())

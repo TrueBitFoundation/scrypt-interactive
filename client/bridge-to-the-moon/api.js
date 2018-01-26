@@ -74,10 +74,7 @@ module.exports = async ({ claimManager, scryptVerifier, scryptRunner }, web3) =>
      * @return Result
      */
     getResult: async (input, step) => {
-      return toResult(await scryptRunner.getStateProofAndHash.call(
-        input,
-        step,
-      ))
+      return toResult(await scryptRunner.getStateProofAndHash.call(input, step))
     },
     /**
      * @desc Claim a state for a step. Called by claimant.
