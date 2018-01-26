@@ -18,7 +18,8 @@ const timeout = require('../helpers/timeout')
 const models = require('../../client/bridge-to-the-moon/util/models')
 
 describe('Challenger Client Integration Tests', function() {
-  this.timeout(60000)//set max timeout to 60 seconds
+  // set max timeout to 60 seconds
+  this.timeout(60000)
 
   let bridge, claimant, challenger, dogeRelay
 

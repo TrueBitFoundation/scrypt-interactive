@@ -12,9 +12,9 @@ module.exports = (web3, api) => ({
 
       let claimantConvictedEvent, queryEvent, claimData
 
-      if(initClaimData) {
+      if (initClaimData) {
         claimData = initClaimData
-      }else{
+      } else {
         claimData = {stepResponses: {}}
       }
 
@@ -30,7 +30,7 @@ module.exports = (web3, api) => ({
         onStart: async (tsn) => {
           if('claim' in claimData) {
               return true;
-          }else {
+          } else {
             cmd.log('Checking deposits...')
             const minDeposit = await api.getMinDeposit()
             const currentDeposit = await api.getDeposit(claim.claimant)
@@ -56,13 +56,14 @@ module.exports = (web3, api) => ({
         onBeforeCreate: async (tsn) => {
           console.log("Creating claim");
           let testProposalId = "foo";
-          //api.createClaim needs to be updated with how Oscar's team is submitting claims
+          // TODO: api.createClaim needs to be updated with how Oscar's team is submitting claims
           await api.createClaim(claim.serializedBlockHeader, claim.scryptHash, claim.claimant, claim.proposalId, {from: claim.dogeRelay})
         },
         onAfterCreate: async (tsn) => {
           claimData.claimID = (await api.claimManager.claimantClaims(claim.claimant)).toNumber()
           claimData.createdAt = (await api.claimManager.createdAt.call(claimData.claimID)).toNumber()
           claimData.claim = claim;
+
           fs.writeFile(claimCachePath+claimData.claimID+'.json', JSON.stringify(claimData), (err) => { if(err) console.log(err)})
         },
         onBeforeDefend: async (tsn) => {
@@ -73,7 +74,8 @@ module.exports = (web3, api) => ({
         onDefend: async (tsn) => {
           await Promise.race([
             new Promise((resolve, reject) => {
-              claimantConvictedEvent.watch((err, result) => {//claimant loses verification game
+              claimantConvictedEvent.watch((err, result) => {
+                // claimant loses verification game
                 if(err) reject(err)
                 if(result) resolve()
               })

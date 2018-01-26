@@ -8,6 +8,7 @@ module.exports = async function(web3, _contracts) {
 
   let contracts = await getContracts(web3)
 
+  // TODO: why are we overwriting these, if just assigned above?
   contracts.scryptVerifier = _contracts.scryptVerifier
   contracts.claimManager = _contracts.claimManager
   contracts.scryptRunner = _contracts.scryptRunner
