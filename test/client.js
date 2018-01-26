@@ -4,6 +4,9 @@ const offchain = require('./helpers/offchain')
 const ClaimManager = artifacts.require('ClaimManager')
 const ScryptVerifier = artifacts.require('ScryptVerifier')
 
+const Web3 = require('web3')
+const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'))
+
 contract('ClaimManager', function (accounts) {
   const steps = 2050
   const claimDeposit = 1
@@ -123,7 +126,16 @@ contract('ClaimManager', function (accounts) {
         assert.equal(sessionDecidedEvent.args.loser, challenger)
       })
       sessionDecidedEvent.stopWatching()
+    })
 
+    it('waits for timeout of block number when claim is decided', async () => {
+      await new Promise(async (resolve, reject) => {
+        for(i = 0; i<300; i++) {
+          web3.currentProvider.send({jsonrpc: "2.0", method: "evm_mine", params: [], id: 0})
+        }
+      })
+
+      await claimManager.runNextVerificationGame(claimID, {from: claimant})
       claimManager.ClaimVerificationGamesEnded({}, {fromBlock: 0, toBlock: 'latest'}).get((err, result) => {
         assert.equal(claimID, result[0].args.claimID.toNumber())
       })
