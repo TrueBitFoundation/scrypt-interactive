@@ -83,6 +83,7 @@ describe('Challenger Client Integration Tests', function() {
 
       sessionId = (await bridge.api.claimManager.getSession.call(claimID, challenger)).toNumber()
 
+      //Fire off initial query
       let medStep = 1025;
       await bridge.api.query(sessionId, medStep, {from: challenger})
 

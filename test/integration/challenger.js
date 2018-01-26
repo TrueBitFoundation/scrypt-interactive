@@ -105,5 +105,15 @@ describe('Challenger Client Integration Tests', function() {
         await bridge.api.scryptVerifier.performStepVerification(sessionId, claimID, preState, postState, proof, bridge.api.claimManager.address, { from: claimant, gas: 3000000 })
       })
     })
+
+    it('should end verification game', async () => {
+      await(5000)
+      bridge.api.scryptVerifier.ClaimantConvicted({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
+        console.log(result)
+      })
+      bridge.api.scryptVerifier.ChallengerConvicted({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
+        console.log(result)
+      })
+    })
   })
 })
