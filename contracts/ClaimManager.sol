@@ -189,6 +189,7 @@ contract ClaimManager is DepositsManager {
       claim.currentChallenger = claim.currentChallenger.add(1);
     } else {
       require(claim.verificationOngoing == false);
+      require(claim.challengeTimeoutBlockNumber >= block.number);
       claim.decided = true;
       ClaimVerificationGamesEnded(claimID);
     }
