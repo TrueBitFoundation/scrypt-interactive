@@ -11,6 +11,7 @@ const getAllEvents = require('../helpers/events').getAllEvents
 
 const ClaimManager = artifacts.require('ClaimManager')
 const ScryptVerifier = artifacts.require('ScryptVerifier')
+const DogeRelay = artifacts.require('DogeRelay')
 
 // eslint-disable-next-line max-len
 const serializedBlockHeader = '030162002adb34dfa6574cf127a781ecb9683ca28f911a59020628c90c72b4a3d9942233a3b905b2388b020085dbd9e03209db4493f5420336d882d0b78b54f728b8f90058f7115a2c83221a00000000'
@@ -27,22 +28,36 @@ describe('Challenger Client Integration Tests', function () {
   let sessionId = null
 
   before(async () => {
+<<<<<<< cc3e5a2a6dfb64ae67e897d426ddbca6a297ad0d
     const scryptVerifier = await ScryptVerifier.new()
     const claimManager = await ClaimManager.new(scryptVerifier.address)
     const scryptRunner = await require('../helpers/offchain').scryptRunner()
+=======
+    scryptVerifier = await ScryptVerifier.new()
+    claimManager = await ClaimManager.new(scryptVerifier.address)
+    scryptRunner = await require('../helpers/offchain').scryptRunner()
+    dogeRelay = await DogeRelay.new(claimManager.address)
+>>>>>>> claimant integration test runs with dummy doge relay
 
     contracts = {
       scryptVerifier: scryptVerifier,
       claimManager: claimManager,
       scryptRunner: scryptRunner,
+<<<<<<< cc3e5a2a6dfb64ae67e897d426ddbca6a297ad0d
+=======
+      dogeRelay: dogeRelay
+>>>>>>> claimant integration test runs with dummy doge relay
     }
 
     bridge = await require('../../client/bridge-to-the-moon')(web3, contracts)
     let accounts = web3.eth.accounts
-    dogeRelay = accounts[0]
     claimant = accounts[1]
     challenger = accounts[2]
+<<<<<<< cc3e5a2a6dfb64ae67e897d426ddbca6a297ad0d
     await bridge.api.claimManager.setDogeRelay(dogeRelay, { from: dogeRelay })
+=======
+    await bridge.api.claimManager.setDogeRelay(dogeRelay.address, {from: claimant})
+>>>>>>> claimant integration test runs with dummy doge relay
   })
 
   after(async () => {
@@ -69,8 +84,13 @@ describe('Challenger Client Integration Tests', function () {
         claimant: claimant,
         scryptHash: testScryptHash,
         serializedBlockHeader: serializedBlockHeader,
+<<<<<<< cc3e5a2a6dfb64ae67e897d426ddbca6a297ad0d
         dogeRelay: dogeRelay,
         proposalId: 'foobar',
+=======
+        dogeRelay: dogeRelay.address,
+        proposalId: 'foobar'
+>>>>>>> claimant integration test runs with dummy doge relay
       }
       claim = bridge.createClaim(console, testClaim)
     })

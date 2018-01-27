@@ -9,9 +9,11 @@ module.exports = async function(web3, _contracts) {
   let contracts = await getContracts(web3)
 
   // TODO: why are we overwriting these, if just assigned above?
+  // because web3 clients not properly configured yet
   contracts.scryptVerifier = _contracts.scryptVerifier
   contracts.claimManager = _contracts.claimManager
   contracts.scryptRunner = _contracts.scryptRunner
+  contracts.dogeRelay = _contracts.dogeRelay
 
   const api = await require('./api')(contracts, web3)
   const stateMachines = await require('./state-machines')(web3, api)
