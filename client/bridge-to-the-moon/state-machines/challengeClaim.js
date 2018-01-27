@@ -3,8 +3,21 @@ const waitForEvent = require('../util/waitForEvent')
 const timeout = require('../util/timeout')
 const calculateMidpoint = require('../util/math').calculateMidpoint
 const fs = require('fs')
+const promisify = require('es6-promisify')
+const mkdirp = promisify(require('mkdirp'))
 
-const challengeCachePath = __dirname+'/../../cache/challenges/'
+const writeFile = promisify(fs.writeFile, fs)
+const unlink = promisify(fs.unlink, fs)
+const path = require('path')
+
+const challengeCachePath = path.resolve(__dirname, '../../cache/challenges')
+
+const saveChallengeData = async (data) => {
+  await mkdirp(challengeCachePath)
+  await writeFile(`${challengeCachePath}/${data.id}.json`, JSON.stringify(data))
+}
+
+const deleteChallengeData = async (data) => unlink(`${challengeCachePath}/${data.id}.json`)
 
 module.exports = (web3, api) => ({
   run: async (cmd, claim, challenger, autoDeposit = false) => new Promise(async (resolve, reject) => {
@@ -51,12 +64,12 @@ module.exports = (web3, api) => ({
                     cmd.log(`Deposited ${web3.fromWei(neededAmount, 'ether')} ETH.`)
                   } else {
                     throw new Error(`
-                            You don't have enough ETH to submit a deposit that would be greater than minDeposit.
-                          `)
+                      You don't have enough ETH to submit a deposit that would be greater than minDeposit.
+                    `)
                   }
                 } else {
                   throw new Error(`
-                          Your deposited ETH in ClaimManager is lower than minDeposit and --deposit was not enabled.`
+                    Your deposited ETH in ClaimManager is lower than minDeposit and --deposit was not enabled.`
                   )
                 }
               }
@@ -74,8 +87,8 @@ module.exports = (web3, api) => ({
             const sendQuery = async () => {
               claim.sessionId = await api.claimManager.getSession.call(claim.id, challenger)
               //Initial query
-              fs.writeFile(challengeCachePath+claim.id+'.json', JSON.stringify(claim), (err) => {if(err) console.log(err)})
-  
+              await saveChallengeData(claim)
+
               let session = await api.getSession(claim.sessionId)
               let medStep = calculateMidpoint(session.lowStep.toNumber(), session.highStep.toNumber())
               await api.query(claim.sessionId, medStep, {from: challenger})
@@ -84,10 +97,13 @@ module.exports = (web3, api) => ({
             //Figure out if first challenger
             let currentChallenger = await api.claimManager.getCurrentChallenger.call(claim.id)
             let verificationOngoing = await api.claimManager.getVerificationOngoing.call(claim.id)
-            if(currentChallenger == challenger && !verificationOngoing) {
+            if (currentChallenger == challenger && !verificationOngoing) {
+              console.log('... we are first challenger.')
               await api.claimManager.runNextVerificationGame(claim.id, {from: challenger})
               await sendQuery()
-            }else if(currentChallenger == challenger && verificationOngoing) {//should only happen if rebooting during game
+            } else if (currentChallenger == challenger && verificationOngoing) {
+              // ^ should only happen if rebooting during game
+              console.log('... resuming challenge.')
               let lastSteps = api.scryptVerifier.getLastSteps.call(claim.sessionId)
               let claimantLastStep = lastSteps[0].toNumber()
               let challengerLastStep = lastSteps[0].toNumber()
@@ -95,9 +111,10 @@ module.exports = (web3, api) => ({
                 let medStep = await getNewMedStep(result.args.sessionId.toNumber())
                 console.log("Querying step: " + medStep)
                 await api.query(sessionId, medStep, {from: challenger})
-                if(medStep == 0) resolve()
+                if (medStep == 0) resolve()
               }
-            }else if(currentChallenger != challenger && verificationOngoing) {
+            } else if (currentChallenger != challenger && verificationOngoing) {
+              console.log('... waiting')
               const verificationGameStartedEvent = api.claimManager.VerificationGameStarted({claimID: claim.id, challenger: challenger})
               await new Promise(async (resolve, reject) => {
                 verificationGameStartedEvent.watch(async (err, result) => {
@@ -107,7 +124,9 @@ module.exports = (web3, api) => ({
               })
               verificationGameStartedEvent.stopWatching()
               sendQuery()
-            }else{//this case probably won't happen but this should cover us if it does
+            } else {
+              // ^ this case probably won't happen but this should cover us if it does
+              console.log('... ???')
               await api.claimManager.runNextVerificationGame(claim.id, {from: challenger})
               const verificationGameStartedEvent = api.claimManager.VerificationGameStarted({claimID: claim.id, challenger: challenger})
               await new Promise(async (resolve, reject) => {
@@ -117,7 +136,7 @@ module.exports = (web3, api) => ({
                 })
               })
               verificationGameStartedEvent.stopWatching()
-              sendQuery()    
+              sendQuery()
             }
           },
           onBeforePlayGame: async (tsn) => {
@@ -135,7 +154,7 @@ module.exports = (web3, api) => ({
                 }
               })
             })
-            newResponseEvent.stopWatching()            
+            newResponseEvent.stopWatching()
           },
           onAfterPlayGame: async (tsn) => {
             let sessionDecidedEvent = api.claimManager.SessionDecided({sessionId: claim.sessionId})
@@ -149,7 +168,7 @@ module.exports = (web3, api) => ({
               })
             })
             sessionDecidedEvent.stopWatching()
-            fs.unlinkSync(challengeCachePath+claim.id+'.json')
+            await deleteChallengeData(claim)
             resolve()
           },
           onCancel: (tsn, err) => { reject(err) },

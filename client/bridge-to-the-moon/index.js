@@ -20,21 +20,21 @@ module.exports = async function(web3, _contracts) {
     api,
     //In case of reboot
     initClaimant: async (cmd) => {
-      fs.readdirSync('./claims').forEach(file => {
-        const claimData = JSON.parse(fs.readFileSync('./claims/'+file))
+      for (file in await readdir('./claims')) {
+        const claimData = JSON.parse(await readFile(`./claims/${file}`))
         stateMachines.createClaim.run(cmd, claimData.claim, claimData)
-      })
+      }
     },
     createClaim: async (cmd, claim) => {
       return stateMachines.createClaim.run(cmd, claim)
     },
     initChallenges: async (cmd, claim) => {
-      fs.readdirSync('./challenges').forEach(file => {
-        const challengeData = JSON.parse(fs.readFileSync('./challenges/'+file))
+      for (file in await readdir('./challenges')) {
+        const challengeData = JSON.parse(await readFile(`./challenges/${file}`))
         stateMachines.challengeClaim.run(cmd, challengeData)
-      })
+      }
     },
-    monitorClaims: async (cmd, challenger, autoChallenge = false, autoDeposit = false) => {
+    monitorClaims: async (cmd, challenger, stopper, autoChallenge = false, autoDeposit = false) => {
       return new Promise(async (resolve, reject) => {
         let inProgressClaims = []
 
@@ -100,10 +100,17 @@ module.exports = async function(web3, _contracts) {
           //   reject(error)
           // })
 
-          process.on('SIGINT', function () {
-            claimCreatedEvents.stopWatching()
-            Promise.all(inProgressClaims).then(resolve)
-          })
+          // wait for an external stop
+          await stopper
+
+          // stop watching
+          claimCreatedEvents.stopWatching()
+
+          // wait for exisiting claims to finish
+          await Promise.all(inProgressClaims)
+
+          // resolve self
+          resolve()
         } catch (error) {
           reject(error)
         }
