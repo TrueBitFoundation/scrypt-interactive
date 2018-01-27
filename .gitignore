@@ -11,5 +11,5 @@ parity
 .node-
 
 .vscode/
-client/cache/challenges/*
-client/cache/claims/*
+client/cache/challenges/
+client/cache/claims/
