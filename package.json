@@ -4,7 +4,7 @@
   "description": "Interactive Scrypt computation verification",
   "main": "client/cli.js",
   "scripts": {
-    "start": "node client/cli.js",
+    "start": "node cli.js",
     "lint": "eslint .",
     "test": "truffle test"
   },

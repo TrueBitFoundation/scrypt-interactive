@@ -19,9 +19,9 @@ const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2
 
 const timeout = require('../helpers/timeout')
 
-const calculateMidpoint = require('../../client/bridge-to-the-moon/util/math').calculateMidpoint
+const calculateMidpoint = require('../../client/util/math').calculateMidpoint
 
-describe('Challenger Client Integration Tests', function () {
+describe('Claimant Client Integration Tests', function () {
   this.timeout(120000)// set max timeout to 120 seconds
 
   let bridge, claimant, challenger, dogeRelay, contracts, claim
@@ -40,10 +40,11 @@ describe('Challenger Client Integration Tests', function () {
       dogeRelay: dogeRelay
     }
 
-    bridge = await require('../../client/bridge-to-the-moon')(web3, contracts)
+    bridge = await require('../../client')(web3, contracts)
     let accounts = web3.eth.accounts
     claimant = accounts[1]
     challenger = accounts[2]
+    
     await bridge.api.claimManager.setDogeRelay(dogeRelay.address, {from: claimant})
   })
 

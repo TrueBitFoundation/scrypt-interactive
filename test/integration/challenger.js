@@ -18,7 +18,7 @@ const serializedBlockHeader = '030162002adb34dfa6574cf127a781ecb9683ca28f911a590
 const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2bd6e5682'
 
 const timeout = require('../helpers/timeout')
-const models = require(__dirname + '/../../client/bridge-to-the-moon/util/models')
+const models = require(__dirname + '/../../client/util/models')
 
 describe('Challenger Client Integration Tests', function () {
   // set max timeout to 120 seconds
@@ -40,7 +40,7 @@ describe('Challenger Client Integration Tests', function () {
       dogeRelay: dogeRelay
     }
 
-    bridge = await require('../../client/bridge-to-the-moon')(web3, contracts)
+    bridge = await require('../../client')(web3, contracts)
     let accounts = web3.eth.accounts
     claimant = accounts[1]
     challenger = accounts[2]

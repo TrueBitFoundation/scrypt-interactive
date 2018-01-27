@@ -16,7 +16,8 @@ module.exports = async function(web3, _contracts) {
   contracts.dogeRelay = _contracts.dogeRelay
 
   const api = await require('./api')(contracts, web3)
-  const stateMachines = await require('./state-machines')(web3, api)
+  const challengeClaim = require('./challengeClaim')(web3, api)
+  const createClaim = require('./createClaim')(web3, api)
 
   return {
     api,
@@ -24,16 +25,16 @@ module.exports = async function(web3, _contracts) {
     initClaimant: async (cmd) => {
       for (file in await readdir('./claims')) {
         const claimData = JSON.parse(await readFile(`./claims/${file}`))
-        stateMachines.createClaim.run(cmd, claimData.claim, claimData)
+        createClaim.run(cmd, claimData.claim, claimData)
       }
     },
     createClaim: async (cmd, claim) => {
-      return stateMachines.createClaim.run(cmd, claim)
+      return createClaim.run(cmd, claim)
     },
     initChallenges: async (cmd, claim) => {
       for (file in await readdir('./challenges')) {
         const challengeData = JSON.parse(await readFile(`./challenges/${file}`))
-        stateMachines.challengeClaim.run(cmd, challengeData)
+        challengeClaim.run(cmd, challengeData)
       }
     },
     monitorClaims: async (cmd, challenger, stopper, autoChallenge = false, autoDeposit = false) => {
@@ -80,7 +81,7 @@ module.exports = async function(web3, _contracts) {
               // this promise also always resolves positively
               // so that Promise.all works correctly
               if(!(claim.id in inProgressClaims)) {
-                inProgressClaims[claim.id] = stateMachines.challengeClaim.run(cmd, claim, challenger, autoDeposit)
+                inProgressClaims[claim.id] = challengeClaim.run(cmd, claim, challenger, autoDeposit)
                 .then(() => {
                   cmd.log(`Finished Challenging Claim: ${claim.id}`)
                 })
