@@ -109,7 +109,8 @@ module.exports = async function(web3, _contracts) {
           claimCreatedEvents.stopWatching()
 
           // wait for exisiting claims to finish
-          await Promise.all(inProgressClaims)
+          //TODO: inProgressClaims is an object not an array anymore
+          //await Promise.all(inProgressClaims)
 
           // resolve self
           resolve()
