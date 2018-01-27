@@ -38,7 +38,7 @@ module.exports = async function(web3, _contracts) {
     },
     monitorClaims: async (cmd, challenger, stopper, autoChallenge = false, autoDeposit = false) => {
       return new Promise(async (resolve, reject) => {
-        let inProgressClaims = []
+        let inProgressClaims = {}
 
         try {
           cmd.log('Monitoring for claims...')
@@ -79,20 +79,20 @@ module.exports = async function(web3, _contracts) {
               //   (we'll await on these promises down the line)
               // this promise also always resolves positively
               // so that Promise.all works correctly
-              inProgressClaims.push(
-                stateMachines.challengeClaim.run(cmd, claim, challenger, autoDeposit)
-                  .then(() => {
-                    cmd.log(`Finished Challenging Claim: ${claim.id}`)
-                  })
-                  .catch((err) => {
-                    cmd.log('Bridge Error --------------------------')
-                    cmd.log(`Finished Challenging Claim: ${claim.id}`)
-                    cmd.log(err)
-                  })
-                  .then(() => {
-                    return Promise.resolve()
-                  })
-              )
+              if(!(claim.id in inProgressClaims)) {
+                inProgressClaims[claim.id] = stateMachines.challengeClaim.run(cmd, claim, challenger, autoDeposit)
+                .then(() => {
+                  cmd.log(`Finished Challenging Claim: ${claim.id}`)
+                })
+                .catch((err) => {
+                  cmd.log('Bridge Error --------------------------')
+                  cmd.log(`Finished Challenging Claim: ${claim.id}`)
+                  cmd.log(err)
+                })
+                .then(() => {
+                  return Promise.resolve()
+                })
+              }
             } else {
               cmd.log('Proof of Work: Valid')
             }

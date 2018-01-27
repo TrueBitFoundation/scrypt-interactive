@@ -28,36 +28,23 @@ describe('Challenger Client Integration Tests', function () {
   let sessionId = null
 
   before(async () => {
-<<<<<<< cc3e5a2a6dfb64ae67e897d426ddbca6a297ad0d
-    const scryptVerifier = await ScryptVerifier.new()
-    const claimManager = await ClaimManager.new(scryptVerifier.address)
-    const scryptRunner = await require('../helpers/offchain').scryptRunner()
-=======
     scryptVerifier = await ScryptVerifier.new()
     claimManager = await ClaimManager.new(scryptVerifier.address)
     scryptRunner = await require('../helpers/offchain').scryptRunner()
     dogeRelay = await DogeRelay.new(claimManager.address)
->>>>>>> claimant integration test runs with dummy doge relay
 
     contracts = {
       scryptVerifier: scryptVerifier,
       claimManager: claimManager,
       scryptRunner: scryptRunner,
-<<<<<<< cc3e5a2a6dfb64ae67e897d426ddbca6a297ad0d
-=======
       dogeRelay: dogeRelay
->>>>>>> claimant integration test runs with dummy doge relay
     }
 
     bridge = await require('../../client/bridge-to-the-moon')(web3, contracts)
     let accounts = web3.eth.accounts
     claimant = accounts[1]
     challenger = accounts[2]
-<<<<<<< cc3e5a2a6dfb64ae67e897d426ddbca6a297ad0d
-    await bridge.api.claimManager.setDogeRelay(dogeRelay, { from: dogeRelay })
-=======
     await bridge.api.claimManager.setDogeRelay(dogeRelay.address, {from: claimant})
->>>>>>> claimant integration test runs with dummy doge relay
   })
 
   after(async () => {
@@ -84,13 +71,8 @@ describe('Challenger Client Integration Tests', function () {
         claimant: claimant,
         scryptHash: testScryptHash,
         serializedBlockHeader: serializedBlockHeader,
-<<<<<<< cc3e5a2a6dfb64ae67e897d426ddbca6a297ad0d
-        dogeRelay: dogeRelay,
-        proposalId: 'foobar',
-=======
         dogeRelay: dogeRelay.address,
         proposalId: 'foobar'
->>>>>>> claimant integration test runs with dummy doge relay
       }
       claim = bridge.createClaim(console, testClaim)
     })
