@@ -132,7 +132,6 @@ module.exports = (web3, api) => ({
                   }
                 })
               })
-<<<<<<< cc3e5a2a6dfb64ae67e897d426ddbca6a297ad0d
             ])
           },
           onAfterDefend: async (tsn) => {
@@ -157,34 +156,6 @@ module.exports = (web3, api) => ({
                   await saveClaimData(claimData)
                   await api.respond(sessionId, step, results.stateHash, {from: claim.claimant})
                 }
-=======
-            })
-          ])
-        },
-        onAfterDefend: async (tsn) => {
-          claimantConvictedEvent.stopWatching()
-          queryEvent.stopWatching()
-
-          
-          resolve()
-        },
-        onSkipCreate: async (tsn) => {
-          let challengers = (await api.claimManager.getChallengers(claimData.claimID)).toNumber()
-          for(challenger in challengers) {
-            let sessionId = (await api.claimManager.getSession.call(claimData.claimID, challenger)).toNumber()
-            if(sessionId > 0) {
-              let lastSteps = await api.scryptVerifier.getLastSteps.call(sessionId)
-              let claimantLastStep = lastSteps[0].toNumber()
-              let challengerLastStep = lastSteps[1].toNumber()
-              if(claimantLastStep < challengerLastStep) {
-                //I think we can get away with only dealing with steps above 0, but needs to be tested
-                let session = await api.getSession(sessionId)
-                let step = session.medStep.toNumber()
-                let results = models.toResult(await api.getStateProofAndHash(session.input, step))
-                claimData.stepResponses[step] = results;
-                fs.writeFile(claimCachePath+claimData.claimID+'.json', JSON.stringify(claimData), (err) => { if(err) console.log(err)})
-                await api.respond(sessionId, step, results.stateHash, {from: claim.claimant})
->>>>>>> claimant integration test runs with dummy doge relay
               }
             }
           }

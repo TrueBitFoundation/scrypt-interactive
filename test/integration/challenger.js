@@ -70,9 +70,18 @@ describe('Challenger Client Integration Tests', function () {
     })
 
     it('should start monitoring claims', async () => {
+<<<<<<< 6ce99691f9adcac3ad8485cf987cc20d4c254c7a
       // eslint-disable-next-line
       const stopper = new Promise((resolve) => stopMonitor = resolve)
       monitor = bridge.monitorClaims(console, challenger, stopper, true, true)
+=======
+      await new Promise(async (resolve ,reject) => {
+        await timeout(1000)
+        bridge.monitorClaims(console, challenger, true, true)
+        await timeout(2000)
+        resolve()
+      })
+>>>>>>> Challenger integration test passing
     })
 
     it('should query to normal case medHash==0x0', async () => {
@@ -80,7 +89,7 @@ describe('Challenger Client Integration Tests', function () {
       for (let i = 0; i < 11; i++) {
 =======
 
-      await timeout(2000)
+      await timeout(3000)
 
       for(i = 0; i < 11; i++) {
         bridge.api.scryptVerifier.NewQuery({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
