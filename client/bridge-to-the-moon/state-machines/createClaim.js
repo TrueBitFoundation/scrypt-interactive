@@ -19,7 +19,7 @@ const saveClaimData = async (claimData) => {
 
 module.exports = (web3, api) => ({
   run: async (cmd, claim, initClaimData = null) =>
-    new Promise(async (resolve, reject) => {
+    new Promise(async (resolveClaim, reject) => {
       let claimantConvictedEvent, queryEvent
       let claimData = initClaimData || { stepResponses: {} }
 
@@ -84,7 +84,19 @@ module.exports = (web3, api) => ({
                   if(result) resolve()
                 })
               }),
-              new Promise(async (resolve, reject) => {
+              new Promise(async (resolve, reject) => {//Expected to resolve all times besides losing
+                let ready 
+                while(!ready) {
+                  await timeout(10000)//wait 10 seconds
+                  ready = await api.claimManager.getClaimReady.call(claimData.claimID)
+                }
+                //breaks out of loop and finishes claim
+                console.log("Finishing claim")
+                await api.claimManager.checkClaimSuccessful(claimData.claimID, {from: claim.claimant})
+                await timeout(1000)
+                resolve()
+              }),
+              new Promise(async (resolve, reject) => {//Don't expect this to ever resolve
                 queryEvent.watch(async (err, result) => {
                   if (err) {
                     return reject(err)
@@ -125,20 +137,20 @@ module.exports = (web3, api) => ({
                       postState = postStateAndProof.state
                       proof = postStateAndProof.proof || '0x00'
                       await api.scryptVerifier.performStepVerification(sessionId, claimData.claimID, preState, postState, proof, api.claimManager.address, { from: claim.claimant, gas: 3000000 })
+                      await timeout(1000)
                     }
-
-                    //should resolve after 100 blocks of unchallenged?
-                    //resolve()
                   }
                 })
               })
             ])
-          },
-          onAfterDefend: async (tsn) => {
+
+            //Tidy up claim and kill promise
             claimantConvictedEvent.stopWatching()
             queryEvent.stopWatching()
-            resolve()
+            console.log("Finishing claim")
+            resolveClaim()
           },
+          //Used for initializing after hard reboot
           onSkipCreate: async (tsn) => {
             let challengers = (await api.claimManager.getChallengers(claimData.claimID)).toNumber()
             for (challenger in challengers) {
