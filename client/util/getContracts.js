@@ -2,7 +2,7 @@ const promisify = require('es6-promisify')
 const path = require('path')
 const readFile = promisify(require('fs').readFile)
 
-const abisLocation = process.env.BTTM_ABI_LOCATION || '../../../build/contracts'
+const abisLocation = process.env.BTTM_ABI_LOCATION || '../../build/contracts'
 const abiPath = (name) => path.resolve(__dirname, abisLocation, `${name}.json`)
 const getAbi = async (name) => JSON.parse(await readFile(abiPath(name), 'utf8')).abi
 

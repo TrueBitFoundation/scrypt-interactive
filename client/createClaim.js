@@ -6,9 +6,9 @@ const promisify = require('es6-promisify')
 const writeFile = promisify(fs.writeFile, fs)
 const mkdirp = promisify(require('mkdirp'))
 
-const BlockEmitter = require('../util/blockemitter')
-const waitForEvent = require('../util/waitForEvent')
-const timeout = require('../util/timeout')
+const BlockEmitter = require('./util/blockemitter')
+const waitForEvent = require('./util/waitForEvent')
+const timeout = require('./util/timeout')
 
 const claimCachePath = path.resolve(__dirname, '../../cache/claims')
 
