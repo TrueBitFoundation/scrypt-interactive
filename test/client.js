@@ -1,8 +1,10 @@
 const dataFormatter = require('./helpers/dataFormatter')
 const offchain = require('./helpers/offchain')
+const timeout = require('./helpers/timeout')
 
 const ClaimManager = artifacts.require('ClaimManager')
 const ScryptVerifier = artifacts.require('ScryptVerifier')
+const DogeRelay = artifacts.require('DogeRelay')
 
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'))
@@ -12,15 +14,15 @@ contract('ClaimManager', function (accounts) {
   const claimDeposit = 1
 
   const [
-    dogeRelayAddress,
+    dogeRelaySetter,
     claimant,
-    otherClaimant,
     challenger,
   ] = accounts
 
   let claimManager,
     scryptVerifier,
-    scryptRunner
+    scryptRunner, 
+    dogeRelay
   let claimID, sessionId
   let tx, session, result, log, deposit
 
@@ -32,31 +34,19 @@ contract('ClaimManager', function (accounts) {
       scryptRunner = await offchain.scryptRunner()
       scryptVerifier = await ScryptVerifier.new()
       claimManager = await ClaimManager.new(scryptVerifier.address)
-      await claimManager.setDogeRelay(dogeRelayAddress, { from: dogeRelayAddress })
+      dogeRelay = await DogeRelay.new(claimManager.address)
+      await claimManager.setDogeRelay(dogeRelay.address, { from: accounts[0] })
     })
 
     it('claimant checks scrypt, after implicitly making a deposit', async () => {
-      try {
-        tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, otherClaimant, 'bar', { from: dogeRelayAddress, value: claimDeposit })
-        log = tx.logs.find(l => l.event === 'ClaimCreated')
-        claimID = log.args.claimID.toNumber()
-      } catch (e) {
-        console.log(e)
-      }
-      deposit = await claimManager.getBondedDeposit.call(claimID, otherClaimant, { from: claimant })
-      assert.equal(deposit.toNumber(), claimDeposit)
-    })
+      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, testScryptHash, claimant, 'bar', {from: claimant, value: claimDeposit})
 
-    it('claimant checks scrypt, after explicitely making a deposit', async () => {
-      await claimManager.makeDeposit({ from: claimant, value: claimDeposit })
+      claimID = await new Promise((resolve, reject) => {
+        claimManager.ClaimCreated({}, {fromBlock: 0, toBlock: 'latest'}).get((err, result) => {
+          resolve(result[0].args.claimID.toNumber())
+        })
+      })
 
-      try {
-        tx = await claimManager.checkScrypt(serializedBlockHeader, testScryptHash, claimant, 'foo', { from: dogeRelayAddress })
-        log = tx.logs.find(l => l.event === 'ClaimCreated')
-        claimID = log.args.claimID.toNumber()
-      } catch (e) {
-        console.log(e)
-      }
       deposit = await claimManager.getBondedDeposit.call(claimID, claimant, { from: claimant })
       assert.equal(deposit.toNumber(), claimDeposit)
     })
@@ -89,7 +79,7 @@ contract('ClaimManager', function (accounts) {
       // console.log("Session after first query: \n", session, "\n")
 
       // claimant responds to first query.
-      results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep, { from: claimant }))
+      results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep))
       tx = await scryptVerifier.respond(sessionId, session.medStep, results.stateHash, { from: claimant })
       session = dataFormatter.newSession(await scryptVerifier.getSession.call(sessionId))
       // console.log("Session after first response: \n", session, "\n")
@@ -130,8 +120,13 @@ contract('ClaimManager', function (accounts) {
 
     it('waits for timeout of block number when claim is decided', async () => {
       await new Promise(async (resolve, reject) => {
+<<<<<<< 436eeccaec32a2bc876379bb7a2e73bcfdcb17ff
         for (i = 0; i < 50; i++) {
           web3.currentProvider.send({ jsonrpc: '2.0', method: 'evm_mine', params: [], id: 0 })
+=======
+        for(i = 0; i<20; i++) {
+          web3.currentProvider.send({jsonrpc: "2.0", method: "evm_mine", params: [], id: 0})
+>>>>>>> Check claim successful works after setting up dummy DogeRelay contract
         }
         resolve()
       })
@@ -144,19 +139,27 @@ contract('ClaimManager', function (accounts) {
       })
     })
 
-    it('checks bonded deposits', async () => {
-      // check that the loser's deposits were transferred to the winner.
-      deposit = await claimManager.getBondedDeposit.call(claimID, claimant, { from: claimant })
+    it('should check if claim successful', async () => {
+      await claimManager.checkClaimSuccessful(claimID, {from: claimant})
+
+      claimManager.ClaimSuccessful({}, {fromBlock: 0, toBlock: 'latest'}).get((err, result) => {
+        assert.equal(claimID, result[0].args.claimID.toNumber())
+      })
+
+    })
+
+    it('checks claimant refunded deposit', async () => {
+      deposit = await claimManager.getDeposit.call(claimant, { from: claimant })
       assert.equal(deposit.toNumber(), 2 * claimDeposit)
+    })
+
+    it('checks challenger bonded deposits', async () => {
+      // check that the loser's deposits were transferred to the winner.
       deposit = await claimManager.getBondedDeposit.call(claimID, challenger, { from: challenger })
       assert.equal(deposit.toNumber(), 0)
     })
 
-    it('checks unbonded deposits', async () => {
-      // Check that participants can unbond their deposit
-      await claimManager.unbondDeposit(claimID, claimant, { from: claimant })
-      deposit = await claimManager.getDeposit.call(claimant, { from: claimant })
-      assert.equal(deposit.toNumber(), 2 * claimDeposit)
+    it('checks challenger unbond deposits', async () => {
       await claimManager.unbondDeposit(claimID, challenger, { from: challenger })
       deposit = await claimManager.getDeposit.call(challenger, { from: challenger })
       assert.equal(deposit.toNumber(), 0)
