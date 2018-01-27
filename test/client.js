@@ -129,6 +129,8 @@ contract('ClaimManager', function (accounts) {
       // trigger claim decided
       await claimManager.runNextVerificationGame(claimID, { from: claimant })
 
+      assert.equal(true, await claimManager.getClaimReady.call(claimID))
+
       claimManager.ClaimVerificationGamesEnded({}, { fromBlock: 0, toBlock: 'latest' }).get((err, result) => {
         assert.equal(claimID, result[0].args.claimID.toNumber())
       })

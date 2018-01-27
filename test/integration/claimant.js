@@ -97,24 +97,41 @@ describe('Challenger Client Integration Tests', function () {
 
       await timeout(2000)
 
-      for (let i = 0; i < 11; i++) {
-        await timeout(4000)
-        const result = await getAllEvents(bridge.api.scryptVerifier, 'NewResponse')
+      await new Promise(async (resolve, reject) => {
+        for (let i = 0; i < 11; i++) {
+          await timeout(4000)
+          const result = await getAllEvents(bridge.api.scryptVerifier, 'NewResponse')
+  
+          result.length.should.be.gt(0)
+  
+          let sessionId = result[0].args.sessionId.toNumber()
+          let _challenger = result[0].args.challenger
+          assert.equal(_challenger, challenger)
+  
+          let session = await bridge.api.getSession(sessionId)
+          // let step = session.medStep.toNumber()
+          // let highStep = session.highStep.toNumber()
+          // let lowStep = session.lowStep.toNumber()
+  
+          let medStep = calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())
+          console.log("Querying: " + medStep)
+          await bridge.api.query(sessionId, medStep, { from: challenger })
+        }
+        resolve()
+      })
 
-        result.length.should.be.gt(0)
+      await timeout(3000)
+    })
 
-        let sessionId = result[0].args.sessionId.toNumber()
-        let _challenger = result[0].args.challenger
-        assert.equal(_challenger, challenger)
+    it('should wait for timeout and finish claim', async () => {
+      await new Promise(async (resolve, reject) => {
+        for(i = 0; i<20; i++) {
+          web3.currentProvider.send({jsonrpc: "2.0", method: "evm_mine", params: [], id: 0})
+        }
+        resolve()
+      })
 
-        let session = await bridge.api.getSession(sessionId)
-        // let step = session.medStep.toNumber()
-        // let highStep = session.highStep.toNumber()
-        // let lowStep = session.lowStep.toNumber()
-
-        let medStep = calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())
-        await bridge.api.query(sessionId, medStep, { from: challenger })
-      }
+      console.log("Finished mining blocks")
     })
   })
 })

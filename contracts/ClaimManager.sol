@@ -281,4 +281,9 @@ contract ClaimManager is DepositsManager {
   function getVerificationOngoing(uint claimID) public view returns(bool) {
     return claims[claimID].verificationOngoing;
   }
+
+  function getClaimReady(uint claimID) public view returns(bool) {
+    ScryptClaim storage claim = claims[claimID];
+    return block.number > claim.challengeTimeoutBlockNumber && claim.decided;
+  }
 }
