@@ -15,7 +15,7 @@ contract DogeRelay {
 		ScryptVerified(proposalId);
 	}
 
-	function verifyScrypt(bytes _plaintext, bytes _blockHash, address claimant, bytes32 proposalId) public payable {
-		ClaimManager(claimManager).checkScrypt.value(msg.value)(_plaintext, _blockHash, claimant, proposalId);
+	function verifyScrypt(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) public payable {
+		ClaimManager(claimManager).checkScrypt.value(msg.value)(_plaintext, _hash, claimant, proposalId);
 	}
 }
