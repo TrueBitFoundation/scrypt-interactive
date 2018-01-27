@@ -120,13 +120,8 @@ contract('ClaimManager', function (accounts) {
 
     it('waits for timeout of block number when claim is decided', async () => {
       await new Promise(async (resolve, reject) => {
-<<<<<<< 436eeccaec32a2bc876379bb7a2e73bcfdcb17ff
-        for (i = 0; i < 50; i++) {
-          web3.currentProvider.send({ jsonrpc: '2.0', method: 'evm_mine', params: [], id: 0 })
-=======
         for(i = 0; i<20; i++) {
           web3.currentProvider.send({jsonrpc: "2.0", method: "evm_mine", params: [], id: 0})
->>>>>>> Check claim successful works after setting up dummy DogeRelay contract
         }
         resolve()
       })
