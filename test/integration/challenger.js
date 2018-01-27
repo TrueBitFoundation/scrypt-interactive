@@ -18,6 +18,7 @@ const serializedBlockHeader = '030162002adb34dfa6574cf127a781ecb9683ca28f911a590
 const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2bd6e5682'
 
 const timeout = require('../helpers/timeout')
+const models = require(__dirname + '/../../client/bridge-to-the-moon/util/models')
 
 describe('Challenger Client Integration Tests', function () {
   // set max timeout to 120 seconds
@@ -70,43 +71,16 @@ describe('Challenger Client Integration Tests', function () {
     })
 
     it('should start monitoring claims', async () => {
-<<<<<<< 6ce99691f9adcac3ad8485cf987cc20d4c254c7a
       // eslint-disable-next-line
       const stopper = new Promise((resolve) => stopMonitor = resolve)
       monitor = bridge.monitorClaims(console, challenger, stopper, true, true)
-=======
-      await new Promise(async (resolve ,reject) => {
-        await timeout(1000)
-        bridge.monitorClaims(console, challenger, true, true)
-        await timeout(2000)
-        resolve()
-      })
->>>>>>> Challenger integration test passing
     })
 
     it('should query to normal case medHash==0x0', async () => {
-<<<<<<< cc3e5a2a6dfb64ae67e897d426ddbca6a297ad0d
-      for (let i = 0; i < 11; i++) {
-=======
 
       await timeout(3000)
 
       for(i = 0; i < 11; i++) {
-        bridge.api.scryptVerifier.NewQuery({}, { fromBlock: 0, toBlock: 'latest' }).get(async (err, result) => {
-          let sessionId = result[0].args.sessionId.toNumber()
-          let _claimant = result[0].args.claimant
-          assert.equal(_claimant, claimant)
-  
-          let session = await bridge.api.getSession(sessionId)
-          let step = session.medStep.toNumber()
-          let highStep = session.highStep.toNumber()
-          let lowStep = session.lowStep.toNumber()
-  
-          let results = models.toResult(await bridge.api.getStateProofAndHash(session.input, step))
-  
-          await bridge.api.respond(sessionId, step, results.stateHash, {from: claimant})
-        })
->>>>>>> claimant integration test runs with dummy doge relay
         await timeout(5000)
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
         result.length.should.be.gt(0)
