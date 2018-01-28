@@ -80,27 +80,30 @@ describe('Challenger Client Integration Tests', function () {
 
       await timeout(3000)
 
-      await new Promise(async (resolve, reject) => {
-        for(i = 0; i < 11; i++) {
-          await timeout(5000)
-          const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
-          result.length.should.be.gt(0)
-  
-          let sessionId = result[0].args.sessionId.toNumber()
-          let _claimant = result[0].args.claimant
-          assert.equal(_claimant, claimant)
-  
-          let session = await bridge.api.getSession(sessionId)
-          let step = session.medStep.toNumber()
-          // let highStep = session.highStep.toNumber()
-          // let lowStep = session.lowStep.toNumber()
-  
+      let verificationGameOngoing = true
+      while(verificationGameOngoing) {//verification game ongoing
+        await timeout(5000)
+        const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
+        result.length.should.be.gt(0)
+
+        let sessionId = result[0].args.sessionId.toNumber()
+        let _claimant = result[0].args.claimant
+        assert.equal(_claimant, claimant)
+
+        let session = await bridge.api.getSession(sessionId)
+        let step = session.medStep.toNumber()
+        let highStep = session.highStep.toNumber()
+        let lowStep = session.lowStep.toNumber()
+        console.log("low step: " + lowStep + " | high step: " + highStep)
+
+        if (lowStep + 1 == highStep) {
+          verificationGameOngoing = false
+        } else {
           let results = await bridge.api.getResult(session.input, step)
-  
+
           await bridge.api.respond(sessionId, step, results.stateHash, { from: claimant })
         }
-        resolve()
-      })
+      }
     })
 
     it('should query special case medHash!=0x0', async () => {
