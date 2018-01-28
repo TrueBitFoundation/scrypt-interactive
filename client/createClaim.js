@@ -174,6 +174,7 @@ module.exports = (web3, api) => ({
         }
       })
 
+      //FSM high level transitions
       if (await m.start()) {
         await m.skipCreate()
       } else {
