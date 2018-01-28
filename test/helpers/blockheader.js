@@ -1,0 +1,5 @@
+module.exports = {
+  // eslint-disable-next-line max-len
+  serializedBlockHeader: '0x03000000c63abe4881f9c765925fffb15c88cdb861e86a32f4c493a36c3e29c54dc62cf45ba4401d07d6d760e3b84fb0b9222b855c3b7c04a174f17c6e7df07d472d0126fe455556358c011b6017f799',
+  scryptHash: '0x3569d4c55c658997830bce8f904bf4cb74e63cfcc8e1037a5fab030000000000',
+}

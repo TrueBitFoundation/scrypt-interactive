@@ -1,38 +1,36 @@
-'use strict';
-
 module.exports = (sequelize, DataTypes) => {
   var Claim = sequelize.define('Claim', {
     claimID: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
     },
     input: {
-      type: DataTypes.TEXT
+      type: DataTypes.TEXT,
     },
     hash: {
-      type: DataTypes.TEXT
+      type: DataTypes.TEXT,
     },
     claimant: {
       allowNull: false,
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
     },
     claimCreatedAt: {
-      type: DataTypes.INTEGER
+      type: DataTypes.INTEGER,
     },
     state: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
     },
     proposalID: {
-      type: DataTypes.STRING
-    }
+      type: DataTypes.STRING,
+    },
   }, {
     classMethods: {
-      associate: function(models) {
+      associate: function (models) {
         Claim.hasMany(models.StepResponse)
-      }
+      },
     },
     tableName: 'claims',
-    underscored: true
-  });
+    underscored: true,
+  })
 
-  return Claim;
-};
+  return Claim
+}

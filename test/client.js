@@ -1,51 +1,49 @@
+require('dotenv').config()
+require('./helpers/chai').should()
+web3.eth.defaultAccount = web3.eth.accounts[0]
+
+const miner = require('./helpers/miner')(web3)
 const dataFormatter = require('./helpers/dataFormatter')
-const offchain = require('./helpers/offchain')
-const timeout = require('./helpers/timeout')
+const getContracts = require('../client/util/getContracts')
+const getAllEvents = require('./helpers/events').getAllEvents
 
-const ClaimManager = artifacts.require('ClaimManager')
-const ScryptVerifier = artifacts.require('ScryptVerifier')
-const DogeRelay = artifacts.require('DogeRelay')
+const {
+  serializedBlockHeader,
+  scryptHash,
+} = require('./helpers/blockheader')
 
-const Web3 = require('web3')
-const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'))
+describe('ClaimManager', function () {
+  this.timeout(120000)
 
-contract('ClaimManager', function (accounts) {
-  const steps = 2050
-  const claimDeposit = 1
-
-  const [
-    dogeRelaySetter,
-    claimant,
-    challenger,
-  ] = accounts
-
+  let claimant, challenger
   let claimManager,
     scryptVerifier,
-    scryptRunner, 
+    scryptRunner,
     dogeRelay
-  let claimID, sessionId
-  let tx, session, result, log, deposit
-
-  const serializedBlockHeader = '0x030162002adb34dfa6574cf127a781ecb9683ca28f911a59020628c90c72b4a3d9942233a3b905b2388b020085dbd9e03209db4493f5420336d882d0b78b54f728b8f90058f7115a2c83221a00000000'
-  const testScryptHash = '0xce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2bd6e5682'
+  let claimID, sessionId, claimDeposit
+  let tx, session, log, deposit
 
   context('normal conditions', function () {
     before(async () => {
-      scryptRunner = await offchain.scryptRunner()
-      scryptVerifier = await ScryptVerifier.new()
-      claimManager = await ClaimManager.new(scryptVerifier.address)
-      dogeRelay = await DogeRelay.new(claimManager.address)
-      await claimManager.setDogeRelay(dogeRelay.address, { from: accounts[0] })
+      const c = await (await getContracts(web3)).deploy()
+      claimManager = c.claimManager
+      scryptVerifier = c.scryptVerifier
+      scryptRunner = c.scryptRunner
+      dogeRelay = c.dogeRelay
+
+      claimDeposit = (await claimManager.minDeposit()).toNumber()
+
+      claimant = web3.eth.accounts[1]
+      challenger = web3.eth.accounts[2]
     })
 
     it('claimant checks scrypt, after implicitly making a deposit', async () => {
-      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, testScryptHash, claimant, 'bar', {from: claimant, value: claimDeposit})
+      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, claimant, 'bar', { from: claimant, value: claimDeposit })
 
-      claimID = await new Promise((resolve, reject) => {
-        claimManager.ClaimCreated({}, {fromBlock: 0, toBlock: 'latest'}).get((err, result) => {
-          resolve(result[0].args.claimID.toNumber())
-        })
-      })
+      const results = await getAllEvents(claimManager, 'ClaimCreated')
+      results.length.should.be.gt(0)
+
+      claimID = results[0].args.claimID.toNumber()
 
       deposit = await claimManager.getBondedDeposit.call(claimID, claimant, { from: claimant })
       assert.equal(deposit.toNumber(), claimDeposit)
@@ -53,10 +51,11 @@ contract('ClaimManager', function (accounts) {
 
     it('challenger challenges', async () => {
       await claimManager.makeDeposit({ from: challenger, value: claimDeposit })
+
       tx = await claimManager.challengeClaim(claimID, { from: challenger })
       // check that the challenger's deposits were bonded.
       deposit = await claimManager.getBondedDeposit.call(claimID, challenger, { from: challenger })
-      assert.equal(deposit.toNumber(), claimDeposit)
+      deposit.should.be.bignumber.gte(claimDeposit)
     })
 
     it('begins verification game', async () => {
@@ -79,7 +78,7 @@ contract('ClaimManager', function (accounts) {
       // console.log("Session after first query: \n", session, "\n")
 
       // claimant responds to first query.
-      results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep))
+      let results = dataFormatter.newResult(await scryptRunner.getStateProofAndHash.call(session.input, session.medStep))
       tx = await scryptVerifier.respond(sessionId, session.medStep, results.stateHash, { from: claimant })
       session = dataFormatter.newSession(await scryptVerifier.getSession.call(sessionId))
       // console.log("Session after first response: \n", session, "\n")
@@ -108,58 +107,47 @@ contract('ClaimManager', function (accounts) {
       log = tx.logs.find(l => l.event === 'ClaimantConvicted')
       assert.equal(log, undefined)
 
-      // check that the callback to ClaimManager went through.
-      const sessionDecidedEvent = claimManager.SessionDecided({ fromBlock: 0, toBlock: 'latest' })
-      sessionDecidedEvent.watch((err, resp) => {
-        assert.equal(sessionDecidedEvent.args.sessionId, sessionId)
-        assert.equal(sessionDecidedEvent.args.winner, claimant)
-        assert.equal(sessionDecidedEvent.args.loser, challenger)
-      })
-      sessionDecidedEvent.stopWatching()
+      const result = await getAllEvents(claimManager, 'SessionDecided')
+      result[0].args.sessionId.should.be.bignumber.eq(sessionId)
+      result[0].args.winner.should.be.bignumber.eq(claimant)
+      result[0].args.loser.should.be.bignumber.eq(challenger)
     })
 
     it('waits for timeout of block number when claim is decided', async () => {
-      await new Promise(async (resolve, reject) => {
-        for(i = 0; i<20; i++) {
-          web3.currentProvider.send({jsonrpc: "2.0", method: "evm_mine", params: [], id: 0})
-        }
-        resolve()
-      })
+      await miner.mineBlocks(21)
 
       // trigger claim decided
       await claimManager.runNextVerificationGame(claimID, { from: claimant })
 
-      assert.equal(true, await claimManager.getClaimReady.call(claimID))
+      const isReady = await claimManager.getClaimReady.call(claimID)
+      isReady.should.eq(true)
 
-      claimManager.ClaimVerificationGamesEnded({}, { fromBlock: 0, toBlock: 'latest' }).get((err, result) => {
-        assert.equal(claimID, result[0].args.claimID.toNumber())
-      })
+      const result = await getAllEvents(claimManager, 'ClaimVerificationGamesEnded')
+      result[0].args.claimID.should.be.bignumber.eq(claimID)
     })
 
     it('should check if claim successful', async () => {
-      await claimManager.checkClaimSuccessful(claimID, {from: claimant})
+      await claimManager.checkClaimSuccessful(claimID, { from: claimant })
 
-      claimManager.ClaimSuccessful({}, {fromBlock: 0, toBlock: 'latest'}).get((err, result) => {
-        assert.equal(claimID, result[0].args.claimID.toNumber())
-      })
-
+      const result = await getAllEvents(claimManager, 'ClaimSuccessful')
+      result[0].args.claimID.should.be.bignumber.eq(claimID)
     })
 
     it('checks claimant refunded deposit', async () => {
       deposit = await claimManager.getDeposit.call(claimant, { from: claimant })
-      assert.equal(deposit.toNumber(), 2 * claimDeposit)
+      deposit.should.be.bignumber.eq(2 * claimDeposit)
     })
 
     it('checks challenger bonded deposits', async () => {
       // check that the loser's deposits were transferred to the winner.
       deposit = await claimManager.getBondedDeposit.call(claimID, challenger, { from: challenger })
-      assert.equal(deposit.toNumber(), 0)
+      deposit.should.be.bignumber.eq(0)
     })
 
     it('checks challenger unbond deposits', async () => {
       await claimManager.unbondDeposit(claimID, challenger, { from: challenger })
       deposit = await claimManager.getDeposit.call(challenger, { from: challenger })
-      assert.equal(deposit.toNumber(), 0)
+      deposit.should.be.bignumber.eq(0)
     })
   })
 })

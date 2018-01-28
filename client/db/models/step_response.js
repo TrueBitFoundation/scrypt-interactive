@@ -1,38 +1,37 @@
-'use strict';
+
 module.exports = (sequelize, DataTypes) => {
   var StepResponse = sequelize.define('StepResponse', {
     claim_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: 'claims', key: 'id'}
+      references: { model: 'claims', key: 'id' },
     },
     sessionID: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: false,
     },
     step: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: false,
     },
     state: {
-      type: DataTypes.TEXT
+      type: DataTypes.TEXT,
     },
     stateHash: {
-      type: DataTypes.TEXT
+      type: DataTypes.TEXT,
     },
     proof: {
-      type: DataTypes.TEXT
-    }
+      type: DataTypes.TEXT,
+    },
   }, {
     classMethods: {
-      associate: function(models) {
+      associate: function (models) {
         StepResponse.belongsTo(models.Claim)
-      }
+      },
     },
     tableName: 'step_responses',
-    underscored: true
-  });
+    underscored: true,
+  })
 
-  return StepResponse;
-};
-
+  return StepResponse
+}

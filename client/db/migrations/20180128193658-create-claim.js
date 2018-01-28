@@ -1,4 +1,4 @@
-'use strict';
+
 module.exports = {
   up: (queryInterface, Sequelize) => {
     return queryInterface.createTable('claims', {
@@ -6,41 +6,41 @@ module.exports = {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
       },
       claimID: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
       },
       input: {
-        type: Sequelize.TEXT
+        type: Sequelize.TEXT,
       },
       hash: {
-        type: Sequelize.TEXT
+        type: Sequelize.TEXT,
       },
       claimant: {
         allowNull: false,
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
       },
       claimCreatedAt: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
       },
       state: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
       },
       proposalID: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
       },
       created_at: {
         allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
       },
       updated_at: {
         allowNull: false,
-        type: Sequelize.DATE
-      }
-    });
+        type: Sequelize.DATE,
+      },
+    })
   },
   down: (queryInterface, Sequelize) => {
-    return queryInterface.dropTable('claims');
-  }
-};
+    return queryInterface.dropTable('claims')
+  },
+}

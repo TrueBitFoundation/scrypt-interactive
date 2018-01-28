@@ -18,4 +18,4 @@ install:
   - bash ./bin/travis-install.sh
 
 script:
-  - bash ./bin/run.sh
+  - bash ./bin/test.sh

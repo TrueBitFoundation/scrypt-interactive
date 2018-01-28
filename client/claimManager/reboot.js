@@ -1,7 +1,7 @@
 
 // TODO: this file is not being used.
 
-// module.exports = async (api, claim) => {
+// module.exports = async (cmd, api, claim) => {
 //   let challengers = (await api.claimManager.getChallengers(claim.claimID)).toNumber()
 //   for (challenger in challengers) {
 //     let sessionId = (await api.claimManager.getSession.call(claim.claimID, challenger)).toNumber()

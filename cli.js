@@ -29,7 +29,7 @@ const doThenExit = async (promise) => {
     await promise
     process.exit(0)
   } catch (error) {
-    console.error(error)
+    console.error(error.stack)
     process.exit(1)
   }
 }
@@ -49,38 +49,50 @@ const main = async () => {
     .command('status')
     .description('Display the status of the bridge.')
     .action(async function () {
-      const status = async () => {
+      const status = async (cmd) => {
         try {
           const deposited = await bridge.api.getDeposit(operator)
+          const balance = await web3.eth.getBalance(operator)
+          const minDeposit = await bridge.api.getMinDeposit()
 
-          console.log(`Deposited: ${web3.fromWei(deposited, 'ether')} ETH`)
+          cmd.log(`I am: ${operator}`)
+          cmd.log(`I have: ${web3.fromWei(balance, 'ether')} ETH`)
+          cmd.log(`Deposited: ${web3.fromWei(deposited, 'ether')} ETH`)
+          cmd.log(`minDeposit: ${web3.fromWei(minDeposit, 'ether')} ETH`)
         } catch (error) {
-          console.log(`Unable to connect to bridge: ${error.stack}`)
+          cmd.log(`Unable to connect to bridge: ${error.stack}`)
         }
       }
-      await doThenExit(status())
+      await doThenExit(status(cmd))
     })
 
   program
     .command('claim <blockheader> <hash>')
     .description('Claim a blockheader on the DogeRelay')
-    .action(async function (blockheader, hash) {
+    .option('-d, --auto-deposit', `
+      Automaticaly deposit ETH if we haven't deposited enough to challenge.
+      Only applies when challenging (--challenge)
+    `)
+    .action(async function (blockheader, hash, options) {
       const claim = {
         claimant: operator,
-        serializedBlockHeader: blockheader,
-        scryptHash: hash,
+        input: blockheader,
+        hash: hash,
+        proposalID: 'foobar',
       }
 
+      const autoDeposit = !!options.autoDeposit
+
       await doThenExit(
-        bridge.createClaim(cmd, claim)
+        bridge.submitClaim(cmd, claim, stopper, autoDeposit)
       )
     })
 
   program
     .command('monitor')
     .description('Monitors the Doge-Eth bridge and validates blockheader claims.')
-    .option('-c, --challenge', 'Challenge incorrect claims.')
-    .option('-d, --deposit', `
+    .option('-c, --auto-challenge', 'Automatically challenge incorrect claims.')
+    .option('-d, --auto-deposit', `
       Automaticaly deposit ETH if we haven't deposited enough to challenge.
       Only applies when challenging (--challenge)
     `)
@@ -88,8 +100,8 @@ const main = async () => {
       await doThenExit(bridge.monitorClaims(cmd,
         operator,
         stopper,
-        !!options.challenge,
-        !!options.deposit
+        !!options.autoChallenge,
+        !!options.autoDeposit
       ))
     })
 

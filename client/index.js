@@ -1,43 +1,27 @@
-const promisify = require('es6-promisify')
-const fs = require('fs')
-const readdir = promisify(fs.readdir, fs)
 const lc = require('litecore-lib')
 const getContracts = require('./util/getContracts')
 
+const db = require('./db/models')
 const claimManager = require('./claimManager')
 
-module.exports = async function(web3, _contracts) {
-
-  let contracts = await getContracts(web3)
-
-  // TODO: why are we overwriting these, if just assigned above?
-  // because web3 clients not properly configured yet
-  contracts.scryptVerifier = _contracts.scryptVerifier
-  contracts.claimManager = _contracts.claimManager
-  contracts.scryptRunner = _contracts.scryptRunner
-  contracts.dogeRelay = _contracts.dogeRelay
+module.exports = async (web3, _contracts = null) => {
+  const contracts = _contracts || await (await getContracts(web3)).deployed()
 
   const api = await require('./api')(contracts, web3)
   const challengeClaim = require('./challengeClaim')(web3, api)
 
   return {
     api,
-    //In case of reboot
-    initClaimant: async (cmd) => {
-      for (file in await readdir('./claims')) {
-        const claimData = JSON.parse(await readFile(`./claims/${file}`))
-        createClaim.run(cmd, claimData.claim, claimData)
+    submitClaim: async (cmd, claimData, stopper, autoDeposit = false) => {
+      const fn = async () => {
+        const claim = await db.Claim.create(claimData)
+        await claimManager.submit(cmd, api, claim, autoDeposit)
+        await claimManager.defend(cmd, api, claim)
       }
-    },
-    submitClaim: async (cmd, claim) => {
-      await claimManager.submit(api, claim);
-      await claimManager.defend(api, claim);
-    },
-    initChallenges: async (cmd, claim) => {
-      for (file in await readdir('./challenges')) {
-        const challengeData = JSON.parse(await readFile(`./challenges/${file}`))
-        challengeClaim.run(cmd, challengeData)
-      }
+      await Promise.race([
+        stopper,
+        fn(),
+      ])
     },
     monitorClaims: async (cmd, challenger, stopper, autoChallenge = false, autoDeposit = false) => {
       return new Promise(async (resolve, reject) => {
@@ -45,9 +29,13 @@ module.exports = async function(web3, _contracts) {
 
         try {
           cmd.log('Monitoring for claims...')
-          // first, monitor all ClaimCreated events from claimManager
           const claimCreatedEvents = api.claimManager.ClaimCreated()
           claimCreatedEvents.watch(async (error, result) => {
+            debugger
+            if (error) {
+              console.log(error)
+              throw error
+            }
 
             const claim = {
               id: result.args.claimID.toNumber(),
@@ -67,12 +55,11 @@ module.exports = async function(web3, _contracts) {
               )
             `)
 
-            let scryptHash = lc.crypto.Hash.scrypt(Buffer(claim.plaintext, 'hex')).toString('hex')
-            if (scryptHash != claim.blockHash) {
+            let scryptHash = lc.crypto.Hash.scrypt(Buffer.from(claim.plaintext, 'hex')).toString('hex')
+            if (scryptHash !== claim.blockHash) {
               cmd.log('Proof of Work: INVALID')
 
               if (!autoChallenge) {
-                // @TODO(shrugs) - prompt for challenge confirmation
                 cmd.log('...but not configured to challenge, ignoring.')
                 return
               }
@@ -82,28 +69,25 @@ module.exports = async function(web3, _contracts) {
               //   (we'll await on these promises down the line)
               // this promise also always resolves positively
               // so that Promise.all works correctly
-              if(!(claim.id in inProgressClaims)) {
-                inProgressClaims[claim.id] = challengeClaim.run(cmd, claim, challenger, autoDeposit)
-                .then(() => {
-                  cmd.log(`Finished Challenging Claim: ${claim.id}`)
-                })
-                .catch((err) => {
-                  cmd.log('Bridge Error --------------------------')
-                  cmd.log(`Finished Challenging Claim: ${claim.id}`)
-                  cmd.log(err)
-                })
-                .then(() => {
-                  return Promise.resolve()
-                })
+              if (!(claim.id in inProgressClaims)) {
+                inProgressClaims[claim.id] = challengeClaim
+                  .run(cmd, claim, challenger, autoDeposit)
+                  .then(() => {
+                    cmd.log(`Finished Challenging Claim: ${claim.id}`)
+                  })
+                  .catch((err) => {
+                    cmd.log('Bridge Error --------------------------')
+                    cmd.log(`Finished Challenging Claim: ${claim.id}`)
+                    cmd.log(err)
+                  })
+                  .then(() => {
+                    return Promise.resolve()
+                  })
               }
             } else {
               cmd.log('Proof of Work: Valid')
             }
           })
-          // claimCreatedEvents.on('error', (error) => {
-          //   claimCreatedEvents.unsubscribe()
-          //   reject(error)
-          // })
 
           // wait for an external stop
           await stopper
@@ -112,8 +96,8 @@ module.exports = async function(web3, _contracts) {
           claimCreatedEvents.stopWatching()
 
           // wait for exisiting claims to finish
-          //TODO: inProgressClaims is an object not an array anymore
-          //await Promise.all(inProgressClaims)
+          // TODO: inProgressClaims is an object not an array anymore
+          // await Promise.all(inProgressClaims)
 
           // resolve self
           resolve()

@@ -6,5 +6,5 @@ const defend = require('./defend')
 module.exports = {
   computeStep: computeStep,
   submit: submit,
-  defend: defend
+  defend: defend,
 }

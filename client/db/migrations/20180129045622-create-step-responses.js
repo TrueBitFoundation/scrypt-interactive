@@ -1,4 +1,4 @@
-'use strict';
+
 module.exports = {
   up: (queryInterface, Sequelize) => {
     return queryInterface.createTable('step_responses', {
@@ -6,41 +6,41 @@ module.exports = {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
       },
       claim_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: 'claims', key: 'id'}
+        references: { model: 'claims', key: 'id' },
       },
       sessionID: {
         type: Sequelize.INTEGER,
-        allowNull: false
+        allowNull: false,
       },
       step: {
         type: Sequelize.INTEGER,
-        allowNull: false
+        allowNull: false,
       },
       state: {
-        type: Sequelize.TEXT
+        type: Sequelize.TEXT,
       },
       stateHash: {
-        type: Sequelize.TEXT
+        type: Sequelize.TEXT,
       },
       proof: {
-        type: Sequelize.TEXT
+        type: Sequelize.TEXT,
       },
       created_at: {
         allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
       },
       updated_at: {
         allowNull: false,
-        type: Sequelize.DATE
-      }
-    });
+        type: Sequelize.DATE,
+      },
+    })
   },
   down: (queryInterface, Sequelize) => {
-    return queryInterface.dropTable('step_responses');
-  }
-};
+    return queryInterface.dropTable('step_responses')
+  },
+}

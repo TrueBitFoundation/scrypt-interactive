@@ -3,16 +3,24 @@ const ScryptVerifier = artifacts.require('./ScryptVerifier.sol')
 const ScryptRunner = artifacts.require('./ScryptRunner.sol')
 const DogeRelay = artifacts.require('./DogeRelay.sol')
 
-module.exports = function (deployer, network) {
-  deployer.deploy(ScryptVerifier).then(() => {
-    deployer.deploy(
-      ClaimManager,
-      process.env.DOGE_RELAY_ADDRESS,
-      ScryptVerifier.address
-    ).then(() => {
-      deployer.deploy(DogeRelay, ClaimManager.address)
-    })
+module.exports = async (deployer, network) => {
+  await deployer.deploy(ScryptVerifier)
 
-    deployer.deploy(ScryptRunner)
-  })
+  await deployer.deploy(ClaimManager,
+    ScryptVerifier.address
+  )
+
+  await deployer.deploy(DogeRelay, ClaimManager.address)
+
+  const claimManager = await ClaimManager.deployed()
+  await claimManager.setDogeRelay(DogeRelay.address)
+
+  await deployer.deploy(ScryptRunner)
+
+  console.log(`
+SCRYPT_VERIFIER_ADDRESS=${ScryptVerifier.address}
+CLAIM_MANAGER_ADDRESS=${ClaimManager.address}
+DOGE_RELAY_ADDRESS=${DogeRelay.address}
+SCRYPT_RUNNER_ADDRESS=${ScryptRunner.address}
+  `)
 }
