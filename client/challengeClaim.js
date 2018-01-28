@@ -12,11 +12,6 @@ const path = require('path')
 
 const challengeCachePath = path.resolve(__dirname, '../../cache/challenges')
 
-<<<<<<< HEAD:client/challengeClaim.js
-=======
-const models = require('../util/models')
-
->>>>>>> test-client-3:client/bridge-to-the-moon/state-machines/challengeClaim.js
 const saveChallengeData = async (data) => {
   await mkdirp(challengeCachePath)
   await writeFile(`${challengeCachePath}/${data.id}.json`, JSON.stringify(data))
@@ -95,7 +90,6 @@ module.exports = (web3, api) => ({
               await saveChallengeData(claim)
 
               let session = await api.getSession(claim.sessionId)
-
               let medStep = calculateMidpoint(session.lowStep.toNumber(), session.highStep.toNumber())
               await api.query(claim.sessionId, medStep, {from: challenger})
             }
@@ -106,7 +100,6 @@ module.exports = (web3, api) => ({
             if (currentChallenger == challenger && !verificationOngoing) {
               console.log('... we are first challenger.')
               await api.claimManager.runNextVerificationGame(claim.id, {from: challenger})
-              //Initial query on normal cases
               await sendQuery()
             } else if (currentChallenger == challenger && verificationOngoing) {
               // ^ should only happen if rebooting during game
@@ -154,23 +147,10 @@ module.exports = (web3, api) => ({
                 if(err) reject(err)
                 if(result) {
 
-                  //Carry out binary search
-                  let session = models.toSession(await api.scryptVerifier.getSession(claim.sessionId))
-                  let lastStep = session.medStep.toNumber()
-                  let lastHash = session.medHash
-
-                  let stateHash = models.toResult(await api.scryptRunner.getStateAndProof.call(session.input, lastStep)).stateHash
-
-                  let newStep
-                  if(stateHash == lastHash) {
-                    newStep = calculateMidpoint(lastStep, session.highStep.toNumber())
-                  }else{
-                    newStep = calculateMidpoint(session.lowStep.toNumber(), lastStep)
-                  }
-
-                  console.log("Querying step: " + newStep)
-                  await api.query(claim.sessionId, newStep, {from: challenger})
-                  if(newStep == 0) resolve()
+                  let medStep = await getNewMedStep(claim.sessionId)
+                  console.log("Querying step: " + medStep)
+                  await api.query(claim.sessionId, medStep, {from: challenger})
+                  if(medStep == 0) resolve()
                 }
               })
             })

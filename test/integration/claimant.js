@@ -14,7 +14,6 @@ const ScryptVerifier = artifacts.require('ScryptVerifier')
 const DogeRelay = artifacts.require('DogeRelay')
 
 // eslint-disable-next-line max-len
-<<<<<<< HEAD
 
 const serializedBlockHeader = '0x03000000c63abe4881f9c765925fffb15c88cdb861e86a32f4c493a36c3e29c54dc62cf45ba4401d07d6d760e3b84fb0b9222b855c3b7c04a174f17c6e7df07d472d0126fe455556358c011b6017f799'
 const testScryptHash = '0x3569d4c55c658997830bce8f904bf4cb74e63cfcc8e1037a5fab030000000000'
@@ -24,16 +23,6 @@ const timeout = require('../helpers/timeout')
 const calculateMidpoint = require('../../client/util/math').calculateMidpoint
 
 describe('Claimant Client Integration Tests', function () {
-=======
-const serializedBlockHeader = '030162002adb34dfa6574cf127a781ecb9683ca28f911a59020628c90c72b4a3d9942233a3b905b2388b020085dbd9e03209db4493f5420336d882d0b78b54f728b8f90058f7115a2c83221a00000000'
-const testScryptHash = 'ce60a0d4a7c2223a94437d44fe4d33a30489436714d18376f9ebc5e2bd6e5682'
-
-const timeout = require('../helpers/timeout')
-
-const calculateMidpoint = require('../../client/bridge-to-the-moon/util/math').calculateMidpoint
-
-describe('Challenger Client Integration Tests', function () {
->>>>>>> test-client-3
   this.timeout(120000)// set max timeout to 120 seconds
 
   let bridge, claimant, challenger, dogeRelay, contracts, claim
@@ -52,18 +41,11 @@ describe('Challenger Client Integration Tests', function () {
       dogeRelay: dogeRelay
     }
 
-<<<<<<< HEAD
     bridge = await require('../../client')(web3, contracts)
     let accounts = web3.eth.accounts
     claimant = accounts[1]
     challenger = accounts[2]
     
-=======
-    bridge = await require('../../client/bridge-to-the-moon')(web3, contracts)
-    let accounts = web3.eth.accounts
-    claimant = accounts[1]
-    challenger = accounts[2]
->>>>>>> test-client-3
     await bridge.api.claimManager.setDogeRelay(dogeRelay.address, {from: claimant})
   })
 
