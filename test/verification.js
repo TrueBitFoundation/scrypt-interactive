@@ -112,10 +112,7 @@ describe('ScryptVerifier', function () {
   context('random bit flipping', () => {
     _.times(30, () => { // change 5 to higher number when out of gas error issue resolved
       const input = random.randomHexString()
-      const step = random.chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048])
-
-      // Keeping this list smaller for now to get meaningful test results
-      // const step = random.chooseRandomly([0, 1, 2])
+      const step = random.chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2049])
 
       it('correctly fails', async () => {
         let preState = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step)).state

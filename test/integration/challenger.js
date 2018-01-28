@@ -54,26 +54,31 @@ describe('Challenger Client Integration Tests', function () {
       await miner.mineBlocks(4)
     })
 
-    for (let i = 0; i < 11; i++) {
-      it(`should query to normal case medHash==0x0 step ${i}`, async () => {
+    it(`should query to normal case medHash==0x0 step ${i}`, async () => {
+      let verificationGameOngoing = true
+      while (verificationGameOngoing) {
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
         result.length.should.be.gt(0)
 
-        let sessionId = result[0].args.sessionId.toNumber()
-        let _claimant = result[0].args.claimant
+        const sessionId = result[0].args.sessionId.toNumber()
+        const _claimant = result[0].args.claimant
         assert.equal(_claimant, claimant)
 
-        let session = await bridge.api.getSession(sessionId)
-        let step = session.medStep.toNumber()
-        // let highStep = session.highStep.toNumber()
-        // let lowStep = session.lowStep.toNumber()
+        const session = await bridge.api.getSession(sessionId)
+        const step = session.medStep.toNumber()
+        const highStep = session.highStep.toNumber()
+        const lowStep = session.lowStep.toNumber()
+        console.log("low step: " + lowStep + " | high step: " + highStep)
 
-        let results = await bridge.api.getResult(session.input, step)
+        if (lowStep + 1 === highStep) {
+          verificationGameOngoing = false
+        } else {
+          const results = await bridge.api.getResult(session.input, step)
 
-        await bridge.api.respond(sessionId, step, results.stateHash, { from: claimant })
-        await miner.mineBlocks(4)
-      })
-    }
+          await bridge.api.respond(sessionId, step, results.stateHash, { from: claimant })
+        }
+      }
+    })
 
     it('should query special case medHash!=0x0', async () => {
       const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
