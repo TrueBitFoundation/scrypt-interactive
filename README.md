@@ -82,6 +82,13 @@ Kill it. Then do:
 
 Which runs the parity dev chain needed for the offchain component.
 
+## Database Migrations
+
+To run migrations:
+```
+sequelize db:migrate
+```
+
 ## Running Normally
 
 Deploy the contracts (or reference the addresses on the network you're using) and add them to your environment.

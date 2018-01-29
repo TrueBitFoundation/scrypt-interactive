@@ -17,7 +17,7 @@ module.exports = async function(web3, _contracts) {
 
   const api = await require('./api')(contracts, web3)
   const challengeClaim = require('./challengeClaim')(web3, api)
-  const createClaim = require('./createClaim')(web3, api)
+  const claimManager = require('./claimManager')(web3, api)
 
   return {
     api,
@@ -29,7 +29,10 @@ module.exports = async function(web3, _contracts) {
       }
     },
     createClaim: async (cmd, claim) => {
-      return createClaim.run(cmd, claim)
+      await claimManager.createClaim(claim);
+      return claimManager.defendClaim(claim);
+
+      // return createClaim.run(cmd, claim)
     },
     initChallenges: async (cmd, claim) => {
       for (file in await readdir('./challenges')) {

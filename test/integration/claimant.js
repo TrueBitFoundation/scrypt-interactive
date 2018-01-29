@@ -3,6 +3,7 @@ This tests the client's functionality on the claimant side of things. Code is me
 */
 
 require('dotenv').config()
+
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER))
 
@@ -12,6 +13,8 @@ const getAllEvents = require('../helpers/events').getAllEvents
 const ClaimManager = artifacts.require('ClaimManager')
 const ScryptVerifier = artifacts.require('ScryptVerifier')
 const DogeRelay = artifacts.require('DogeRelay')
+
+const Claim = require('../../client/db/models').Claim;
 
 // eslint-disable-next-line max-len
 
@@ -31,7 +34,7 @@ describe('Claimant Client Integration Tests', function () {
   before(async () => {
     scryptVerifier = await ScryptVerifier.new()
     claimManager = await ClaimManager.new(scryptVerifier.address)
-    scryptRunner = await require('../helpers/offchain').scryptRunner()
+    scryptRunner = await require('../helpers/offchain').scryptRunner() 
     dogeRelay = await DogeRelay.new(claimManager.address)
 
     contracts = {
@@ -50,9 +53,7 @@ describe('Claimant Client Integration Tests', function () {
   })
 
   after(async () => {
-    // teardown processes
     console.log('waiting on createClaim to resolve...')
-    await claim
   })
 
   describe('claimant reacting to verification game', () => {
@@ -69,14 +70,23 @@ describe('Claimant Client Integration Tests', function () {
     })
 
     it('should create claim', async () => {
-      const testClaim = {
+      let claim;
+      
+      await Claim.create({
         claimant: claimant,
-        scryptHash: testScryptHash,
-        serializedBlockHeader: serializedBlockHeader,
-        dogeRelay: dogeRelay.address,
-        proposalId: 'foobar'
-      }
-      claim = bridge.createClaim(console, testClaim)
+        input: serializedBlockHeader,
+        hash: testScryptHash,
+        proposalID: 'foobar'
+      }).then((result) => claim = result)
+      
+      // const testClaim = {
+      //   claimant: claimant,
+      //   scryptHash: testScryptHash,
+      //   serializedBlockHeader: serializedBlockHeader,
+      //   dogeRelay: dogeRelay.address,
+      //   proposalId: 'foobar'
+      // }
+      bridge.createClaim(console, claim)
     })
 
     it('should challenge claim and send initial query', async () => {

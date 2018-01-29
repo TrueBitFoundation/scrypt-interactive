@@ -1,8 +1,8 @@
 require('dotenv').config()
 
 const program = require('commander')
-const selfText = require('./bridge-to-the-moon/util/selfText')
-const newStopper = require('./bridge-to-the-moon/util/stopper')
+const selfText = require('./client/util/selfText')
+const newStopper = require('./client/util/stopper')
 
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER))
@@ -18,7 +18,7 @@ const connectToBridge = async function (cmd) {
   }
 
   cmd.log('Connecting to bridge...')
-  this.bridge = await require('./bridge-to-the-moon')(web3)
+  this.bridge = await require('./client')(web3)
   cmd.log('Connected!')
 
   return this.bridge
