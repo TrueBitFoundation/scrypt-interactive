@@ -1,34 +1,34 @@
 'use strict';
 module.exports = {
   up: (queryInterface, Sequelize) => {
-    return queryInterface.createTable('claims', {
+    return queryInterface.createTable('step_responses', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      claimID: {
-        type: Sequelize.STRING
-      },
-      input: {
-        type: Sequelize.TEXT
-      },
-      hash: {
-        type: Sequelize.TEXT
-      },
-      claimant: {
+      claim_id: {
+        type: Sequelize.INTEGER,
         allowNull: false,
-        type: Sequelize.STRING
+        references: { model: 'claims', key: 'id'}
       },
-      claimCreatedAt: {
-        type: Sequelize.INTEGER
+      sessionID: {
+        type: Sequelize.INTEGER,
+        allowNull: false
+      },
+      step: {
+        type: Sequelize.INTEGER,
+        allowNull: false
       },
       state: {
-        type: Sequelize.STRING
+        type: Sequelize.TEXT
       },
-      proposalID: {
-        type: Sequelize.STRING
+      stateHash: {
+        type: Sequelize.TEXT
+      },
+      proof: {
+        type: Sequelize.TEXT
       },
       created_at: {
         allowNull: false,
@@ -41,6 +41,6 @@ module.exports = {
     });
   },
   down: (queryInterface, Sequelize) => {
-    return queryInterface.dropTable('claims');
+    return queryInterface.dropTable('step_responses');
   }
 };

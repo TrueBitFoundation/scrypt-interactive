@@ -27,10 +27,11 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     classMethods: {
       associate: function(models) {
-        // associations can be defined here
+        Claim.hasMany(models.StepResponse)
       }
     },
     tableName: 'claims',
+    underscored: true
   });
 
   return Claim;

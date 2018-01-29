@@ -28,6 +28,9 @@ Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {
     db[modelName].associate(db);
   }
+  if ('associate' in db[modelName].options['classMethods']) {
+    db[modelName].options.classMethods.associate(db);
+  };
 });
 
 db.sequelize = sequelize;

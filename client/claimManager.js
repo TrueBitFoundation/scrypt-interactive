@@ -17,7 +17,15 @@ const saveClaimData = async (claimData) => {
   await writeFile(`${claimCachePath}/${claimData.claimID}.json`, JSON.stringify(claimData))
 }
 
-claimData = { stepResponses: {} }
+const StepResponse = require('./db/models').StepResponse
+
+computeStep = async (api, claim, stepResponse) => {
+  let result = await api.getResult(claim.input, stepResponse.step)
+  stepResponse.state = result.state
+  stepResponse.proof = result.proof
+  stepResponse.stateHash = result.stateHash
+  await stepResponse.save()
+},
 
 module.exports = (web3, api) => ({
   createClaim: async (claim) => {
@@ -68,6 +76,8 @@ module.exports = (web3, api) => ({
             return reject(err)
           }
 
+          let stepResponse;
+
           if (result) {
             let sessionId = result.args.sessionId.toNumber()
             let session = await api.getSession(sessionId)
@@ -77,32 +87,45 @@ module.exports = (web3, api) => ({
 
             if (session.medHash == '0x0000000000000000000000000000000000000000000000000000000000000000') {
               console.log(`Defending step ${step}`)
-              if (step in claimData.stepResponses) {
-                let stateHash = claimData.stepResponses[step].stateHash;
-                await api.respond(sessionId, step, stateHash, {from: claim.claimant})
+
+              await StepResponse.findOrCreate({
+                where: {claim_id: claim.id, sessionID: sessionId, step: step}
+              }).then((res) => stepResponse = res[0])
+
+              if (stepResponse.stateHash) {
+                // the response has been computed before.
+                // therefore: provide the same response.
+                await api.respond(stepResponse.sessionID, stepResponse.step, stepResponse.stateHash, {from: claim.claimant})
               } else {
-                let results = await api.getResult(session.input, step)
-                claimData.stepResponses[step] = results;
-                await saveClaimData(claimData)
-                await api.respond(sessionId, step, results.stateHash, {from: claim.claimant})
+                // the response has never been computed before.
+                // therefore: compute it now.
+                await computeStep(api, claim, stepResponse)
+                await api.respond(stepResponse.sessionID, stepResponse.step, stepResponse.stateHash, {from: claim.claimant})
               }
             } else {
-              // Defending final step 0
-              console.log(`Defending final step ${lowStep}`)
-              let preState, postStateAndProof, postState, proof
-              if ('preState' in claimData) {
-                preState = claimData.preState
-                postStateAndProof = claimData.postStateAndProof
-              } else {
-                preState = (await api.getResult(session.input, lowStep)).state
-                postStateAndProof = await api.getResult(session.input, highStep)
-                claimData.preState = preState;
-                claimData.postStateAndProof = postStateAndProof;
-                await saveClaimData(claimData)
-              }
-              postState = postStateAndProof.state
-              proof = postStateAndProof.proof || '0x00'
-              await api.scryptVerifier.performStepVerification(sessionId, claim.claimID, preState, postState, proof, api.claimManager.address, { from: claim.claimant, gas: 3000000 })
+              // defending the final step
+              let lowStepResponse, highStepResponse
+
+              await StepResponse.findOrCreate({
+                where: {claim_id: claim.id, sessionID: sessionId, step: lowStep}
+              }).then((res) => lowStepResponse = res[0]) 
+              if (!lowStepResponse.state) { await computeStep(api, claim, lowStepResponse) }
+
+              await StepResponse.findOrCreate({
+                where: {claim_id: claim.id, sessionID: sessionId, step: highStep}
+              }).then((res) => highStepResponse = res[0])
+              if (!highStepResponse.state) { await computeStep(api, claim, highStepResponse) }
+              
+              await api.scryptVerifier.performStepVerification(
+                sessionId, 
+                claim.claimID, 
+                lowStepResponse.state,
+                highStepResponse.state,
+                highStepResponse.proof,
+                api.claimManager.address,
+                { from: claim.claimant, gas: 3000000 }
+              )
+
               await timeout(1000)
             }
           }
