@@ -137,7 +137,7 @@ contract ClaimManager is DepositsManager {
 
     bondDeposit(numClaims, claimant, minDeposit);
     ClaimCreated(numClaims, claim.claimant, claim.plaintext, claim.blockHash);
-    numClaims.add(1);
+    numClaims = numClaims + 1;
   }
 
   // @dev – challenge an existing Scrypt claim.
