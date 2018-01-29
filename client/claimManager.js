@@ -1,21 +1,7 @@
 
-const fs = require('fs')
-const path = require('path')
-const promisify = require('es6-promisify')
-
-const writeFile = promisify(fs.writeFile, fs)
-const mkdirp = promisify(require('mkdirp'))
-
 const BlockEmitter = require('./util/blockemitter')
 const waitForEvent = require('./util/waitForEvent')
 const timeout = require('./util/timeout')
-
-const claimCachePath = path.resolve(__dirname, '../../cache/claims')
-
-const saveClaimData = async (claimData) => {
-  await mkdirp(claimCachePath)
-  await writeFile(`${claimCachePath}/${claimData.claimID}.json`, JSON.stringify(claimData))
-}
 
 const StepResponse = require('./db/models').StepResponse
 
@@ -36,7 +22,6 @@ module.exports = (web3, api) => ({
     claim.claimID = (await api.claimManager.claimantClaims(claim.claimant)).toNumber()
     claim.createdAt = (await api.claimManager.createdAt.call(claim.claimID)).toNumber()
     await claim.save()
-    // await saveClaimData(claimData)
   },
 
   defendClaim: async (claim) => {
@@ -154,7 +139,7 @@ module.exports = (web3, api) => ({
           let step = session.medStep.toNumber()
           let results = await api.getResult(session.input, step)
           claimData.stepResponses[step] = results;
-          await saveClaimData(claimData)
+          // await saveClaimData(claimData)
           await api.respond(sessionId, step, results.stateHash, {from: claim.claimant})
         }
       }
