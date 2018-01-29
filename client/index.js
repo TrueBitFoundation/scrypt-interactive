@@ -55,8 +55,9 @@ module.exports = async (web3, _contracts = null) => {
               )
             `)
 
-            let scryptHash = lc.crypto.Hash.scrypt(Buffer.from(claim.plaintext, 'hex')).toString('hex')
-            if (scryptHash !== claim.blockHash) {
+            const output = web3.toHex((await contracts.scryptRunner.run.call(claim.plaintext, 2049)[4]))
+
+            if (output !== claim.blockHash) {
               cmd.log('Proof of Work: INVALID')
 
               if (!autoChallenge) {
