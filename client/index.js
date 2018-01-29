@@ -28,11 +28,9 @@ module.exports = async function(web3, _contracts) {
         createClaim.run(cmd, claimData.claim, claimData)
       }
     },
-    createClaim: async (cmd, claim) => {
-      await claimManager.createClaim(claim);
-      return claimManager.defendClaim(claim);
-
-      // return createClaim.run(cmd, claim)
+    submitClaim: async (cmd, claim) => {
+      await claimManager.submitClaim(claim);
+      await claimManager.defendClaim(claim);
     },
     initChallenges: async (cmd, claim) => {
       for (file in await readdir('./challenges')) {

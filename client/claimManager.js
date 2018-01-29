@@ -14,7 +14,7 @@ computeStep = async (api, claim, stepResponse) => {
 },
 
 module.exports = (web3, api) => ({
-  createClaim: async (claim) => {
+  submitClaim: async (claim) => {
     console.log('Creating claim');
     // @TODO - replace with a call to DogeRelay that forwards to claimmanager
     await api.createClaim(claim.input, claim.hash, claim.claimant, claim.proposalID, { from: claim.claimant })
@@ -30,11 +30,11 @@ module.exports = (web3, api) => ({
 
     await Promise.race([ 
 
-      // if claimant loses the game
+      // if claimant loses the verification game
       new Promise((resolve, reject) => {
-        claimantConvictedEvent.watch((err, result) => {//claimant loses verification game
-          if(err) reject(err)
-          if(result) resolve()
+        claimantConvictedEvent.watch((err, result) => {
+          if (err) reject(err)
+          if (result) resolve()
         })
       }),
 
@@ -43,38 +43,30 @@ module.exports = (web3, api) => ({
       new Promise(async (resolve, reject) => {
         let ready 
         while(!ready) {
-          await timeout(10000)//wait 10 seconds
+          await timeout(10000)
           ready = await api.claimManager.getClaimReady.call(claim.claimID)
         }
-        //breaks out of loop and finishes claim
-        console.log("Finishing claim")
         await api.claimManager.checkClaimSuccessful(claim.claimID, {from: claim.claimant})
-        await timeout(1000)
         resolve()
       }),
 
       // respond to Query calls by challengers
       // this never resolves.
       new Promise(async (resolve, reject) => {
-        queryEvent.watch(async (err, result) => {
-          if (err) {
-            return reject(err)
-          }
+        let stepResponse;
 
-          let stepResponse;
-
-          if (result) {
-            let sessionId = result.args.sessionId.toNumber()
+        queryEvent.watch(async (err, event) => {
+          if (err) { return reject(err) }
+          if (event) {
+            let sessionId = event.args.sessionId.toNumber()
             let session = await api.getSession(sessionId)
-            let step = session.medStep.toNumber()
-            let highStep = session.highStep.toNumber()
-            let lowStep = session.lowStep.toNumber()
 
             if (session.medHash == '0x0000000000000000000000000000000000000000000000000000000000000000') {
-              console.log(`Defending step ${step}`)
+              // medHash being all 0s means: the verification game is in progress.
+              console.log(`Defending step ${session.medStep.toNumber()}`)
 
               await StepResponse.findOrCreate({
-                where: {claim_id: claim.id, sessionID: sessionId, step: step}
+                where: {claim_id: claim.id, sessionID: sessionId, step: session.medStep.toNumber()}
               }).then((res) => stepResponse = res[0])
 
               if (stepResponse.stateHash) {
@@ -87,20 +79,24 @@ module.exports = (web3, api) => ({
                 await computeStep(api, claim, stepResponse)
                 await api.respond(stepResponse.sessionID, stepResponse.step, stepResponse.stateHash, {from: claim.claimant})
               }
+
             } else {
-              // defending the final step
+              // medHash not being all 0s means: the verification game is in its final step.
               let lowStepResponse, highStepResponse
 
+              // get results for lowStep
               await StepResponse.findOrCreate({
-                where: {claim_id: claim.id, sessionID: sessionId, step: lowStep}
+                where: {claim_id: claim.id, sessionID: sessionId, step: session.lowStep.toNumber()}
               }).then((res) => lowStepResponse = res[0]) 
               if (!lowStepResponse.state) { await computeStep(api, claim, lowStepResponse) }
 
+              // get results for highStep
               await StepResponse.findOrCreate({
-                where: {claim_id: claim.id, sessionID: sessionId, step: highStep}
+                where: {claim_id: claim.id, sessionID: sessionId, step: session.highStep.toNumber()}
               }).then((res) => highStepResponse = res[0])
               if (!highStepResponse.state) { await computeStep(api, claim, highStepResponse) }
               
+              // trigger the final-step verification on-chain.
               await api.scryptVerifier.performStepVerification(
                 sessionId, 
                 claim.claimID, 
@@ -119,10 +115,10 @@ module.exports = (web3, api) => ({
 
     ])
 
-    // Tidy up claim and kill promise
     claimantConvictedEvent.stopWatching()
     queryEvent.stopWatching()
     console.log("Finishing claim")
+    return
   },
 
   rebootClaim: async (claim) => {

@@ -26,7 +26,7 @@ const timeout = require('../helpers/timeout')
 const calculateMidpoint = require('../../client/util/math').calculateMidpoint
 
 describe('Claimant Client Integration Tests', function () {
-  this.timeout(120000)// set max timeout to 120 seconds
+  this.timeout(120000) // set max timeout to 120 seconds
 
   let bridge, claimant, challenger, dogeRelay, contracts, claim
   let sessionId = null
@@ -86,7 +86,7 @@ describe('Claimant Client Integration Tests', function () {
       //   dogeRelay: dogeRelay.address,
       //   proposalId: 'foobar'
       // }
-      bridge.createClaim(console, claim)
+      bridge.submitClaim(console, claim)
     })
 
     it('should challenge claim and send initial query', async () => {
