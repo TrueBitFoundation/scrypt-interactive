@@ -1,7 +1,6 @@
 const promisify = require('es6-promisify')
 const fs = require('fs')
 const readdir = promisify(fs.readdir, fs)
-const lc = require('litecore-lib')
 const getContracts = require('./util/getContracts')
 
 module.exports = async function(web3, _contracts) {
