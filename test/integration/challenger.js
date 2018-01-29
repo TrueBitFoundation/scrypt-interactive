@@ -159,8 +159,11 @@ describe('Challenger Client Integration Tests', function () {
     })
 
     it('should end verification game', async () => {
-      console.log(await getAllEvents(bridge.api.scryptVerifier, 'ClaimantConvicted'))
-      console.log(await getAllEvents(bridge.api.scryptVerifier, 'ChallengerConvicted'))
+      assert.equal(0, (await getAllEvents(bridge.api.scryptVerifier, 'ChallengerConvicted')).length)
+
+      let result = await getAllEvents(bridge.api.scryptVerifier, 'ClaimantConvicted')
+      assert.equal(true, result.length > 0)
+      assert.equal(otherClaimant, result[0].claimant)
     })
   })
 })

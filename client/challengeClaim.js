@@ -23,17 +23,21 @@ const deleteChallengeData = async (data) => unlink(`${challengeCachePath}/${data
 module.exports = (web3, api) => ({
   run: async (cmd, claim, challenger, autoDeposit = false) => new Promise(async (resolve, reject) => {
 
-    const getNewMedStep = async (sessionId) => {
-      let session = await api.getSession(sessionId)
+    const getNewMedStep = async (session) => {
       let medStep = session.medStep.toNumber()
       let lowStep = session.lowStep.toNumber()
       let highStep = session.highStep.toNumber()
 
       let result = await api.getResult(session.input, medStep)
-      if(result.stateHash == session.medHash) {
-        return calculateMidpoint(medStep, highStep)
-      }else{
-        return calculateMidpoint(lowStep, medStep)
+
+      if(medStep == 2049) {
+        return 2049
+      } else {
+        if(result.stateHash == session.medHash) {
+          return calculateMidpoint(medStep, highStep)
+        }else{
+          return calculateMidpoint(lowStep, medStep)
+        }
       }
     }
 
@@ -180,12 +184,17 @@ module.exports = (web3, api) => ({
             let newResponseEvent = api.scryptVerifier.NewResponse({sessionId: claim.sessionId, challenger: challenger})
             await new Promise(async (resolve, reject) => {
               newResponseEvent.watch(async (err, result) => {
-                if (err) reject(err)
-                if (result) {
-                  let medStep = await getNewMedStep(claim.sessionId)
-                  console.log('Querying step: ' + medStep)
-                  await api.query(claim.sessionId, medStep, { from: challenger })
-                  if (medStep == 0) resolve()
+                if(err) reject(err)
+                if(result) {
+                  let session = await api.getSession(claim.sessionId)
+                  if(session.lowStep.toNumber() + 1 == session.highStep.toNumber()) {
+                    resolve()
+                  } else {
+                    let medStep = await getNewMedStep(session)
+                    console.log("Querying step: " + medStep)
+                    await api.query(claim.sessionId, medStep, {from: challenger})
+                  }
+
                 }
               })
             })
@@ -193,17 +202,43 @@ module.exports = (web3, api) => ({
           },
           onAfterPlayGame: async (tsn) => {
 
-            let sessionDecidedEvent = api.claimManager.SessionDecided({sessionId: claim.sessionId})
-            await new Promise((resolve, reject) => {
-              sessionDecidedEvent.watch(async (err, result) => {
-                if (err) reject(err)
-                if (result) {
-                  console.log(result)
-                  resolve()
-                }
-              })
-            })
-            sessionDecidedEvent.stopWatching()
+            console.log("Convict Claimant")
+
+            let session = await api.getSession(claim.sessionId)
+            // let step = session.medStep.toNumber()
+            let highStep = session.highStep.toNumber()
+            let lowStep = session.lowStep.toNumber()
+
+            let preState = (await api.getResult(session.input, lowStep)).state
+
+            let postStateAndProof = await api.getResult(session.input, highStep)
+
+            let postState = postStateAndProof.state
+            let proof = postStateAndProof.proof || '0x00'
+
+            await api.scryptVerifier.performStepVerification(
+              claim.sessionId,
+              claim.id,
+              preState,
+              postState,
+              proof,
+              api.claimManager.address,
+              { from: challenger, gas: 3000000 }
+            )
+
+            //Does a challenger need to actually worry about this event??
+            // let sessionDecidedEvent = api.claimManager.SessionDecided({sessionId: claim.sessionId})
+            // await new Promise((resolve, reject) => {
+            //   sessionDecidedEvent.watch(async (err, result) => {
+            //     if(err) reject(err)
+            //     if(result) {
+            //       console.log(result)
+            //       resolve()
+            //     }
+            //   })
+            // })
+            // sessionDecidedEvent.stopWatching()
+
             await deleteChallengeData(claim)
             resolve()
           },
