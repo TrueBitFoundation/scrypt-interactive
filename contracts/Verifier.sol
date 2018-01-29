@@ -174,6 +174,7 @@ contract Verifier {
         require(s.lowStep + 1 == s.highStep);
         // ^ must be at the end of the binary search according to the smart contract
 
+        //prove game ended
         require(keccak256(preValue) == s.lowHash);
         require(keccak256(postValue) == s.highHash);
 

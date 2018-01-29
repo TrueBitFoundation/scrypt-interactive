@@ -26,12 +26,14 @@ module.exports = (web3, api) => ({
     const getNewMedStep = async (sessionId) => {
       let session = await api.getSession(sessionId)
       let medStep = session.medStep.toNumber()
+      let lowStep = session.lowStep.toNumber()
+      let highStep = session.highStep.toNumber()
 
       let result = await api.getResult(session.input, medStep)
       if(result.stateHash == session.medHash) {
-        return calculateMidpoint(session.medStep.toNumber(), session.highStep.toNumber())
+        return calculateMidpoint(medStep, highStep)
       }else{
-        return calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())
+        return calculateMidpoint(lowStep, medStep)
       }
     }
 
@@ -118,6 +120,7 @@ module.exports = (web3, api) => ({
             let currentChallenger = await api.claimManager.getCurrentChallenger.call(claim.id)
             let verificationOngoing = await api.claimManager.getVerificationOngoing.call(claim.id)
 
+            //this if statement is complex because of caching state, we could refactor when db is put in
             if (currentChallenger == challenger && !verificationOngoing) {
               console.log('... we are first challenger.')
               await api.claimManager.runNextVerificationGame(claim.id, {from: challenger})
@@ -168,12 +171,12 @@ module.exports = (web3, api) => ({
                 preState,
                 postState,
                 proof,
-                bridge.api.claimManager.address,
+                api.claimManager.address,
                 { from: challenger, gas: 3000000 }
               )
             }
 
-            //playGame
+            //play game
             let newResponseEvent = api.scryptVerifier.NewResponse({sessionId: claim.sessionId, challenger: challenger})
             await new Promise(async (resolve, reject) => {
               newResponseEvent.watch(async (err, result) => {
