@@ -13,13 +13,14 @@ const getContracts = require('../../client/util/getContracts')
 const {
   serializedBlockHeader,
   scryptHash,
+  fakeTestScryptHash,
 } = require('../helpers/blockheader')
 
 describe('Challenger Client Integration Tests', function () {
   // set max timeout to 120 seconds
   this.timeout(120000)
 
-  let bridge, claimant, challenger
+  let bridge, claimant, challenger, otherClaimant
   let monitor, stopMonitor
 
   before(async () => {
@@ -28,6 +29,7 @@ describe('Challenger Client Integration Tests', function () {
 
     claimant = web3.eth.accounts[1]
     challenger = web3.eth.accounts[2]
+    otherClaimant = web3.eth.accounts[3]
   })
 
   after(async () => {
@@ -41,6 +43,48 @@ describe('Challenger Client Integration Tests', function () {
       // eslint-disable-next-line
       const stopper = new Promise((resolve) => stopMonitor = resolve)
       monitor = bridge.monitorClaims(console, challenger, stopper, true, true)
+    })
+
+    it('should let claimant make a deposit and create claim', async () => {
+      // early indicator if contract deployment is correct
+      await bridge.api.makeDeposit({ from: claimant, value: 1 })
+
+      let deposit = await bridge.api.getDeposit(claimant)
+      deposit.should.be.bignumber.equal(1)
+
+      await bridge.api.createClaim(
+        serializedBlockHeader,
+        scryptHash,
+        claimant,
+        'bar',
+        { from: claimant, value: 1 }
+      )
+    })
+
+    it('should be zero challengers', async () => {
+      //challenger sees proof of work is valid and does not challenge
+      bridge.api.claimManager.ClaimCreated({}, {fromBlock: 0, toBlock: 'latest'}).get( async (err, result) => {
+        if(err) console.log(err)
+        if(result) {
+          assert.equal(0, (await bridge.api.claimManager.getChallengers(result[0].args.claimID.toNumber())).length)
+        }
+      })
+    })
+
+    it('should let other claimant make a deposit and create claim', async () => {
+      // early indicator if contract deployment is correct
+      await bridge.api.makeDeposit({ from: otherClaimant, value: 1 })
+
+      let deposit = await bridge.api.getDeposit(otherClaimant)
+      deposit.should.be.bignumber.equal(1)
+
+      await bridge.api.createClaim(
+        serializedBlockHeader,
+        fakeTestScryptHash,
+        otherClaimant,
+        'bar',
+        { from: otherClaimant, value: 1 }
+      )
     })
 
     it('should let claimant make a deposit and check scrypt', async () => {
@@ -75,7 +119,7 @@ describe('Challenger Client Integration Tests', function () {
         } else {
           const results = await bridge.api.getResult(session.input, step)
 
-          await bridge.api.respond(sessionId, step, results.stateHash, { from: claimant })
+          await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
         }
       }
     })
@@ -87,7 +131,7 @@ describe('Challenger Client Integration Tests', function () {
 
       let sessionId = result[0].args.sessionId.toNumber()
       let _claimant = result[0].args.claimant
-      _claimant.should.equal(claimant)
+      _claimant.should.equal(otherClaimant)
 
       let session = await bridge.api.getSession(sessionId)
       // let step = session.medStep.toNumber()
@@ -101,7 +145,7 @@ describe('Challenger Client Integration Tests', function () {
       let postState = postStateAndProof.state
       let proof = postStateAndProof.proof || '0x00'
 
-      let claimID = (await bridge.api.claimManager.claimantClaims(claimant)).toNumber()
+      let claimID = (await bridge.api.claimManager.claimantClaims(otherClaimant)).toNumber()
 
       await bridge.api.scryptVerifier.performStepVerification(
         sessionId,
@@ -110,7 +154,7 @@ describe('Challenger Client Integration Tests', function () {
         postState,
         proof,
         bridge.api.claimManager.address,
-        { from: claimant, gas: 3000000 }
+        { from: otherClaimant, gas: 3000000 }
       )
     })
 
