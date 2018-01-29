@@ -45,7 +45,7 @@ describe('Challenger Client Integration Tests', function () {
       monitor = bridge.monitorClaims(console, challenger, stopper, true, true)
     })
 
-    it('should let claimant make a deposit and create claim', async () => {
+    it('should let claimant make a deposit and create real claim', async () => {
       // early indicator if contract deployment is correct
       await bridge.api.makeDeposit({ from: claimant, value: 1 })
 
@@ -61,17 +61,17 @@ describe('Challenger Client Integration Tests', function () {
       )
     })
 
+    //challenger sees proof of work is valid and does not challenge
     it('should be zero challengers', async () => {
-      //challenger sees proof of work is valid and does not challenge
-      bridge.api.claimManager.ClaimCreated({}, {fromBlock: 0, toBlock: 'latest'}).get( async (err, result) => {
-        if(err) console.log(err)
-        if(result) {
-          assert.equal(0, (await bridge.api.claimManager.getChallengers(result[0].args.claimID.toNumber())).length)
-        }
-      })
+      let result = await getAllEvents(bridge.api.claimManager, 'ClaimCreated')
+      assert.equal(0, (await bridge.api.claimManager.getChallengers(result[0].args.claimID.toNumber())).length)
     })
 
-    it('should let other claimant make a deposit and create claim', async () => {
+  })
+
+  describe('challenger reacting to invalid proof of work', async () => {
+
+    it('should let other claimant make a deposit and create fake claim', async () => {
       // early indicator if contract deployment is correct
       await bridge.api.makeDeposit({ from: otherClaimant, value: 1 })
 
