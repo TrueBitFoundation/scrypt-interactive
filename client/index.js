@@ -4,6 +4,8 @@ const readdir = promisify(fs.readdir, fs)
 const lc = require('litecore-lib')
 const getContracts = require('./util/getContracts')
 
+const claimManager = require('./claimManager')
+
 module.exports = async function(web3, _contracts) {
 
   let contracts = await getContracts(web3)
@@ -17,7 +19,6 @@ module.exports = async function(web3, _contracts) {
 
   const api = await require('./api')(contracts, web3)
   const challengeClaim = require('./challengeClaim')(web3, api)
-  const claimManager = require('./claimManager')(web3, api)
 
   return {
     api,
@@ -29,8 +30,8 @@ module.exports = async function(web3, _contracts) {
       }
     },
     submitClaim: async (cmd, claim) => {
-      await claimManager.submitClaim(claim);
-      await claimManager.defendClaim(claim);
+      await claimManager.submit(api, claim);
+      await claimManager.defend(api, claim);
     },
     initChallenges: async (cmd, claim) => {
       for (file in await readdir('./challenges')) {
