@@ -17,7 +17,6 @@
     "es6-promisify": "^5.0.0",
     "ethrpc": "^4.5.7",
     "javascript-state-machine": "^3.0.1",
-    "litecore-lib": "^0.13.22",
     "lodash": "^4.17.4",
     "mkdirp": "^0.5.1",
     "truffle-contract": "^3.0.2",
