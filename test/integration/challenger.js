@@ -133,10 +133,11 @@ describe('Challenger Client Integration Tests', function () {
       //verification game ends on last step
       await timeout(5000)
 
-      let result = await getAllEvents(bridge.api.scryptVerifier, 'ClaimantConvicted')
-      assert.equal(true, 0 < result.length)
-      assert.equal(otherClaimant, result[0].claimant)
       assert.equal(0, (await getAllEvents(bridge.api.scryptVerifier, 'ChallengerConvicted')).length)
+
+      let result = await getAllEvents(bridge.api.scryptVerifier, 'ClaimantConvicted')
+      assert.equal(true, result.length > 0)
+      assert.equal(otherClaimant, result[0].claimant)
     })
   })
 })
