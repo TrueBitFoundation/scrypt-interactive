@@ -1,4 +1,3 @@
-const lc = require('litecore-lib')
 const getContracts = require('./util/getContracts')
 
 const db = require('./db/models')
