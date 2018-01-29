@@ -55,7 +55,7 @@ ganache-cli
 
 Then run the tests with:
 ```bash
-truffle test
+NODE_ENV=test truffle test
 ```
 
 ## Easy Parity Installation
@@ -87,6 +87,11 @@ Which runs the parity dev chain needed for the offchain component.
 To run migrations:
 ```
 sequelize db:migrate
+```
+
+To run on test db:
+```
+NODE_ENV=test sequelize db:migrate
 ```
 
 ## Running Normally

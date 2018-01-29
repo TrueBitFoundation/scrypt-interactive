@@ -1,22 +1,29 @@
 {
-  "development": {
-    "use_env_variable": "DATABASE_URL",
+  "development": { 
+    "username": "postgres",
+    "password": null,
+    "database": "dogethereum_development",
+    "host": "127.0.0.1",
+    "port": 5432,
+    "dialect": "postgres",
     "operatorsAliases": false 
   },
   "test": {
-    "username": "root",
+    "username": "postgres",
     "password": null,
     "database": "dogethereum_test",
     "host": "127.0.0.1",
     "port": 5432,
-    "dialect": "postgres"
+    "dialect": "postgres",
+    "operatorsAliases": false 
   },
   "production": {
-    "username": "root",
+    "username": "postgres",
     "password": null,
     "database": "dogethereum_production",
     "host": "127.0.0.1",
     "port": 5432,
-    "dialect": "postgres"
+    "dialect": "postgres",
+    "operatorsAliases": false 
   }
 }
