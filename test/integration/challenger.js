@@ -47,6 +47,9 @@ describe('Challenger Client Integration Tests', function () {
     challenger = accounts[2]
     otherClaimant = accounts[3]
     await bridge.api.claimManager.setDogeRelay(dogeRelay.address, {from: claimant})
+
+    const stopper = new Promise((resolve) => stopMonitor = resolve)
+    monitor = bridge.monitorClaims(console, challenger, stopper, true, true)
   })
 
   after(async () => {
@@ -55,15 +58,9 @@ describe('Challenger Client Integration Tests', function () {
     await monitor
   })
 
-  describe('Challenger reacting to verificaiton game', () => {
+  describe('Challenger reacting to valid proof of work', async () => {
 
-    it('should start monitoring claims', async () => {
-      // eslint-disable-next-line
-      const stopper = new Promise((resolve) => stopMonitor = resolve)
-      monitor = bridge.monitorClaims(console, challenger, stopper, true, true)
-    })
-
-    it('should let claimant make a deposit and create claim', async () => {
+    it('should let claimant make a deposit and create real claim', async () => {
       // early indicator if contract deployment is correct
       await bridge.api.makeDeposit({ from: claimant, value: 1 })
 
@@ -79,17 +76,17 @@ describe('Challenger Client Integration Tests', function () {
       )
     })
 
+    //challenger sees proof of work is valid and does not challenge
     it('should be zero challengers', async () => {
-      //challenger sees proof of work is valid and does not challenge
-      bridge.api.claimManager.ClaimCreated({}, {fromBlock: 0, toBlock: 'latest'}).get( async (err, result) => {
-        if(err) console.log(err)
-        if(result) {
-          assert.equal(0, (await bridge.api.claimManager.getChallengers(result[0].args.claimID.toNumber())).length)
-        }
-      })
+      let result = await getAllEvents(bridge.api.claimManager, 'ClaimCreated')
+      assert.equal(0, (await bridge.api.claimManager.getChallengers(result[0].args.claimID.toNumber())).length)
     })
 
-    it('should let other claimant make a deposit and create claim', async () => {
+  })
+
+  describe('challenger reacting to invalid proof of work', async () => {
+
+    it('should let other claimant make a deposit and create fake claim', async () => {
       // early indicator if contract deployment is correct
       await bridge.api.makeDeposit({ from: otherClaimant, value: 1 })
 
@@ -99,18 +96,17 @@ describe('Challenger Client Integration Tests', function () {
       await bridge.api.createClaim(
         serializedBlockHeader, 
         fakeTestScryptHash, 
-        otherClaimant, 
+        otherClaimant,
         'bar', 
         { from: otherClaimant, value: 1 }
       )
     })
 
-    it('should query to normal case medHash==0x0', async () => {
-
+    it('should convict claimant', async () => {
       await timeout(3000)
 
       let verificationGameOngoing = true
-      while(verificationGameOngoing) {//verification game ongoing
+      while(verificationGameOngoing) {
         await timeout(5000)
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
         result.length.should.be.gt(0)
@@ -133,48 +129,14 @@ describe('Challenger Client Integration Tests', function () {
           await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
         }
       }
-    })
 
-    it('should query special case medHash!=0x0', async () => {
-      await timeout(5000)
-      const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
-
-      result.length.should.be.gt(0)
-
-      let sessionId = result[0].args.sessionId.toNumber()
-      let _claimant = result[0].args.claimant
-      _claimant.should.equal(otherClaimant)
-
-      let session = await bridge.api.getSession(sessionId)
-      // let step = session.medStep.toNumber()
-      let highStep = session.highStep.toNumber()
-      let lowStep = session.lowStep.toNumber()
-
-      let preState = (await bridge.api.getResult(session.input, lowStep)).state
-
-      let postStateAndProof = await bridge.api.getResult(session.input, highStep)
-
-      let postState = postStateAndProof.state
-      let proof = postStateAndProof.proof || '0x00'
-
-      let claimID = (await bridge.api.claimManager.claimantClaims(otherClaimant)).toNumber()
-
-      await bridge.api.scryptVerifier.performStepVerification(
-        sessionId,
-        claimID,
-        preState,
-        postState,
-        proof,
-        bridge.api.claimManager.address,
-        { from: otherClaimant, gas: 3000000 }
-      )
-    })
-
-    it('should end verification game', async () => {
+      //verification game ends on last step
       await timeout(5000)
 
-      console.log(await getAllEvents(bridge.api.scryptVerifier, 'ClaimantConvicted'))
-      console.log(await getAllEvents(bridge.api.scryptVerifier, 'ChallengerConvicted'))
+      let result = await getAllEvents(bridge.api.scryptVerifier, 'ClaimantConvicted')
+      assert.equal(true, 0 < result.length)
+      assert.equal(otherClaimant, result[0].claimant)
+      assert.equal(0, (await getAllEvents(bridge.api.scryptVerifier, 'ChallengerConvicted')).length)
     })
   })
 })
