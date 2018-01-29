@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node cli.js",
     "lint": "eslint .",
-    "test": "truffle test"
+    "test": "NODE_ENV=test truffle test"
   },
   "author": "chriseth",
   "license": "MIT",

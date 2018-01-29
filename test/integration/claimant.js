@@ -14,7 +14,8 @@ const ClaimManager = artifacts.require('ClaimManager')
 const ScryptVerifier = artifacts.require('ScryptVerifier')
 const DogeRelay = artifacts.require('DogeRelay')
 
-const Claim = require('../../client/db/models').Claim;
+const db = require('../../client/db/models');
+const Claim = db.Claim;
 
 // eslint-disable-next-line max-len
 
@@ -32,6 +33,9 @@ describe('Claimant Client Integration Tests', function () {
   let sessionId = null
 
   before(async () => {
+    // clean up database before running tests.
+    await db.sequelize.sync({force: true})
+
     scryptVerifier = await ScryptVerifier.new()
     claimManager = await ClaimManager.new(scryptVerifier.address)
     scryptRunner = await require('../helpers/offchain').scryptRunner() 
@@ -52,7 +56,7 @@ describe('Claimant Client Integration Tests', function () {
     await bridge.api.claimManager.setDogeRelay(dogeRelay.address, {from: claimant})
   })
 
-  after(async () => {
+  after(() => {
     console.log('waiting on createClaim to resolve...')
   })
 
