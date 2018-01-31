@@ -109,6 +109,7 @@ contract Verifier {
             s.lowStep = step;
         } else {
             // this next step must be in the correct range
+            //can only query between 0...2049
             require(step > s.lowStep && step < s.highStep);
 
             // if this is NOT the first query, update the steps and assign the correct hash
@@ -167,7 +168,7 @@ contract Verifier {
         bytes proofs,
         ClaimManager claimManager
     )
-        onlyClaimant(sessionId)
+        //onlyClaimant(sessionId)
         public
     {
         VerificationSession storage s = sessions[sessionId];

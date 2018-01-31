@@ -30,14 +30,10 @@ module.exports = (web3, api) => ({
 
       let result = await api.getResult(session.input, medStep)
 
-      if(medStep == 2049) {
-        return 2049
+      if(result.stateHash == session.medHash) {
+        return calculateMidpoint(medStep, highStep)
       } else {
-        if(result.stateHash == session.medHash) {
-          return calculateMidpoint(medStep, highStep)
-        }else{
-          return calculateMidpoint(lowStep, medStep)
-        }
+        return calculateMidpoint(lowStep, medStep)
       }
     }
 
@@ -165,12 +161,15 @@ module.exports = (web3, api) => ({
 
                   let session = await api.getSession(claim.sessionId)
 
+                  let medStep = await getNewMedStep(session)
+                  console.log("Querying step: " + medStep)
+                  await api.query(claim.sessionId, medStep, {from: challenger})
+
+                  session = await api.getSession(claim.sessionId)
+                  console.log(session)
                   if(session.lowStep.toNumber() + 1 == session.highStep.toNumber()) {
+                    console.log("Ending challenge")
                     resolve()
-                  } else {
-                    let medStep = await getNewMedStep(session)
-                    console.log("Querying step: " + medStep)
-                    await api.query(claim.sessionId, medStep, {from: challenger})
                   }
 
                 }
@@ -180,9 +179,12 @@ module.exports = (web3, api) => ({
           },
           onAfterPlayGame: async (tsn) => {
 
-            console.log("Convict Claimant")
+            await timeout(5000)
 
-            let session = await api.getSession(claim.sessionId)
+            //Should use session from before
+
+            session = await api.getSession(claim.sessionId)
+
             // let step = session.medStep.toNumber()
             let highStep = session.highStep.toNumber()
             let lowStep = session.lowStep.toNumber()
@@ -198,24 +200,11 @@ module.exports = (web3, api) => ({
               claim.sessionId,
               claim.id,
               preState,
-              postState,
+              claim.blockHash,
               proof,
               api.claimManager.address,
               { from: challenger, gas: 3000000 }
             )
-            
-            //Does a challenger need to actually worry about this event??
-            // let sessionDecidedEvent = api.claimManager.SessionDecided({sessionId: claim.sessionId})
-            // await new Promise((resolve, reject) => {
-            //   sessionDecidedEvent.watch(async (err, result) => {
-            //     if(err) reject(err)
-            //     if(result) {
-            //       console.log(result)
-            //       resolve()
-            //     }
-            //   })
-            // })
-            // sessionDecidedEvent.stopWatching()
 
             await deleteChallengeData(claim)
             resolveChallenge()

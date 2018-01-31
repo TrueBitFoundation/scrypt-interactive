@@ -22,8 +22,8 @@ const timeout = require('../helpers/timeout')
 const models = require(__dirname + '/../../client/util/models')
 
 describe('Challenger Client Integration Tests', function () {
-  // set max timeout to 120 seconds
-  this.timeout(120000)
+  // set max timeout to 5 minutes
+  this.timeout(300000)
 
   let bridge, claimant, challenger, dogeRelay, contracts
   let monitor, stopMonitor
@@ -105,8 +105,7 @@ describe('Challenger Client Integration Tests', function () {
     it('should convict claimant', async () => {
       await timeout(3000)
 
-      let verificationGameOngoing = true
-      while(verificationGameOngoing) {
+      for(i = 0; i < 12; i++) {
         await timeout(5000)
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
         result.length.should.be.gt(0)
@@ -119,25 +118,20 @@ describe('Challenger Client Integration Tests', function () {
         let step = session.medStep.toNumber()
         let highStep = session.highStep.toNumber()
         let lowStep = session.lowStep.toNumber()
-        console.log("low step: " + lowStep + " | high step: " + highStep)
 
-        if (lowStep + 1 == highStep) {
-          verificationGameOngoing = false
-        } else {
-          let results = await bridge.api.getResult(session.input, step)
-
-          await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
-        }
+        let results = await bridge.api.getResult(session.input, step)
+        await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
       }
 
       //verification game ends on last step
-      await timeout(5000)
+      //challenger performs step verification
+      await timeout(15000)
 
       assert.equal(0, (await getAllEvents(bridge.api.scryptVerifier, 'ChallengerConvicted')).length)
 
       let result = await getAllEvents(bridge.api.scryptVerifier, 'ClaimantConvicted')
       assert.equal(true, result.length > 0)
-      assert.equal(otherClaimant, result[0].claimant)
+      assert.equal(otherClaimant, result[0].args.claimant)
     })
   })
 })
