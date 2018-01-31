@@ -11,6 +11,7 @@ const newStopper = require('../../client/util/stopper')
 const getAllEvents = require('../helpers/events').getAllEvents
 const getContracts = require('../../client/util/getContracts')
 const calculateMidpoint = require('../../client/util/math').calculateMidpoint
+const timeout = require('../helpers/timeout')
 
 const {
   serializedBlockHeader,
@@ -68,6 +69,8 @@ describe('Claimant Client Integration Tests', function () {
     })
 
     it('should challenge claim and send initial query', async () => {
+      await timeout(5000)
+
       claimID = (await bridge.api.claimManager.claimantClaims(claimant)).toNumber()
 
       await bridge.api.challengeClaim(claimID, { from: challenger })
@@ -82,7 +85,10 @@ describe('Claimant Client Integration Tests', function () {
     })
 
     it('should respond to query normal case', async () => {
+      await timeout(5000)
+
       for (let i = 0; i < 11; i++) {
+        await timeout(5000)
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewResponse')
 
         result.length
