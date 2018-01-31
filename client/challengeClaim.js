@@ -183,13 +183,12 @@ module.exports = (web3, api) => ({
                 if(err) reject(err)
                 if(result) {
                   let session = await api.getSession(claim.sessionId)
-
                   let medStep = await getNewMedStep(session)
                   console.log("Querying step: " + medStep)
                   await api.query(claim.sessionId, medStep, {from: challenger})
 
                   session = await api.getSession(claim.sessionId)
-                  console.log(session)
+
                   if(session.lowStep.toNumber() + 1 == session.highStep.toNumber()) {
                     console.log("Ending challenge")
                     resolve()
@@ -204,7 +203,7 @@ module.exports = (web3, api) => ({
 
             await timeout(5000)
 
-            //Should use session from before
+            //Should use session from state before
 
             session = await api.getSession(claim.sessionId)
 
@@ -214,7 +213,13 @@ module.exports = (web3, api) => ({
 
             let preState = (await api.getResult(session.input, lowStep)).state
 
-            let postStateAndProof = await api.getResult(session.input, highStep)
+            let postStateAndProof
+            if (highStep == 2050) {
+              //compensate for off by one when creating proof
+              postStateAndProof = await api.getResult(session.input, highStep-1)
+            } else {
+              postStateAndProof = await api.getResult(session.input, highStep)
+            }
 
             let postState = postStateAndProof.state
             let proof = postStateAndProof.proof || '0x00'
