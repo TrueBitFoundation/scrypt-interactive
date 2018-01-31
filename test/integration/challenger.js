@@ -7,6 +7,7 @@ require('../helpers/chai').should()
 web3.eth.defaultAccount = web3.eth.accounts[0]
 
 const miner = require('../helpers/miner')(web3)
+const timeout = require('../helpers/timeout')
 const getAllEvents = require('../helpers/events').getAllEvents
 const getContracts = require('../../client/util/getContracts')
 
@@ -131,10 +132,7 @@ describe('Challenger Client Integration Tests', function () {
     })
 
     it('should convict claimant', async () => {
-      await timeout(3000)
-
-      for (i = 0; i < 12; i++) {
-        await timeout(5000)
+      for (let i = 0; i < 12; i++) {
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
         result.length.should.be.gt(0)
 
@@ -150,22 +148,6 @@ describe('Challenger Client Integration Tests', function () {
         let results = await bridge.api.getResult(session.input, step)
         await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
       }
-
-      // verification game ends on last step
-      // challenger performs step verification
-      await timeout(15000)
-
-      let claimID = (await bridge.api.claimManager.claimantClaims(otherClaimant)).toNumber()
-
-      await bridge.api.scryptVerifier.performStepVerification(
-        sessionId,
-        claimID,
-        preState,
-        postState,
-        proof,
-        bridge.api.claimManager.address,
-        { from: otherClaimant, gas: 3000000 }
-      )
     })
 
     it('should end verification game', async () => {

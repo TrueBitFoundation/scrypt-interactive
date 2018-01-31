@@ -6,15 +6,13 @@ const mineBlocks = (web3) => async (n) => {
     if (process.env.IS_GETH_TEST) {
       await timeout(3000)
     } else {
+      await web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_mine',
+        params: [],
+        id: 0,
+      })
       await timeout(1000)
-      // evm_mine randomly fails (???)
-      // const send = promisify(web3.currentProvider.send, web3.currentProvider)
-      // await send({
-      //   jsonrpc: '2.0',
-      //   method: 'evm_mine',
-      //   params: [],
-      //   id: 0,
-      // })
     }
   }
 }
