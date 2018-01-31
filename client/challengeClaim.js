@@ -22,7 +22,6 @@ const deleteChallengeData = async (data) => unlink(`${challengeCachePath}/${data
 
 module.exports = (web3, api) => ({
   run: async (cmd, claim, challenger, autoDeposit = false) => new Promise(async (resolve, reject) => {
-
     const getNewMedStep = async (session) => {
       let medStep = session.medStep.toNumber()
       let lowStep = session.lowStep.toNumber()
@@ -30,7 +29,7 @@ module.exports = (web3, api) => ({
 
       let result = await api.getResult(session.input, medStep)
 
-      if(result.stateHash == session.medHash) {
+      if (result.stateHash == session.medHash) {
         return calculateMidpoint(medStep, highStep)
       } else {
         return calculateMidpoint(lowStep, medStep)
@@ -93,8 +92,7 @@ module.exports = (web3, api) => ({
             }
           },
           onAfterChallenge: async (tsn) => {
-
-            //When this function is called play game is expected to start
+            // When this function is called play game is expected to start
             const sendQuery = async () => {
               claim.sessionId = await api.claimManager.getSession.call(claim.id, challenger)
               // Initial query
@@ -106,21 +104,21 @@ module.exports = (web3, api) => ({
             }
 
             const waitForGame = async () => {
-              const verificationGameStartedEvent = api.claimManager.VerificationGameStarted({claimID: claim.id, challenger: challenger})
+              const verificationGameStartedEvent = api.claimManager.VerificationGameStarted({ claimID: claim.id, challenger: challenger })
               return new Promise(async (resolve, reject) => {
                 verificationGameStartedEvent.watch(async (err, result) => {
-                  if(err) reject(err)
-                  if(result) resolve()
+                  if (err) reject(err)
+                  if (result) resolve()
                 })
               })
               verificationGameStartedEvent.stopWatching()
             }
 
-            //Figure out if first challenger
+            // Figure out if first challenger
             let currentChallenger = await api.claimManager.getCurrentChallenger.call(claim.id)
             let verificationOngoing = await api.claimManager.getVerificationOngoing.call(claim.id)
 
-            //this if statement is complex because of caching state, we could refactor when db is put in
+            // this if statement is complex because of caching state, we could refactor when db is put in
             if (currentChallenger == challenger && !verificationOngoing) {
               console.log('... we are first challenger.')
               await api.claimManager.runNextVerificationGame(claim.id, { from: challenger })
@@ -129,14 +127,14 @@ module.exports = (web3, api) => ({
               // ^ should only happen if rebooting during game
               console.log('... resuming challenge.')
               let [
-                claimantLastStep, challengerLastStep
+                claimantLastStep, challengerLastStep,
               ] = await api.scryptVerifier.getLastSteps.call(claim.sessionId)
 
-              if(claimantLastStep.toNumber() == challengerLastStep.toNumber()) {
-                console.log("Querying step: " + medStep)
+              if (claimantLastStep.toNumber() == challengerLastStep.toNumber()) {
+                console.log('Querying step: ' + medStep)
                 await sendQuery()
               }
-              //else wait for next query by starting game
+              // else wait for next query by starting game
             } else if (currentChallenger != challenger && verificationOngoing) {
               console.log('... waiting')
               await waitForGame()
@@ -144,15 +142,13 @@ module.exports = (web3, api) => ({
             } else {
               // ^ this case probably won't happen but this should cover us if it does
               console.log('... ???')
-              await api.claimManager.runNextVerificationGame(claim.id, {from: challenger})
+              await api.claimManager.runNextVerificationGame(claim.id, { from: challenger })
               await waitForGame()
               await sendQuery()
             }
-
           },
           onBeforePlayGame: async (tsn) => {
             const endGame = async () => {
-
               let session = await api.getSession(sessionId)
               // let step = session.medStep.toNumber()
               let highStep = session.highStep.toNumber()
@@ -176,38 +172,36 @@ module.exports = (web3, api) => ({
               )
             }
 
-            //play game
-            let newResponseEvent = api.scryptVerifier.NewResponse({sessionId: claim.sessionId, challenger: challenger})
+            // play game
+            let newResponseEvent = api.scryptVerifier.NewResponse({ sessionId: claim.sessionId, challenger: challenger })
             await new Promise(async (resolve, reject) => {
               newResponseEvent.watch(async (err, result) => {
-                if(err) reject(err)
-                if(result) {
+                if (err) reject(err)
+                if (result) {
                   let session = await api.getSession(claim.sessionId)
                   let medStep = await getNewMedStep(session)
-                  console.log("Querying step: " + medStep)
-                  await api.query(claim.sessionId, medStep, {from: challenger})
+                  console.log('Querying step: ' + medStep)
+                  await api.query(claim.sessionId, medStep, { from: challenger })
 
                   session = await api.getSession(claim.sessionId)
 
-                  if(session.lowStep.toNumber() + 1 == session.highStep.toNumber()) {
-                    console.log("Ending challenge")
+                  if (session.lowStep.toNumber() + 1 == session.highStep.toNumber()) {
+                    console.log('Ending challenge')
                     resolve()
                   }
-
                 }
               })
             })
             newResponseEvent.stopWatching()
           },
           onAfterPlayGame: async (tsn) => {
-
             await timeout(5000)
 
-            //Should use session from state before
+            // Should use session from state before
 
             session = await api.getSession(claim.sessionId)
 
-            //console.log(session)
+            // console.log(session)
 
             // let step = session.medStep.toNumber()
             let highStep = session.highStep.toNumber()
@@ -238,7 +232,7 @@ module.exports = (web3, api) => ({
       })
 
       // FSM high level transitions
-      if(await m.start()) {
+      if (await m.start()) {
         await m.playGame()
       } else {
         await m.challenge()

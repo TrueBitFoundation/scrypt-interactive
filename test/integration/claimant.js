@@ -6,8 +6,6 @@ require('dotenv').config()
 require('../helpers/chai').should()
 web3.eth.defaultAccount = web3.eth.accounts[0]
 
-
-
 const miner = require('../helpers/miner')(web3)
 const newStopper = require('../../client/util/stopper')
 const getAllEvents = require('../helpers/events').getAllEvents

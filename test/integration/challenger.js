@@ -61,16 +61,14 @@ describe('Challenger Client Integration Tests', function () {
       )
     })
 
-    //challenger sees proof of work is valid and does not challenge
+    // challenger sees proof of work is valid and does not challenge
     it('should be zero challengers', async () => {
       let result = await getAllEvents(bridge.api.claimManager, 'ClaimCreated')
       assert.equal(0, (await bridge.api.claimManager.getChallengers(result[0].args.claimID.toNumber())).length)
     })
-
   })
 
   describe('challenger reacting to invalid proof of work', async () => {
-
     it('should let other claimant make a deposit and create fake claim', async () => {
       // early indicator if contract deployment is correct
       await bridge.api.makeDeposit({ from: otherClaimant, value: 1 })
