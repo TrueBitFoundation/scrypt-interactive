@@ -37,6 +37,8 @@ We also run a postgres database to keep track of state. So run postgres on `5432
 
 ## Running the Project
 
+You need node v9.4.0.
+
 The addresses of the doge relay on mainnet are
 
 ```
@@ -75,6 +77,7 @@ Ensure you have the latest version of node installed.
 Then install packages deps:
 ```bash
 npm install
+npm install -g sequelize-cli
 ```
 
 Make sure your env is set up with the correct operator address if it's not the default account associated with your node. So unlock your account in your local node and then set `OPERATOR_ADDRESS` to whatever that is.
