@@ -83,11 +83,32 @@ By default, we expect the node you're communicating with to exist at `http://loc
 
 Install postgres. The internet is your friend here. Run it at the default port of `5432`.
 
-Set bootstrap you database with
+## Database installation (Ubuntu)
+```
+sudo apt-get update
+sudo apt-get install postgresql postgresql-contrib
+
+# Switch over to postgres account
+sudo -i -u postgres
+
+# create a new role
+createuser --interactive
+
+# enter user name
+# then select yes for superuser
+
+# give you user the ability to execute commands as postgres user
+# by giving it the right permissions in pg_hba.conf
+
+```
+
+user Bootstrap your database with
 
 ```bash
-sequelize db:create && sequelize db:migrate
-NODE_ENV=test sequelize db:create && sequelize db:migrate
+sequelize db:create
+sequelize db:migrate
+NODE_ENV=test sequelize db:create
+NODE_ENV=test sequelize db:migrate
 ```
 
 ### CLI Help
