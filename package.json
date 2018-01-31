@@ -3,14 +3,51 @@
   "version": "0.1.0",
   "description": "Interactive Scrypt computation verification",
   "main": "client/cli.js",
+  "bin": {
+    "bridge": "./cli.js"
+  },
   "scripts": {
     "start": "node cli.js",
+    "ganache": "bnr ganache",
+    "parity": "bnr parity",
+    "geth": "bnr geth",
+    "migrate:dev": "bnr migrate:dev",
+    "migrate:rinkeby": "bnr migrate:rinkeby",
+    "migrate:ropsten": "bnr migrate:ropsten",
+    "monitor": "bnr monitor",
     "lint": "eslint .",
-    "test": "truffle test"
+    "test": "bnr test",
+    "test:geth": "IS_GETH_TEST=true bnr test --network geth"
+  },
+  "betterScripts": {
+    "ganache": "./bin/ganache.sh",
+    "parity": "parity --config config.toml --geth",
+    "geth": "geth --dev --dev.period 0 --rpc --targetgaslimit 8000000",
+    "migrate:dev": "truffle migrate --network ganache",
+    "migrate:rinkeby": {
+      "command": "truffle migrate --network infura",
+      "env": {
+        "INFURA_CHAIN": "rinkeby"
+      }
+    },
+    "migrate:ropsten": {
+      "command": "truffle migrate --network infura",
+      "env": {
+        "INFURA_CHAIN": "ropsten"
+      }
+    },
+    "monitor": "node cli.js monitor",
+    "test": {
+      "command": "truffle test",
+      "env": {
+        "NODE_ENV": "test"
+      }
+    }
   },
   "author": "chriseth",
   "license": "MIT",
   "dependencies": {
+    "better-npm-run": "^0.1.0",
     "bignumber.js": "^5.0.0",
     "commander": "^2.13.0",
     "dotenv": "^4.0.0",
@@ -19,12 +56,18 @@
     "javascript-state-machine": "^3.0.1",
     "lodash": "^4.17.4",
     "mkdirp": "^0.5.1",
-    "solidity-sha3": "^0.4.1",
+    "pg": "^6.4.2",
+    "pg-hstore": "^2.3.2",
+    "sequelize": "^4.32.2",
+    "sequelize-cli": "^3.2.0",
     "truffle-contract": "^3.0.2",
+    "truffle-hdwallet-provider": "0.0.3",
+    "truffle-resolver": "^4.0.1",
     "web3": "^0.19.0",
     "zeppelin-solidity": "^1.5.0"
   },
   "devDependencies": {
+    "better-npm-run": "^0.1.0",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "chai-bignumber": "^2.0.2",

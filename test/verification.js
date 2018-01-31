@@ -1,13 +1,11 @@
+require('dotenv').config()
+require('./helpers/chai').should()
+web3.eth.defaultAccount = web3.eth.accounts[0]
 
 const _ = require('lodash')
-const { expect } = require('./helpers/chai')
 const dataFormatter = require('./helpers/dataFormatter')
-const offchain = require('./helpers/offchain')
-
-const ScryptVerifier = artifacts.require('ScryptVerifier')
-// const ScryptRunner = artifacts.require('ScryptRunner')
-
 const random = require('./helpers/random')
+const getContracts = require('../client/util/getContracts')
 
 // eslint-disable-next-line max-len
 const getStateAndProofInput = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
@@ -62,13 +60,15 @@ const resultExpectations = [
 // eslint-disable-next-line max-len
 const verifyProveInput = '0x5858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858'
 
-contract('ScryptVerifier', function (accounts) {
+describe('ScryptVerifier', function () {
+  this.timeout(10000)
   let scryptRunner,
     scryptVerifier
 
   before(async () => {
-    scryptRunner = await offchain.scryptRunner()
-    scryptVerifier = await ScryptVerifier.new()
+    const c = await (await getContracts(web3)).deploy()
+    scryptRunner = c.scryptRunner
+    scryptVerifier = c.scryptVerifier
   })
 
   context('Testing step values', () => {
@@ -77,24 +77,18 @@ contract('ScryptVerifier', function (accounts) {
         const result = await scryptRunner.run.call(getStateAndProofInput, stepCase.steps)
 
         for (let i = 0; i < stepCase.results.length; i++) {
-          expect(stepCase.results[i]).to.equal(
+          stepCase.results[i].should.equal(
             web3.toHex(result[1][i])
           )
         }
       })
     })
 
-    it('should fail on step 2049', async () => {
-      // This is not working :/
-      // expect(await offchain.run(scryptRunner, getStateAndProofInput, 2049)).to.be.rejected
-
-      // But this is
-      try {
-        await scryptRunner.run.call(getStateAndProofInput, 2049)
-      } catch (e) {
-        assert(true)
-      }
-    })
+    // it('should fail on step 2049', async () => {
+    //   // @TODO(hswick) - should this actually throw on 2049?
+    //   scryptRunner.run.call(getStateAndProofInput, 2049)
+    //     .should.throw()
+    // })
   })
 
   context('prover-verifier combination', () => {
@@ -102,14 +96,15 @@ contract('ScryptVerifier', function (accounts) {
       const state = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step)).state
       const postData = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step + 1))
 
-      const verified = await scryptVerifier.verifyStep(step, state, postData.state, postData.proof || '0x00', { from: accounts[0] })
+      const verified = await scryptVerifier.verifyStep(step, state, postData.state, postData.proof || '0x00', { from: web3.eth.accounts[0] })
       return verified
     }
 
     let binarySearchSteps = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1025, 2048]
     for (let step of binarySearchSteps) {
       it(`should be able to prove and verify step ${step}`, async () => {
-        expect(await verifyStep(verifyProveInput, step)).to.be.equal(true)
+        (await verifyStep(verifyProveInput, step))
+          .should.be.equal(true)
       })
     }
   })
@@ -137,9 +132,9 @@ contract('ScryptVerifier', function (accounts) {
           proof = random.flipRandomNibble(proof)
         }
 
-        expect(
-          await scryptVerifier.verifyStep(step, preState, postState, proof, { from: accounts[0] })
-        ).to.be.equal(false)
+        (
+          await scryptVerifier.verifyStep(step, preState, postState, proof, { from: web3.eth.accounts[0] })
+        ).should.be.equal(false)
       })
     })
   })

@@ -48,7 +48,7 @@ contract ClaimManager is DepositsManager {
     require(msg.sender == _account);
     _;
   }
-  
+
     // @dev – the constructor
     function ClaimManager(ScryptVerifier _scryptVerifier) public {
         scryptVerifier = _scryptVerifier;
@@ -123,7 +123,7 @@ contract ClaimManager is DepositsManager {
     require(deposits[claimant] >= minDeposit);
     require(claimantClaims[claimant] == 0);//claimant can only do one claim at a time
 
-    ScryptClaim storage claim = claims[numClaims]; 
+    ScryptClaim storage claim = claims[numClaims];
     claim.claimant = claimant;
     claim.plaintext = _plaintext;
     claim.blockHash = _blockHash;
@@ -190,7 +190,7 @@ contract ClaimManager is DepositsManager {
       }
     }
   }
-    
+
   // @dev – called when a verification game has ended.
   // only callable by the scryptVerifier contract.
   //
@@ -221,7 +221,9 @@ contract ClaimManager is DepositsManager {
     } else if (claim.claimant == winner) {
       // the claim continues.
       runNextVerificationGame(claimID);
-    } else { revert(); }
+    } else {
+      revert();
+    }
 
     SessionDecided(sessionId, winner, loser);
   }
@@ -289,6 +291,22 @@ contract ClaimManager is DepositsManager {
 
   function getClaimReady(uint claimID) public view returns(bool) {
     ScryptClaim storage claim = claims[claimID];
-    return block.number > claim.challengeTimeoutBlockNumber && claim.decided;
+
+    // check that the claim exists
+    bool exists = claimExists(claim);
+
+    // check that the claim has exceeded the default challenge timeout.
+    bool pastChallengeTimeout = block.number.sub(claim.createdAt) > defaultChallengeTimeout;
+
+    // check that the claim has exceeded the claim's specific challenge timeout.
+    bool pastClaimTimeout = block.number > claim.challengeTimeoutBlockNumber;
+
+    // check that there is no ongoing verification game.
+    bool noOngoingGames = claim.verificationOngoing == false;
+
+    // check that all verification games have been played.
+    bool noPendingGames = claim.numChallengers == claim.currentChallenger;
+
+    return exists && pastChallengeTimeout && pastClaimTimeout && noOngoingGames && noPendingGames;
   }
 }

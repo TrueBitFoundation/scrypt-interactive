@@ -1,9 +1,11 @@
+require('dotenv').config()
+require('./helpers/chai').should()
+web3.eth.defaultAccount = web3.eth.accounts[0]
 
 const _ = require('lodash')
-const { expect } = require('./helpers/chai')
-const offchain = require('./helpers/offchain')
 
-const ScryptVerifier = artifacts.require('ScryptVerifier')
+const getContracts = require('../client/util/getContracts')
+const offchain = require('../client/util/offchain')
 
 // eslint-disable-next-line max-len
 const getStateAndProofInput = '0x03000000c63abe4881f9c765925fffb15c88cdb861e86a32f4c493a36c3e29c54dc62cf45ba4401d07d6d760e3b84fb0b9222b855c3b7c04a174f17c6e7df07d472d0126fe455556358c011b6017f799'
@@ -66,12 +68,13 @@ const resultExpectations = [
   },
 ]
 
-contract('Scrypt hash verifier', function () {
+describe('Scrypt hash verifier', function () {
+  this.timeout(120000)
   let scryptRunner
 
   before(async () => {
-    scryptRunner = await offchain.scryptRunner()
-    scryptVerifier = await ScryptVerifier.new()
+    const c = await (await getContracts(web3)).deploy()
+    scryptRunner = c.scryptRunner
   })
 
   context('Verify intermediate values', () => {
@@ -80,7 +83,7 @@ contract('Scrypt hash verifier', function () {
         const result = await scryptRunner.run.call(getStateAndProofInput, stepCase.steps)
 
         for (let i = 0; i < stepCase.results.length; i++) {
-          expect(stepCase.results[i]).to.equal(
+          stepCase.results[i].should.equal(
             web3.toHex(result[1][i])
           )
         }
@@ -89,7 +92,7 @@ contract('Scrypt hash verifier', function () {
 
     it('verify final step', async () => {
       const result = await scryptRunner.run.call(getStateAndProofInput, 2049)
-      expect(web3.toHex(result[4])).to.equal(scryptHashOutput)
+      web3.toHex(result[4]).should.equal(scryptHashOutput)
     })
   })
 })

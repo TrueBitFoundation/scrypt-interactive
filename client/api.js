@@ -3,8 +3,8 @@ const BigNumber = require('bignumber.js')
 const { toSession, toResult } = require('./util/models')
 
 module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay }, web3) => {
-
   return {
+    web3,
     /**
      * The instances, for direct access to methods like events.
      */
@@ -117,6 +117,6 @@ module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay 
 
     getStateProofAndHash: async (input, step) => {
       return scryptRunner.getStateProofAndHash.call(input, step)
-    }
+    },
   }
 }
