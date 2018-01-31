@@ -207,19 +207,15 @@ module.exports = (web3, api) => ({
 
             session = await api.getSession(claim.sessionId)
 
+            console.log(session)
+
             // let step = session.medStep.toNumber()
             let highStep = session.highStep.toNumber()
             let lowStep = session.lowStep.toNumber()
 
             let preState = (await api.getResult(session.input, lowStep)).state
 
-            let postStateAndProof
-            if (highStep == 2050) {
-              //compensate for off by one when creating proof
-              postStateAndProof = await api.getResult(session.input, highStep-1)
-            } else {
-              postStateAndProof = await api.getResult(session.input, highStep)
-            }
+            let postStateAndProof = await api.getResult(session.input, highStep)
 
             let postState = postStateAndProof.state
             let proof = postStateAndProof.proof || '0x00'

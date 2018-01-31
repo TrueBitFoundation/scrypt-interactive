@@ -176,7 +176,7 @@ contract ClaimManager is DepositsManager {
       require(claim.verificationOngoing == false);
 
       // kick off a verification game.
-      uint sessionId = scryptVerifier.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2050);
+      uint sessionId = scryptVerifier.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2049);
       claim.sessions[claim.challengers[claim.currentChallenger]] = sessionId;
       VerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger], sessionId);
 
