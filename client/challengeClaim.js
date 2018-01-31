@@ -185,7 +185,7 @@ module.exports = (web3, api) => ({
 
             session = await api.getSession(claim.sessionId)
 
-            console.log(session)
+            //console.log(session)
 
             // let step = session.medStep.toNumber()
             let highStep = session.highStep.toNumber()
