@@ -19,6 +19,7 @@
     "javascript-state-machine": "^3.0.1",
     "lodash": "^4.17.4",
     "mkdirp": "^0.5.1",
+    "solidity-sha3": "^0.4.1",
     "truffle-contract": "^3.0.2",
     "web3": "^0.19.0",
     "zeppelin-solidity": "^1.5.0"
