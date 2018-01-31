@@ -81,76 +81,36 @@ describe('Challenger Client Integration Tests', function () {
         serializedBlockHeader,
         fakeTestScryptHash,
         otherClaimant,
-        'bar',
+        'foobar',
         { from: otherClaimant, value: 1 }
       )
+
+      await timeout(3000)
     })
 
-    it('should let claimant make a deposit and check scrypt', async () => {
-      await bridge.api.createClaim(
-        serializedBlockHeader,
-        scryptHash,
-        claimant,
-        'bar',
-        { from: claimant, value: 1 }
-      )
-      await miner.mineBlocks(4)
-    })
+    it(`should query normal case medHash==0x0 step`, async () => {
+      for (let i = 0; i < 12; i++) {
+        await timeout(5000)
 
-    for (let i = 0; i < 12; i++) {
-      it(`should query normal case medHash==0x0 step ${i}`, async () => {
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
         result.length.should.be.gt(0)
-
+  
         const sessionId = result[0].args.sessionId.toNumber()
         const _claimant = result[0].args.claimant
-        assert.equal(_claimant, claimant)
-
-        let session = await bridge.api.getSession(sessionId)
-        let step = session.medStep.toNumber()
-        let highStep = session.highStep.toNumber()
-        let lowStep = session.lowStep.toNumber()
-
-        let results = await bridge.api.getResult(session.input, step)
-        await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
-      })
-    }
-
-    it('should query special case medHash!=0x0', async () => {
-      const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
-
-      let deposit = await bridge.api.getDeposit(otherClaimant)
-      deposit.should.be.bignumber.equal(1)
-
-      await bridge.api.createClaim(
-        serializedBlockHeader,
-        fakeTestScryptHash,
-        otherClaimant,
-        'bar',
-        { from: otherClaimant, value: 1 }
-      )
-    })
-
-    it('should convict claimant', async () => {
-      for (let i = 0; i < 12; i++) {
-        const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
-        result.length.should.be.gt(0)
-
-        let sessionId = result[0].args.sessionId.toNumber()
-        let _claimant = result[0].args.claimant
         assert.equal(_claimant, otherClaimant)
-
+  
         let session = await bridge.api.getSession(sessionId)
         let step = session.medStep.toNumber()
         let highStep = session.highStep.toNumber()
         let lowStep = session.lowStep.toNumber()
-
+  
         let results = await bridge.api.getResult(session.input, step)
         await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
       }
     })
 
     it('should end verification game', async () => {
+      await timeout(15000)
       assert.equal(0, (await getAllEvents(bridge.api.scryptVerifier, 'ChallengerConvicted')).length)
 
       let result = await getAllEvents(bridge.api.scryptVerifier, 'ClaimantConvicted')

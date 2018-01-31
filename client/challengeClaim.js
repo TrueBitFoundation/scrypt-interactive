@@ -225,7 +225,7 @@ module.exports = (web3, api) => ({
             )
 
             await deleteChallengeData(claim)
-            resolveChallenge()
+            resolve()// global resolve
           },
           onCancel: (tsn, err) => { reject(err) },
         },
