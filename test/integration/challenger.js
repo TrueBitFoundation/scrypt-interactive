@@ -17,8 +17,8 @@ const {
 } = require('../helpers/blockheader')
 
 describe('Challenger Client Integration Tests', function () {
-  // set max timeout to 120 seconds
-  this.timeout(120000)
+  // set max timeout to 5 minutes
+  this.timeout(300000)
 
   let bridge, claimant, challenger, otherClaimant
   let monitor, stopMonitor
@@ -98,9 +98,8 @@ describe('Challenger Client Integration Tests', function () {
       await miner.mineBlocks(4)
     })
 
-    it(`should query to normal case medHash==0x0 step ${i}`, async () => {
-      let verificationGameOngoing = true
-      while (verificationGameOngoing) {
+    for (let i = 0; i < 12; i++) {
+      it(`should query normal case medHash==0x0 step ${i}`, async () => {
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
         result.length.should.be.gt(0)
 
@@ -108,21 +107,15 @@ describe('Challenger Client Integration Tests', function () {
         const _claimant = result[0].args.claimant
         assert.equal(_claimant, claimant)
 
-        const session = await bridge.api.getSession(sessionId)
-        const step = session.medStep.toNumber()
-        const highStep = session.highStep.toNumber()
-        const lowStep = session.lowStep.toNumber()
-        console.log("low step: " + lowStep + " | high step: " + highStep)
+        let session = await bridge.api.getSession(sessionId)
+        let step = session.medStep.toNumber()
+        let highStep = session.highStep.toNumber()
+        let lowStep = session.lowStep.toNumber()
 
-        if (lowStep + 1 === highStep) {
-          verificationGameOngoing = false
-        } else {
-          const results = await bridge.api.getResult(session.input, step)
-
-          await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
-        }
-      }
-    })
+        let results = await bridge.api.getResult(session.input, step)
+        await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
+      })
+    }
 
     it('should query special case medHash!=0x0', async () => {
       const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
@@ -163,7 +156,7 @@ describe('Challenger Client Integration Tests', function () {
 
       let result = await getAllEvents(bridge.api.scryptVerifier, 'ClaimantConvicted')
       assert.equal(true, result.length > 0)
-      assert.equal(otherClaimant, result[0].claimant)
+      assert.equal(otherClaimant, result[0].args.claimant)
     })
   })
 })
