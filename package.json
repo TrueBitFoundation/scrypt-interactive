@@ -56,14 +56,10 @@
     "javascript-state-machine": "^3.0.1",
     "lodash": "^4.17.4",
     "mkdirp": "^0.5.1",
-<<<<<<< HEAD
     "pg": "^6.4.2",
     "pg-hstore": "^2.3.2",
     "sequelize": "^4.32.2",
     "sequelize-cli": "^3.2.0",
-=======
-    "solidity-sha3": "^0.4.1",
->>>>>>> Passing challenger integration test, but query(2049) is called twice
     "truffle-contract": "^3.0.2",
     "truffle-hdwallet-provider": "0.0.3",
     "truffle-resolver": "^4.0.1",
