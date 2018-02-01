@@ -7,7 +7,6 @@ require('../helpers/chai').should()
 web3.eth.defaultAccount = web3.eth.accounts[0]
 
 const miner = require('../helpers/miner')(web3)
-const timeout = require('../helpers/timeout')
 const getAllEvents = require('../helpers/events').getAllEvents
 const getContracts = require('../../client/util/getContracts')
 
@@ -85,14 +84,11 @@ describe('Challenger Client Integration Tests', function () {
         'foobar',
         { from: otherClaimant }
       )
-
-      await timeout(3000)
+      await miner.mineBlocks(2)
     })
 
-    it(`should query normal case medHash==0x0 step`, async () => {
-      for (let i = 0; i < 12; i++) {
-        await timeout(5000)
-
+    for (let i = 0; i < 13; i++) {
+      it(`should query normal case medHash==0x0 step ${i}`, async () => {
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
         result.length.should.be.gt(0)
 
@@ -102,18 +98,20 @@ describe('Challenger Client Integration Tests', function () {
 
         let session = await bridge.api.getSession(sessionId)
         let step = session.medStep.toNumber()
-        let highStep = session.highStep.toNumber()
-        let lowStep = session.lowStep.toNumber()
 
         let results = await bridge.api.getResult(session.input, step)
+        console.log(`[test] responding to query for session ${sessionId} step ${step} with ${results.stateHash}`)
         await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
-      }
+        await miner.mineBlocks(2)
+      })
+    }
+
+    it('should wait for the challenger to end the game', async () => {
+      await miner.mineBlocks(10)
     })
 
-    it('should end verification game', async () => {
-      await timeout(15000)
+    it('should have ended verification game', async () => {
       assert.equal(0, (await getAllEvents(bridge.api.scryptVerifier, 'ChallengerConvicted')).length)
-
       let result = await getAllEvents(bridge.api.scryptVerifier, 'ClaimantConvicted')
       assert.equal(true, result.length > 0)
       assert.equal(otherClaimant, result[0].args.claimant)

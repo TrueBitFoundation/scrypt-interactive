@@ -5,6 +5,7 @@ web3.eth.defaultAccount = web3.eth.accounts[0]
 
 const getContracts = require('../client/util/getContracts')
 
+const miner = require('./helpers/miner')(web3)
 const makeDeposit = require('../client/claimManager/deposit').makeDeposit
 const isDepositEnough = require('../client/claimManager/deposit').isDepositEnough
 
@@ -28,9 +29,10 @@ describe('Deposit', function () {
 
     // make a deposit
     await makeDeposit(console, client.api, me, 2)
+    await miner.mineBlock()
 
     depositAmount = await client.api.getDeposit(me)
-    assert.equal(depositAmount, 2)
+    assert.equal(depositAmount.toNumber(), 2)
 
     isEnough = await isDepositEnough(client.api, me)
     assert.isTrue(isEnough)
