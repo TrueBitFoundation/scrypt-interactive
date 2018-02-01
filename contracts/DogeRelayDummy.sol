@@ -1,13 +1,14 @@
 pragma solidity ^0.4.4;
 import './ClaimManager.sol';
+import './IDogeRelay.sol';
 
-contract DogeRelay {
+contract DogeRelayDummy is IDogeRelay {
 
 	ClaimManager claimManager;
 
 	event ScryptVerified(bytes32 proposalId);
 
-	function DogeRelay(ClaimManager _claimManager) public {
+	function DogeRelayDummy(ClaimManager _claimManager) public {
 		claimManager = _claimManager;
 	}
 	

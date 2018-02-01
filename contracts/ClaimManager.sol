@@ -2,18 +2,19 @@ pragma solidity ^0.4.0;
 
 import {DepositsManager} from './DepositsManager.sol';
 import {ScryptVerifier} from "./ScryptVerifier.sol";
-import {DogeRelay} from "./DogeRelay.sol";
+import {IDogeRelay} from "./IDogeRelay.sol";
+import {IScryptChecker} from "./IScryptChecker.sol";
 
 // ClaimManager: queues a sequence of challengers to play with a claimant.
 
-contract ClaimManager is DepositsManager {
+contract ClaimManager is DepositsManager, IScryptChecker {
   uint private numClaims = 1;     // index as key for the claims mapping.
   uint public minDeposit = 1;    // TODO: what should the minimum deposit be?
 
   //default initial amount of blocks for challenge timeout
   uint public defaultChallengeTimeout = 20;
 
-  DogeRelay public dogeRelay;
+  IDogeRelay public dogeRelay;
   ScryptVerifier public scryptVerifier;
 
   event DepositBonded(uint claimID, address account, uint amount);
@@ -55,7 +56,7 @@ contract ClaimManager is DepositsManager {
     }
 
     //This should be able to only be called once
-    function setDogeRelay(DogeRelay _dogeRelay) public {
+    function setDogeRelay(IDogeRelay _dogeRelay) public {
         require(uint(dogeRelay) == 0x0);
         dogeRelay = _dogeRelay;
     }
@@ -108,11 +109,11 @@ contract ClaimManager is DepositsManager {
   // @param _plaintext – the plaintext blockHeader.
   // @param _blockHash – the blockHash.
   // @param claimant – the address of the Dogecoin block submitter.
-  function checkScrypt(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) onlyBy(dogeRelay) public payable {
+  function checkScrypt(bytes _data, bytes32 _hash, address _submitter, bytes32 _proposalId) onlyBy(dogeRelay) public payable {
     // dogeRelay can directly make a deposit on behalf of the claimant.
     if (msg.value != 0) {
       // only call if eth is included (to save gas)
-      increaseDeposit(claimant, msg.value);
+      increaseDeposit(_submitter, msg.value);
     }
 
     bytes memory _blockHash = new bytes(32);
@@ -120,22 +121,22 @@ contract ClaimManager is DepositsManager {
         mstore(add(_blockHash, 0x20), _hash)
     }
 
-    require(deposits[claimant] >= minDeposit);
-    require(claimantClaims[claimant] == 0);//claimant can only do one claim at a time
+    require(deposits[_submitter] >= minDeposit);
+    require(claimantClaims[_submitter] == 0);//claimant can only do one claim at a time
 
     ScryptClaim storage claim = claims[numClaims];
-    claim.claimant = claimant;
-    claim.plaintext = _plaintext;
+    claim.claimant = _submitter;
+    claim.plaintext = _data;
     claim.blockHash = _blockHash;
     claim.numChallengers = 0;
     claim.currentChallenger = 0;
     claim.verificationOngoing = false;
     claim.createdAt = block.number;
     claim.decided = false;
-    claim.proposalId = proposalId;
-    claimantClaims[claimant] = numClaims;
+    claim.proposalId = _proposalId;
+    claimantClaims[_submitter] = numClaims;
 
-    bondDeposit(numClaims, claimant, minDeposit);
+    bondDeposit(numClaims, claim.claimant, minDeposit);
     ClaimCreated(numClaims, claim.claimant, claim.plaintext, claim.blockHash);
     numClaims = numClaims + 1;
   }

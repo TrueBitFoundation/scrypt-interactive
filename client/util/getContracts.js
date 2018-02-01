@@ -26,7 +26,7 @@ module.exports = async (web3) => {
 
   const ClaimManager = await getContract('ClaimManager')
   const ScryptVerifier = await getContract('ScryptVerifier')
-  const DogeRelay = await getContract('DogeRelay')
+  const DogeRelay = await getContract('DogeRelayDummy')
 
   return {
     deployed: async () => ({
