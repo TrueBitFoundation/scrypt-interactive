@@ -12,8 +12,9 @@ contract DogeRelayDummy is IDogeRelay {
 		claimManager = _claimManager;
 	}
 	
-	function scryptVerified(bytes32 proposalId) public {
+	function scryptVerified(bytes32 proposalId) public returns (uint) {
 		ScryptVerified(proposalId);
+		return 42;
 	}
 
 	function verifyScrypt(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) public payable {
