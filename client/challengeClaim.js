@@ -11,6 +11,8 @@ const writeFile = promisify(fs.writeFile, fs)
 const unlink = promisify(fs.unlink, fs)
 const path = require('path')
 
+const isDepositEnough = require('./claimManager/deposit').isDepositEnough;
+
 const challengeCachePath = path.resolve(__dirname, '../../cache/challenges')
 
 const saveChallengeData = async (data) => {
@@ -57,30 +59,12 @@ module.exports = (web3, api) => ({
             } else {
               cmd.log('Checking deposits...')
 
-              const minDeposit = await api.getMinDeposit()
-              const currentDeposit = await api.getDeposit(challenger)
-              if (currentDeposit.lt(minDeposit)) {
-                cmd.log('Not enough ETH deposited.')
-                // if we don't have enough deposit, either add some or throw
-                // let's just add exactly the right amount for now
-                if (autoDeposit) {
-                  const neededAmount = minDeposit.sub(currentDeposit)
-                  const myBalance = await api.getBalance(challenger)
-                  if (myBalance.gte(neededAmount)) {
-                    cmd.log(`Depositing ${web3.fromWei(neededAmount, 'ether')} ETH...`)
-                    await api.makeDeposit({ from: challenger, value: neededAmount })
-                    cmd.log(`Deposited ${web3.fromWei(neededAmount, 'ether')} ETH.`)
-                  } else {
-                    throw new Error(`
-                      You don't have enough ETH to submit a deposit that would be greater than minDeposit.
-                    `)
-                  }
-                } else {
-                  throw new Error(`
-                    Your deposited ETH in ClaimManager is lower than minDeposit and autoDeposit was not enabled.`
-                  )
-                }
+              if (!isDepositEnough(api, challenger)) {
+                throw new Error(`
+                  Your deposited ETH in ClaimManager is lower than minDeposit.`
+                )
               }
+
               return false
             }
           },
