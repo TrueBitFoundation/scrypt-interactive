@@ -23,7 +23,7 @@ const saveChallengeData = async (data) => {
 const deleteChallengeData = async (data) => unlink(`${challengeCachePath}/${data.id}.json`)
 
 module.exports = (web3, api) => ({
-  run: async (cmd, claim, challenger, autoDeposit = false) => new Promise(async (resolve, reject) => {
+  run: async (cmd, claim, challenger) => new Promise(async (resolve, reject) => {
     const getNewMedStep = async (session) => {
       let medStep = session.medStep.toNumber()
       let lowStep = session.lowStep.toNumber()

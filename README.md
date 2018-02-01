@@ -129,7 +129,7 @@ Make sure your env is set up with the correct contract addresses (defaults to we
 Then run the cli, acting as a challenger.
 
 ```bash
-bridge monitor [-c, --auto-challenge] [-d, --auto-deposit]
+bridge monitor [-c, --auto-challenge]
 ```
 
 The `challenge` and `deposit` flags configure how the bridge behaves. They should be self-explanatory. By default the monitor process will exclusively watch the bridge events.

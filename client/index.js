@@ -11,10 +11,10 @@ module.exports = async (web3, _contracts = null) => {
 
   return {
     api,
-    submitClaim: async (cmd, claimData, stopper, autoDeposit = false) => {
+    submitClaim: async (cmd, claimData, stopper) => {
       const fn = async () => {
         const claim = await db.Claim.create(claimData)
-        await claimManager.submit(cmd, api, claim, autoDeposit)
+        await claimManager.submit(cmd, api, claim)
         await claimManager.defend(cmd, api, claim)
       }
       await Promise.race([
@@ -22,7 +22,7 @@ module.exports = async (web3, _contracts = null) => {
         fn(),
       ])
     },
-    monitorClaims: async (cmd, challenger, stopper, autoChallenge = false, autoDeposit = false) => {
+    monitorClaims: async (cmd, challenger, stopper, autoChallenge = false) => {
       return new Promise(async (resolve, reject) => {
         let inProgressClaims = {}
 
@@ -71,7 +71,7 @@ module.exports = async (web3, _contracts = null) => {
               // so that Promise.all works correctly
               if (!(claim.id in inProgressClaims)) {
                 inProgressClaims[claim.id] = challengeClaim
-                  .run(cmd, claim, challenger, autoDeposit)
+                  .run(cmd, claim, challenger)
                   .then(() => {
                     cmd.log(`Finished Challenging Claim: ${claim.id}`)
                   })
