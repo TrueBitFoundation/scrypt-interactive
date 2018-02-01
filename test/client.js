@@ -38,7 +38,7 @@ describe('ClaimManager', function () {
     })
 
     it('claimant checks scrypt, after implicitly making a deposit', async () => {
-      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, claimant, 'bar', { from: claimant, value: claimDeposit })
+      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, 'bar', { from: claimant, value: claimDeposit })
 
       const results = await getAllEvents(claimManager, 'ClaimCreated')
       results.length.should.be.gt(0)

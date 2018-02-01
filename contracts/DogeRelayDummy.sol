@@ -1,8 +1,8 @@
 pragma solidity ^0.4.4;
 import './ClaimManager.sol';
-import './IDogeRelay.sol';
+import './IScryptDependent.sol';
 
-contract DogeRelayDummy is IDogeRelay {
+contract DogeRelayDummy is IScryptDependent {
 
 	ClaimManager claimManager;
 
@@ -17,7 +17,7 @@ contract DogeRelayDummy is IDogeRelay {
 		return 42;
 	}
 
-	function verifyScrypt(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) public payable {
-		ClaimManager(claimManager).checkScrypt.value(msg.value)(_plaintext, _hash, claimant, proposalId, this);
+	function verifyScrypt(bytes _plaintext, bytes32 _hash, bytes32 proposalId) public payable {
+		ClaimManager(claimManager).checkScrypt.value(msg.value)(_plaintext, _hash, proposalId, this);
 	}
 }

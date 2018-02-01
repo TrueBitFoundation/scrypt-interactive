@@ -56,7 +56,6 @@ describe('Challenger Client Integration Tests', function () {
       await bridge.api.createClaim(
         serializedBlockHeader,
         scryptHash,
-        claimant,
         'bar',
         { from: claimant }
       )
@@ -80,7 +79,6 @@ describe('Challenger Client Integration Tests', function () {
       await bridge.api.createClaim(
         serializedBlockHeader,
         fakeTestScryptHash,
-        otherClaimant,
         'foobar',
         { from: otherClaimant }
       )

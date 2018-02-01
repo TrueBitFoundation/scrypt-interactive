@@ -2,7 +2,7 @@ pragma solidity ^0.4.0;
 
 import {DepositsManager} from './DepositsManager.sol';
 import {ScryptVerifier} from "./ScryptVerifier.sol";
-import {IDogeRelay} from "./IDogeRelay.sol";
+import {IScryptDependent} from "./IScryptDependent.sol";
 import {IScryptChecker} from "./IScryptChecker.sol";
 
 // ClaimManager: queues a sequence of challengers to play with a claimant.
@@ -39,7 +39,7 @@ contract ClaimManager is DepositsManager, IScryptChecker {
     bool decided;
     uint challengeTimeoutBlockNumber;
     bytes32 proposalId;
-    IDogeRelay dogeRelay;
+    IScryptDependent scryptDependent;
   }
 
   mapping(address => uint) public claimantClaims;
@@ -103,8 +103,9 @@ contract ClaimManager is DepositsManager, IScryptChecker {
   // @param _plaintext – the plaintext blockHeader.
   // @param _blockHash – the blockHash.
   // @param claimant – the address of the Dogecoin block submitter.
-  function checkScrypt(bytes _data, bytes32 _hash, address _submitter, bytes32 _proposalId, IDogeRelay _dogeRelay) public payable {
+  function checkScrypt(bytes _data, bytes32 _hash, bytes32 _proposalId, IScryptDependent _scryptDependent) public payable {
     // dogeRelay can directly make a deposit on behalf of the claimant.
+    address _submitter = tx.origin;
     if (msg.value != 0) {
       // only call if eth is included (to save gas)
       increaseDeposit(_submitter, msg.value);
@@ -128,7 +129,7 @@ contract ClaimManager is DepositsManager, IScryptChecker {
     claim.createdAt = block.number;
     claim.decided = false;
     claim.proposalId = _proposalId;
-    claim.dogeRelay = _dogeRelay;
+    claim.scryptDependent = _scryptDependent;
     claimantClaims[_submitter] = numClaims;
 
     bondDeposit(numClaims, claim.claimant, minDeposit);
@@ -251,7 +252,7 @@ contract ClaimManager is DepositsManager, IScryptChecker {
     unbondDeposit(claimID, claim.claimant);
     claimantClaims[claim.claimant] = 0;
 
-    IDogeRelay(claim.dogeRelay).scryptVerified(claim.proposalId);
+    IScryptDependent(claim.scryptDependent).scryptVerified(claim.proposalId);
 
     ClaimSuccessful(claimID, claim.claimant, claim.plaintext, claim.blockHash);
   }

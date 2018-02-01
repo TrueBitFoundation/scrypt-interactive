@@ -32,7 +32,7 @@ describe('DogeRelay + ClaimManager submission', function () {
   })
 
   it('should produce the ClaimCreated event after a claim is created', async () => {
-    await c.dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, claimant, 'test')
+    await c.dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, 'test')
 
     const result = await getAllEvents(c.claimManager, 'ClaimCreated')
     result.length.should.be.gt(0)
