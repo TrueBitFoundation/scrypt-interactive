@@ -6,6 +6,7 @@ const _ = require('lodash')
 
 const getContracts = require('../client/util/getContracts')
 const offchain = require('../client/util/offchain')
+const scryptsy = require('scryptsy')
 
 // eslint-disable-next-line max-len
 const getStateAndProofInput = '0x03000000c63abe4881f9c765925fffb15c88cdb861e86a32f4c493a36c3e29c54dc62cf45ba4401d07d6d760e3b84fb0b9222b855c3b7c04a174f17c6e7df07d472d0126fe455556358c011b6017f799'
@@ -67,6 +68,30 @@ const resultExpectations = [
     ],
   },
 ]
+
+describe('checking hashes', async function() {
+  this.timeout(30000)
+
+  let scryptRunner
+
+  before(async () => {
+    const c = await (await getContracts(web3)).deploy()
+    scryptRunner = c.scryptRunner
+  })
+
+  it('scryptsy and scryptRunner == same', async () => {
+
+    const scryptHash = (data, start = 0, length = 80) => {
+      let buff = Buffer.from(data, start, length);
+      return scryptsy(buff, buff, 1024, 1, 1, 32)
+    }
+
+    //slicing the 0x because of possible encoding issue
+    const hash = scryptHash(getStateAndProofInput.slice(2, -1)).toString('hex')
+    const result = await scryptRunner.run.call(getStateAndProofInput.slice(2, -1), 2049)
+    web3.toHex(result[4]).should.equal('0x' + hash)
+  })
+})
 
 describe('Scrypt hash verifier', function () {
   this.timeout(120000)
