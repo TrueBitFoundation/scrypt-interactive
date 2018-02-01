@@ -149,5 +149,30 @@ describe('ClaimManager', function () {
       deposit = await claimManager.getDeposit.call(challenger, { from: challenger })
       deposit.should.be.bignumber.eq(0)
     })
+
+    it('claimant makes another claim and is not challenged', async () => {
+      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, claimant, 'foobar', { from: claimant, value: claimDeposit })
+
+      const results = await getAllEvents(claimManager, 'ClaimCreated')
+      results.length.should.be.gt(1)
+
+      claimID = results[1].args.claimID.toNumber()
+
+      await miner.mineBlocks(21)
+
+      // trigger claim decided
+      await claimManager.runNextVerificationGame(claimID, { from: claimant })
+
+      let result = await getAllEvents(claimManager, 'ClaimVerificationGamesEnded')
+      result[1].args.claimID.should.be.bignumber.eq(claimID)
+
+      const isReady = await claimManager.getClaimReady.call(claimID)
+      isReady.should.eq(true)
+
+      await claimManager.checkClaimSuccessful(claimID, { from: claimant })
+
+      result = await getAllEvents(claimManager, 'ClaimSuccessful')
+      result[1].args.claimID.should.be.bignumber.eq(claimID)
+    })
   })
 })
