@@ -18,6 +18,6 @@ contract DogeRelayDummy is IDogeRelay {
 	}
 
 	function verifyScrypt(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) public payable {
-		ClaimManager(claimManager).checkScrypt.value(msg.value)(_plaintext, _hash, claimant, proposalId);
+		ClaimManager(claimManager).checkScrypt.value(msg.value)(_plaintext, _hash, claimant, proposalId, this);
 	}
 }

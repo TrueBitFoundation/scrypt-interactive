@@ -14,7 +14,6 @@ contract ClaimManager is DepositsManager, IScryptChecker {
   //default initial amount of blocks for challenge timeout
   uint public defaultChallengeTimeout = 20;
 
-  IDogeRelay public dogeRelay;
   ScryptVerifier public scryptVerifier;
 
   event DepositBonded(uint claimID, address account, uint amount);
@@ -40,6 +39,7 @@ contract ClaimManager is DepositsManager, IScryptChecker {
     bool decided;
     uint challengeTimeoutBlockNumber;
     bytes32 proposalId;
+    IDogeRelay dogeRelay;
   }
 
   mapping(address => uint) public claimantClaims;
@@ -53,12 +53,6 @@ contract ClaimManager is DepositsManager, IScryptChecker {
     // @dev – the constructor
     function ClaimManager(ScryptVerifier _scryptVerifier) public {
         scryptVerifier = _scryptVerifier;
-    }
-
-    //This should be able to only be called once
-    function setDogeRelay(IDogeRelay _dogeRelay) public {
-        require(uint(dogeRelay) == 0x0);
-        dogeRelay = _dogeRelay;
     }
 
   // @dev – locks up part of the a user's deposit into a claim.
@@ -109,7 +103,7 @@ contract ClaimManager is DepositsManager, IScryptChecker {
   // @param _plaintext – the plaintext blockHeader.
   // @param _blockHash – the blockHash.
   // @param claimant – the address of the Dogecoin block submitter.
-  function checkScrypt(bytes _data, bytes32 _hash, address _submitter, bytes32 _proposalId) onlyBy(dogeRelay) public payable {
+  function checkScrypt(bytes _data, bytes32 _hash, address _submitter, bytes32 _proposalId, IDogeRelay _dogeRelay) public payable {
     // dogeRelay can directly make a deposit on behalf of the claimant.
     if (msg.value != 0) {
       // only call if eth is included (to save gas)
@@ -134,6 +128,7 @@ contract ClaimManager is DepositsManager, IScryptChecker {
     claim.createdAt = block.number;
     claim.decided = false;
     claim.proposalId = _proposalId;
+    claim.dogeRelay = _dogeRelay;
     claimantClaims[_submitter] = numClaims;
 
     bondDeposit(numClaims, claim.claimant, minDeposit);
@@ -256,7 +251,7 @@ contract ClaimManager is DepositsManager, IScryptChecker {
     unbondDeposit(claimID, claim.claimant);
     claimantClaims[claim.claimant] = 0;
 
-    dogeRelay.scryptVerified(claim.proposalId);
+    IDogeRelay(claim.dogeRelay).scryptVerified(claim.proposalId);
 
     ClaimSuccessful(claimID, claim.claimant, claim.plaintext, claim.blockHash);
   }

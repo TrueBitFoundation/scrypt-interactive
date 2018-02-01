@@ -26,11 +26,6 @@ describe('DogeRelay + ClaimManager submission', function () {
     await c.claimManager.makeDeposit({ value: web3.toWei(1) })
   })
 
-  it('should have deployed correctly', async () => {
-    (await c.claimManager.dogeRelay.call())
-      .should.eq(c.dogeRelay.address)
-  })
-
   it('should have a minDeposit', async () => {
     (await c.claimManager.minDeposit.call())
       .should.be.bignumber.gt(0)

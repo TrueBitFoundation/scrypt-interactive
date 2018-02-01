@@ -13,7 +13,6 @@ module.exports = async (deployer, network) => {
   await deployer.deploy(DogeRelayDummy, ClaimManager.address)
 
   const claimManager = await ClaimManager.deployed()
-  await claimManager.setDogeRelay(DogeRelayDummy.address)
 
   await deployer.deploy(ScryptRunner)
 

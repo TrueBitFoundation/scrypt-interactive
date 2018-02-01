@@ -39,7 +39,6 @@ module.exports = async (web3) => {
       const scryptVerifier = await ScryptVerifier.new()
       const claimManager = await ClaimManager.new(scryptVerifier.address)
       const dogeRelay = await DogeRelay.new(claimManager.address)
-      await claimManager.setDogeRelay(dogeRelay.address)
       const scryptRunner = await offchain.scryptRunner()
 
       return {
