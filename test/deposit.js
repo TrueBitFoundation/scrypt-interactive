@@ -8,7 +8,7 @@ const getContracts = require('../client/util/getContracts')
 const makeDeposit = require('../client/claimManager/deposit').makeDeposit
 const isDepositEnough  = require('../client/claimManager/deposit').isDepositEnough
 
-describe('deposit', function () {
+describe('Deposit', function () {
   let me = web3.eth.accounts[1]
   let client
 

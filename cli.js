@@ -69,10 +69,6 @@ const main = async () => {
   program
     .command('claim <blockheader> <hash>')
     .description('Claim a blockheader on the DogeRelay')
-    .option('-d, --auto-deposit', `
-      Automaticaly deposit ETH if we haven't deposited enough to challenge.
-      Only applies when challenging (--challenge)
-    `)
     .action(async function (blockheader, hash, options) {
       const claim = {
         claimant: operator,
@@ -81,10 +77,8 @@ const main = async () => {
         proposalID: 'foobar',
       }
 
-      const autoDeposit = !!options.autoDeposit
-
       await doThenExit(
-        bridge.submitClaim(cmd, claim, stopper, autoDeposit)
+        bridge.submitClaim(cmd, claim, stopper)
       )
     })
 
@@ -92,16 +86,11 @@ const main = async () => {
     .command('monitor')
     .description('Monitors the Doge-Eth bridge and validates blockheader claims.')
     .option('-c, --auto-challenge', 'Automatically challenge incorrect claims.')
-    .option('-d, --auto-deposit', `
-      Automaticaly deposit ETH if we haven't deposited enough to challenge.
-      Only applies when challenging (--challenge)
-    `)
     .action(async function (options) {
       await doThenExit(bridge.monitorClaims(cmd,
         operator,
         stopper,
-        !!options.autoChallenge,
-        !!options.autoDeposit
+        !!options.autoChallenge
       ))
     })
 

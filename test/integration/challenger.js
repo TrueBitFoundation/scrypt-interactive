@@ -43,7 +43,8 @@ describe('Challenger Client Integration Tests', function () {
     it('should start monitoring claims', async () => {
       // eslint-disable-next-line
       const stopper = new Promise((resolve) => stopMonitor = resolve)
-      monitor = bridge.monitorClaims(console, challenger, stopper, true, true)
+      await bridge.api.makeDeposit({ from: challenger, value: 2 })
+      monitor = bridge.monitorClaims(console, challenger, stopper, true)
     })
 
     it('should let claimant make a deposit and create real claim', async () => {
@@ -58,7 +59,7 @@ describe('Challenger Client Integration Tests', function () {
         scryptHash,
         claimant,
         'bar',
-        { from: claimant, value: 1 }
+        { from: claimant }
       )
     })
 
@@ -82,7 +83,7 @@ describe('Challenger Client Integration Tests', function () {
         fakeTestScryptHash,
         otherClaimant,
         'foobar',
-        { from: otherClaimant, value: 1 }
+        { from: otherClaimant }
       )
 
       await timeout(3000)
@@ -94,16 +95,16 @@ describe('Challenger Client Integration Tests', function () {
 
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
         result.length.should.be.gt(0)
-  
+
         const sessionId = result[0].args.sessionId.toNumber()
         const _claimant = result[0].args.claimant
         assert.equal(_claimant, otherClaimant)
-  
+
         let session = await bridge.api.getSession(sessionId)
         let step = session.medStep.toNumber()
         let highStep = session.highStep.toNumber()
         let lowStep = session.lowStep.toNumber()
-  
+
         let results = await bridge.api.getResult(session.input, step)
         await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
       }
