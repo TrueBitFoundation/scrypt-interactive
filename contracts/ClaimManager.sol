@@ -4,6 +4,7 @@ import {DepositsManager} from './DepositsManager.sol';
 import {ScryptVerifier} from "./ScryptVerifier.sol";
 import {DogeRelay} from "./DogeRelay.sol";
 
+
 // ClaimManager: queues a sequence of challengers to play with a claimant.
 
 contract ClaimManager is DepositsManager {
@@ -32,7 +33,7 @@ contract ClaimManager is DepositsManager {
     uint createdAt;     // the block number at which the claim was created.
     address[] challengers;      // all current challengers.
     mapping(address => uint) sessions; //map challengers to sessionId's
-    uint numChallengers;
+    uint numChallengers; // is number of challengers always same as challengers.length ?
     uint currentChallenger;    // index of next challenger to play a verification game.
     bool verificationOngoing;   // is the claim waiting for results from an ongoing verificationg game.
     mapping (address => uint) bondedDeposits;   // all deposits bonded in this claim.
@@ -173,19 +174,19 @@ contract ClaimManager is DepositsManager {
     require(claimExists(claim));
     require(!claim.decided);
 
+    require(claim.verificationOngoing == false);
+
     // check if there is a challenger who has not the played verification game yet.
     if (claim.numChallengers > claim.currentChallenger) {
-      require(claim.verificationOngoing == false);
 
       // kick off a verification game.
-      uint sessionId = scryptVerifier.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2049);
+      uint sessionId = scryptVerifier.claimComputation(claimID, claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2049);
       claim.sessions[claim.challengers[claim.currentChallenger]] = sessionId;
       VerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger], sessionId);
 
       claim.verificationOngoing = true;
       claim.currentChallenger = claim.currentChallenger.add(1);
     } else {
-      require(claim.verificationOngoing == false);
       if (block.number > claim.challengeTimeoutBlockNumber) {
         claim.decided = true;
         ClaimVerificationGamesEnded(claimID);
@@ -199,6 +200,8 @@ contract ClaimManager is DepositsManager {
   // @param sessionId – the sessionId.
   // @param winner – winner of the verification game.
   // @param loser – loser of the verification game.
+  
+  // where does the claim id come from?
   function sessionDecided(uint sessionId, uint claimID, address winner, address loser) onlyBy(address(scryptVerifier)) public {
     ScryptClaim storage claim = claims[claimID];
 
@@ -313,3 +316,4 @@ contract ClaimManager is DepositsManager {
     return exists && pastChallengeTimeout && pastClaimTimeout && noOngoingGames && noPendingGames;
   }
 }
+

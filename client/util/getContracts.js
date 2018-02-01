@@ -16,7 +16,7 @@ module.exports = async (web3) => {
     ContractInstance.setProvider(web3.currentProvider)
     ContractInstance.defaults({
       from: web3.eth.defaultAccount,
-      gas: 6000000,
+      gas: 5500000,
       // @TODO(shrugs) - whenever truffle stops being garbage software
       //  figure out why it's not estimating the god damn gas for creating
       //  this contract
