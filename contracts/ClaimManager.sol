@@ -41,7 +41,7 @@ contract ClaimManager is DepositsManager {
     bytes32 proposalId;
   }
 
-  mapping(address => uint) public claimantClaims;
+  // mapping(address => uint) public claimantClaims;
   mapping(uint => ScryptClaim) private claims;
 
   modifier onlyBy(address _account) {
@@ -121,9 +121,12 @@ contract ClaimManager is DepositsManager {
     }
 
     require(deposits[claimant] >= minDeposit);
-    require(claimantClaims[claimant] == 0);//claimant can only do one claim at a time
+    // require(claimantClaims[claimant] == 0);//claimant can only do one claim at a time
+    
+    uint claimId = uint(keccak256(claimant, _plaintext, _hash));
+    require(!claimExists(claims[claimId]));
 
-    ScryptClaim storage claim = claims[numClaims];
+    ScryptClaim storage claim = claims[claimId];
     claim.claimant = claimant;
     claim.plaintext = _plaintext;
     claim.blockHash = _blockHash;
@@ -133,10 +136,10 @@ contract ClaimManager is DepositsManager {
     claim.createdAt = block.number;
     claim.decided = false;
     claim.proposalId = proposalId;
-    claimantClaims[claimant] = numClaims;
+    // claimantClaims[claimant] = numClaims;
 
-    bondDeposit(numClaims, claimant, minDeposit);
-    ClaimCreated(numClaims, claim.claimant, claim.plaintext, claim.blockHash);
+    bondDeposit(claimId, claimant, minDeposit);
+    ClaimCreated(claimId, claim.claimant, claim.plaintext, claim.blockHash);
     numClaims = numClaims + 1;
   }
 
@@ -146,7 +149,6 @@ contract ClaimManager is DepositsManager {
   //
   // @param claimID – the claim ID.
   function challengeClaim(uint claimID) public {
-    //ScryptClaim storage claim = claimantClaims[claimant][claimID]
     ScryptClaim storage claim = claims[claimID];
 
     require(claimExists(claim));
@@ -253,7 +255,7 @@ contract ClaimManager is DepositsManager {
     require(claim.decided);
 
     unbondDeposit(claimID, claim.claimant);
-    claimantClaims[claim.claimant] = 0;
+    // claimantClaims[claim.claimant] = 0;
 
     dogeRelay.scryptVerified(claim.proposalId);
 
