@@ -109,13 +109,15 @@ describe('ScryptVerifier', function () {
     }
   })
 
-  context('random bit flipping', () => {
-    _.times(30, () => { // change 5 to higher number when out of gas error issue resolved
-      const input = random.randomHexString()
-      const step = random.chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2049])
-
+  context('random bit flipping', async () => {
+    _.times(30, async () => {
       it('correctly fails', async () => {
-        let preState = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step)).state
+        const input = random.randomHexString()
+        const step = random.chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048])
+
+        let preState = dataFormatter.newStateAndProof(
+          await scryptRunner.getStateAndProof.call(input, step)
+        ).state
         const postData = dataFormatter.newStateAndProof(await scryptRunner.getStateAndProof.call(input, step + 1))
         let postState = postData.state
 
@@ -132,169 +134,16 @@ describe('ScryptVerifier', function () {
           proof = random.flipRandomNibble(proof)
         }
 
-        (
-          await scryptVerifier.verifyStep(step, preState, postState, proof, { from: web3.eth.accounts[0] })
-        ).should.be.equal(false)
+        // console.log(`step ${step} pre: ${preState} post: ${postState}, proof: ${proof}`)
+        const verified = await scryptVerifier.verifyStep(
+          step,
+          preState,
+          postState,
+          proof,
+          { from: web3.eth.accounts[0] }
+        )
+        verified.should.eq(false)
       })
     })
   })
-
-  // @TODO(shrugs) - port these tests as well
-
-  // (hswick) To be honest these tests below are outdated since we've created ClaimManager.
-  // The key functions being tested here are query, respond, and performStepVerification which are all integrated into client.js tests.
-  // The real benefit of these would be an adverserial test which is basically happening above
-
-  // session = dataFormatter.newSession(await scryptVerifier.getSession.call(claimID))
-  // function Info(account, prover, verifier) {
-  //     this.getSession = async function(id) {
-  //         return dataFormatter.newSession(await verifier.getSession.call(id, {from: account}))
-  //     }
-  //     this.getStateProofAndHash = async function(input, step) {
-  //         return dataFormatter.newResult(await prover.getStateProofAndHash.call(input, step, { from: account }))
-  //     }
-  // }
-
-  // function Claimant(interface, info) {
-  //     var steps = 2050;
-  //     var that = this;
-  //     this.switchingPoint = 2051; // disabled at construction time
-  //     this.switchedInput = '0x00'
-  //     // TODO only respond to queries to own sessions
-  //     function inputForStep(step, input) {
-  //         return +step >= that.switchingPoint ? that.switchedInput : input
-  //     }
-  //     console.log("Registering events".yellow)
-  //     interface.verifier.events.NewQuery(async function(err, event) {
-  //         if (err) throw err
-  //         console.log("Got NewQuery event...".yellow)
-  //         var session = await info.getSession(event.returnValues.sessionId)
-  //         console.log(("New query for session " + event.returnValues.sessionId + " at step " + session.medStep).yellow)
-  //         if (session.medHash == "0x0000000000000000000000000000000000000000000000000000000000000000") {
-  //             // Regular case
-  //             var stateHash = (await info.getStateProofAndHash(inputForStep(session.medStep, session.input), session.medStep)).stateHash
-  //             console.log(("Sending state hash: " + stateHash).yellow)
-  //             await interface.verifier.methods.respond(event.returnValues.sessionId, session.medStep, stateHash).send({from: interface.account})
-  //         } else {
-  //             // Binary search is finished
-  //             if (+session.highStep - session.lowStep != 1) {
-  //                 throw "Med hash set, but we are not in final step."
-  //             }
-  //             console.log("Binary search ended. Asking for verification of step ".yellow + session.lowStep)
-  //             var preState = (await info.getStateProofAndHash(inputForStep(session.lowStep, session.input), session.lowStep)).state
-  //             var postStateAndProof = await info.getStateProofAndHash(inputForStep(session.highStep, session.input), session.highStep)
-  //             var postState = postStateAndProof.state
-  //             var proof = postStateAndProof.proof || '0x00'
-  //             console.log("... using\n   PreState:  ".yellow + preState + "\n   PostState: ".yellow + postState + "\n   Proof:    ".yellow + proof)
-  //             await interface.verifier.methods.performStepVerification(
-  //                 event.returnValues.sessionId,
-  //                 preState,
-  //                 postState,
-  //                 proof
-  //             ).send({from: interface.account, gas: 1000000})
-  //         }
-  //     })
-  //     this.claim = async function(input) {
-  //         console.log("Claiming computation...".yellow)
-  //         var output = (await info.getStateProofAndHash(inputForStep(steps, input), steps)).state
-  //         console.log("with output ".yellow + output)
-  //         var claimOut = await interface.verifier.methods.claimComputation(input, output, steps).send({from: interface.account, gas: 2000000})
-  //         // console.log(claimOut)
-  //     }
-  // }
-
-  // function Challenger(interface, info) {
-  //     var steps = 2050;
-  //     var that = this;
-  //     this.switchingPoint = 2055 // disabled at construction time
-  //     this.switchedInput = '0x00'
-  //     console.log("Registering events".blue)
-  //     function inputForStep(step, sessionInput) {
-  //         return step >= that.switchingPoint ? that.switchedInput : sessionInput
-  //     }
-  //     interface.verifier.events.NewClaim(async function(err, event) {
-  //         if (err) throw err
-  //         console.log("Got NewClaim event...".blue)
-  //         var session = await info.getSession(event.returnValues.sessionId)
-  //         console.log(("New claim for session " + event.returnValues.sessionId).blue)
-  //         var myOutput = (await info.getStateProofAndHash(inputForStep(steps, session.input), steps)).state
-  //         console.log(("Claimed output: " + session.output).blue)
-  //         console.log(("My output: " + myOutput).blue)
-  //         if (myOutput != session.output) {
-  //             console.log(("Challenging...").blue)
-  //             await interface.verifier.methods.query(event.returnValues.sessionId, Math.floor(steps / 2)).send({from: interface.account})
-  //         } else {
-  //             console.log(("Will not challenge").blue)
-  //         }
-  //     })
-  //     interface.verifier.events.NewResponse(async function(err, event) {
-  //         if (err) throw err
-  //         console.log("Got NewResponse event...".blue)
-  //         var session = await info.getSession(event.returnValues.sessionId)
-  //         console.log(("New response for session " + event.returnValues.sessionId).blue)
-  //         var myStateHash = (await info.getStateProofAndHash(inputForStep(session.medStep, session.input), session.medStep)).stateHash
-  //         console.log("Claimant responded with state hash ".blue + session.medHash + " - mine is ".blue + myStateHash)
-  //         console.log("Current steps: ".blue + session.lowStep + " - ".blue + session.medStep + " - ".blue + session.highStep)
-  //         var lowStep = +session.lowStep
-  //         var medStep = +session.medStep
-  //         var highStep = +session.highStep
-  //         var step = 0
-  //         if (session.medHash == myStateHash) {
-  //             step = medStep + Math.floor((highStep - medStep) / 2)
-  //         } else {
-  //             step = lowStep + Math.floor((medStep - lowStep) / 2)
-  //         }
-  //         await interface.verifier.methods.query(event.returnValues.sessionId, step).send({from: interface.account})
-  //     })
-  // }
-
-  // function createConvictionCallback(verifier, resolve) {
-  //     verifier.events.ChallengerConvicted().on('data', function(event) {
-  //         console.log("Challenger convicted for session ".greed + event.returnValues.sessionId)
-  //         resolve(+event.returnValues.sessionId, true)
-  //     })
-  //     verifier.events.ClaimantConvicted().on('data', function(event) {
-  //         console.log("Claimant convicted for session ".green + event.returnValues.sessionId)
-  //         resolve(+event.returnValues.sessionId, false)
-  //     })
-  // }
-
-  // async function testBinarySearchCheatingClaimant(runner, verifier, claimantAccount, challengerAccount, input) {
-  //     var info = new Info(claimantAccount, runner, verifier)
-  //     var claimantInterface = { account: claimantAccount, prover: runner, verifier: verifier }
-  //     var challengerInterface = { account: challengerAccount, prover: runner, verifier: verifier }
-  //     var claimant = new Claimant(claimantInterface, info)
-  //     var challenger = new Challenger(challengerInterface, info)
-
-  //     var game = {ended: null}
-  //     createConvictionCallback(verifier, (sessionId, claimantWon) => {
-  //         game.ended(claimantWon)
-  //     })
-  //     for (var i = 0; i < 5; i++) {
-  //         claimant.switchingPoint = chooseRandomly([0, 1, 2, 78, 79, 1020, 1022, 1023, 1024, 1025, 1026, 2047, 2048, 2049])
-  //         console.log((
-  //             "---------------------------------\n" +
-  //             "Testing binary search (cheating claimant at step " + claimant.switchingPoint + ") on " +
-  //             input + "..."
-  //         ).green)
-  //         await claimant.claim(input)
-  //         await new Promise(resolve => {
-  //             var timeout = setTimeout(() => {
-  //                 console.log("ERROR: Timeout".red)
-  //                 anyErorr = true
-  //                 resolve()
-  //             }, 200 * 1000)
-  //             game.ended = (claimantWon) => {
-  //                 if (claimantWon) {
-  //                     console.log("ERROR: Claimant won".red)
-  //                     anyError = true
-  //                 } else {
-  //                     console.log("Challenger won".green)
-  //                 }
-  //                 clearTimeout(timeout)
-  //                 resolve()
-  //             }
-  //         })
-  //     }
-  // }
 })
