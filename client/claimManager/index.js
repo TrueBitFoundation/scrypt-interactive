@@ -1,12 +1,12 @@
 
 const computeStep = require('./computeStep')
-const submit = require('./submit')
+const submitClaim = require('./submitClaim')
 const defend = require('./defend')
 const challenge = require('./challenge')
 
 module.exports = {
   computeStep: computeStep,
-  submit: submit,
+  submitClaim: submitClaim,
   defend: defend,
   challenge: challenge
 }
