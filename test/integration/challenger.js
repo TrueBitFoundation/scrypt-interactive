@@ -66,7 +66,7 @@ describe('Challenger Client Integration Tests', function () {
     // challenger sees proof of work is valid and does not challenge
     it('should be zero challengers', async () => {
       let result = await getAllEvents(bridge.api.claimManager, 'ClaimCreated')
-      assert.equal(0, (await bridge.api.claimManager.getChallengers(result[0].args.claimID.toNumber())).length)
+      assert.equal(0, (await bridge.api.claimManager.getChallengers(result[0].args.claimID /* .toNumber() */)).length)
     })
   })
 

@@ -37,7 +37,7 @@ module.exports = async (web3, _contracts = null) => {
             }
 
             const claim = {
-              id: result.args.claimID.toNumber(),
+              id: result.args.claimID.toString(), // .toNumber()
               claimant: result.args.claimant,
               plaintext: result.args.plaintext,
               blockHash: result.args.blockHash,

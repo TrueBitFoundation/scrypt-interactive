@@ -71,7 +71,7 @@ describe('Claimant Client Integration Tests', function () {
     it('should challenge claim and send initial query', async () => {
       await timeout(5000)
 
-      claimID = (await bridge.api.claimManager.claimantClaims(claimant)).toNumber()
+      claimID = (await bridge.api.claimManager.claimantClaims(claimant)).toString() // .toNumber()
 
       await bridge.api.challengeClaim(claimID, { from: challenger })
 

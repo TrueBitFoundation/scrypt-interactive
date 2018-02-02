@@ -24,7 +24,8 @@ module.exports = async (cmd, api, claim) => {
   }
 
   // update values in the db
-  claim.claimID = (await api.claimManager.claimantClaims(claim.claimant)).toNumber()
+  claim.claimID = (await api.claimManager.calcId.call(claim.input, claim.hash, claim.claimant, claim.proposalID)).toString()
+  // claim.claimID = (await api.claimManager.claimantClaims(claim.claimant)) // .toNumber()
   claim.createdAt = (await api.claimManager.createdAt.call(claim.claimID)).toNumber()
   await claim.save()
 }

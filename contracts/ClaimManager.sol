@@ -130,6 +130,7 @@ contract ClaimManager is DepositsManager {
     
 //    uint claimId = numClaims;
 //    uint claimId = uint(keccak256(claimant, _plaintext, _hash, numClaims));
+
     uint claimId = uint(keccak256(claimant, _plaintext, _hash, proposalId));
     require(!claimExists(claims[claimId]));
 
