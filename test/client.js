@@ -35,6 +35,7 @@ describe('ClaimManager', function () {
 
       claimant = web3.eth.accounts[1]
       challenger = web3.eth.accounts[2]
+      otherClaimant = web3.eth.accounts[3]
     })
 
     it('claimant checks scrypt, after implicitly making a deposit', async () => {
@@ -151,9 +152,10 @@ describe('ClaimManager', function () {
     })
 
     it('claimant makes another claim and is not challenged', async () => {
-      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, claimant, 'foobar', { from: claimant, value: claimDeposit })
+      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, 'foobar', { from: claimant, value: claimDeposit })
 
       const results = await getAllEvents(claimManager, 'ClaimCreated')
+
       results.length.should.be.gt(1)
 
       claimID = results[1].args.claimID.toNumber()

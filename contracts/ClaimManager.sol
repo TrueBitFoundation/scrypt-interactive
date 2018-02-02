@@ -249,10 +249,11 @@ contract ClaimManager is DepositsManager, IScryptChecker {
 
     require(claim.decided);
 
-    unbondDeposit(claimID, claim.claimant);
     claimantClaims[claim.claimant] = 0;
 
     IScryptDependent(claim.scryptDependent).scryptVerified(claim.proposalId);
+
+    unbondDeposit(claimID, claim.claimant);
 
     ClaimSuccessful(claimID, claim.claimant, claim.plaintext, claim.blockHash);
   }
