@@ -1,6 +1,6 @@
 
 const BigNumber = require('bignumber.js')
-const { toSession, toResult } = require('./util/models')
+const { toSession, toResult, toClaim } = require('./util/models')
 
 module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay }, web3) => {
   return {
@@ -12,6 +12,14 @@ module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay 
     scryptRunner,
     scryptVerifier,
     dogeRelay,
+    /**
+     * @return Claim
+     */
+    getClaim: async (...args) => {
+      return toClaim(
+        await claimManager.getClaim.call(...args)
+      )
+    },
     /**
      * @return BigNumber value of ether deposited
      */

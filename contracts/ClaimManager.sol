@@ -290,6 +290,21 @@ contract ClaimManager is DepositsManager {
     return claims[claimID].verificationOngoing;
   }
 
+  function getClaim(uint claimID)
+    public
+    view
+    returns(address claimant, bytes plaintext, bytes blockHash, bytes32 proposalId)
+  {
+    ScryptClaim storage claim = claims[claimID];
+
+    return (
+      claim.claimant,
+      claim.plaintext,
+      claim.blockHash,
+      claim.proposalId
+    );
+  }
+
   function getClaimReady(uint claimID) public view returns(bool) {
     ScryptClaim storage claim = claims[claimID];
 

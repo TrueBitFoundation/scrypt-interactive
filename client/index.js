@@ -11,6 +11,7 @@ module.exports = async (web3, _contracts = null) => {
 
   return {
     api,
+    claimManager,
     submitClaim: async (cmd, claimData, stopper) => {
       const fn = async () => {
         const claim = await db.Claim.create(claimData)
