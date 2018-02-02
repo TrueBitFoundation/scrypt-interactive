@@ -42,7 +42,7 @@ contract ClaimManager is DepositsManager {
     bytes32 proposalId;
   }
 
-  // mapping(address => uint) public claimantClaims;
+  mapping(address => uint) public claimantClaims;
   mapping(uint => ScryptClaim) private claims;
 
   modifier onlyBy(address _account) {
@@ -109,6 +109,10 @@ contract ClaimManager is DepositsManager {
   // @param _plaintext – the plaintext blockHeader.
   // @param _blockHash – the blockHash.
   // @param claimant – the address of the Dogecoin block submitter.
+  function calcId(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) public pure returns (uint) {
+    return uint(keccak256(claimant, _plaintext, _hash));
+  }
+  
   function checkScrypt(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) onlyBy(dogeRelay) public payable {
     // dogeRelay can directly make a deposit on behalf of the claimant.
     if (msg.value != 0) {
@@ -124,7 +128,8 @@ contract ClaimManager is DepositsManager {
     require(deposits[claimant] >= minDeposit);
     // require(claimantClaims[claimant] == 0);//claimant can only do one claim at a time
     
-    uint claimId = uint(keccak256(claimant, _plaintext, _hash));
+    uint claimId = numClaims;
+//    uint claimId = uint(keccak256(claimant, _plaintext, _hash, numClaims));
     require(!claimExists(claims[claimId]));
 
     ScryptClaim storage claim = claims[claimId];
@@ -137,7 +142,7 @@ contract ClaimManager is DepositsManager {
     claim.createdAt = block.number;
     claim.decided = false;
     claim.proposalId = proposalId;
-    // claimantClaims[claimant] = numClaims;
+    claimantClaims[claimant] = claimId;
 
     bondDeposit(claimId, claimant, minDeposit);
     ClaimCreated(claimId, claim.claimant, claim.plaintext, claim.blockHash);

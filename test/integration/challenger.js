@@ -39,7 +39,7 @@ describe('Challenger Client Integration Tests', function () {
     await monitor
   })
 
-  describe('Challenger reacting to verificaiton game', () => {
+  describe('Challenger reacting to verification game', () => {
     it('should start monitoring claims', async () => {
       // eslint-disable-next-line
       const stopper = new Promise((resolve) => stopMonitor = resolve)

@@ -29,7 +29,7 @@ async function scryptRunner () {
   const thisContract = parity.eth.contract(ScryptRunner.abi).new({
     data: ScryptRunner.bytecode,
     from: PARITY_DEV_ADDRESS,
-    gas: 6000000,
+    gas: 5500000,
   })
 
   // this forces the script to wait for the contract to actually be deployed
