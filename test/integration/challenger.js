@@ -84,10 +84,10 @@ describe('Challenger Client Integration Tests', function () {
         'foobar',
         { from: otherClaimant }
       )
-      await miner.mineBlocks(2)
+      await miner.mineBlocks(3)
     })
 
-    for (let i = 0; i < 13; i++) {
+    for (let i = 0; i < 12; i++) {
       it(`should query normal case medHash==0x0 step ${i}`, async () => {
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewQuery')
         result.length.should.be.gt(0)
@@ -102,12 +102,12 @@ describe('Challenger Client Integration Tests', function () {
         let results = await bridge.api.getResult(session.input, step)
         console.log(`[test] responding to query for session ${sessionId} step ${step} with ${results.stateHash}`)
         await bridge.api.respond(sessionId, step, results.stateHash, { from: otherClaimant })
-        await miner.mineBlocks(2)
+        await miner.mineBlocks(3)
       })
     }
 
     it('should wait for the challenger to end the game', async () => {
-      await miner.mineBlocks(10)
+      await miner.mineBlocks(2)
     })
 
     it('should have ended verification game', async () => {
