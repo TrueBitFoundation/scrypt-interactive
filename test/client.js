@@ -13,7 +13,7 @@ const {
 } = require('./helpers/blockheader')
 
 describe('ClaimManager', function () {
-  this.timeout(120000)
+  this.timeout(250000)
 
   let claimant, challenger
   let claimManager,
