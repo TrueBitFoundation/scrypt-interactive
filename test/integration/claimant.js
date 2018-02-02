@@ -66,12 +66,15 @@ describe('Claimant Client Integration Tests', function () {
       const { stop, stopper } = newStopper()
       stopSubmitting = stop
       submit = bridge.submitClaim(console, claim, stopper)
+
+      claimID = (await bridge.api.claimManager.calcId.call(claim.input, claim.hash, claim.claimant, claim.proposalID)).toString()
+      
     })
 
     it('should challenge claim and send initial query', async () => {
       await timeout(5000)
 
-      claimID = (await bridge.api.claimManager.claimantClaims(claimant)).toString() // .toNumber()
+      // claimID = (await bridge.api.claimManager.claimantClaims(claimant)).toString() // .toNumber()
 
       await bridge.api.challengeClaim(claimID, { from: challenger })
 

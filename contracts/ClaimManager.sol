@@ -42,7 +42,7 @@ contract ClaimManager is DepositsManager {
     bytes32 proposalId;
   }
 
-  mapping(address => uint) public claimantClaims;
+//  mapping(address => uint) public claimantClaims;
   mapping(uint => ScryptClaim) private claims;
 
   modifier onlyBy(address _account) {
@@ -144,7 +144,7 @@ contract ClaimManager is DepositsManager {
     claim.createdAt = block.number;
     claim.decided = false;
     claim.proposalId = proposalId;
-    claimantClaims[claimant] = claimId;
+    // claimantClaims[claimant] = claimId;
 
     bondDeposit(claimId, claimant, minDeposit);
     ClaimCreated(claimId, claim.claimant, claim.plaintext, claim.blockHash);
