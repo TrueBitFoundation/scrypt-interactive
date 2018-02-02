@@ -46,8 +46,6 @@ describe('Claimant Client Integration Tests', function () {
       await bridge.api.makeDeposit({ from: claimant, value: 1 })
       await bridge.api.makeDeposit({ from: challenger, value: 1 })
 
-      await miner.mineBlocks(4)
-
       let deposit = await bridge.api.getDeposit(claimant)
       deposit.should.be.bignumber.gte(1)
 
@@ -66,11 +64,10 @@ describe('Claimant Client Integration Tests', function () {
       const { stop, stopper } = newStopper()
       stopSubmitting = stop
       submit = bridge.submitClaim(console, claim, stopper)
+      await miner.mineBlocks(4)
     })
 
     it('should challenge claim and send initial query', async () => {
-      await timeout(5000)
-
       claimID = (await bridge.api.claimManager.claimantClaims(claimant)).toNumber()
 
       await bridge.api.challengeClaim(claimID, { from: challenger })
@@ -82,13 +79,11 @@ describe('Claimant Client Integration Tests', function () {
       // Fire off initial query
       let medStep = 1025
       await bridge.api.query(sessionId, medStep, { from: challenger })
+      await miner.mineBlocks(4)
     })
 
-    it('should respond to query normal case', async () => {
-      await timeout(5000)
-
-      for (let i = 0; i < 11; i++) {
-        await timeout(5000)
+    for (let i = 0; i < 11; i++) {
+      it(`should respond to query normal case step ${i}`, async () => {
         const result = await getAllEvents(bridge.api.scryptVerifier, 'NewResponse')
 
         result.length
@@ -106,7 +101,8 @@ describe('Claimant Client Integration Tests', function () {
         let medStep = calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())
         console.log('Querying: ' + medStep)
         await bridge.api.query(sessionId, medStep, { from: challenger })
-      }
-    })
+        await miner.mineBlocks(4)
+      })
+    }
   })
 })

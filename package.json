@@ -17,7 +17,7 @@
     "monitor": "bnr monitor",
     "lint": "eslint .",
     "test": "bnr test",
-    "test:geth": "IS_GETH_TEST=true bnr test --network geth"
+    "test:geth": "bnr test:geth"
   },
   "betterScripts": {
     "ganache": "./bin/ganache.sh",
@@ -41,6 +41,13 @@
       "command": "truffle test",
       "env": {
         "NODE_ENV": "test"
+      }
+    },
+    "test:geth": {
+      "command": "bnr test --network geth",
+      "env": {
+        "IS_GETH_TEST": "true",
+        "PERIOD": "10"
       }
     }
   },

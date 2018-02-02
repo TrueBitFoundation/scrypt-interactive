@@ -1,3 +1,5 @@
+/* eslint promise/param-names: "off" */
+
 const StateMachine = require('javascript-state-machine')
 const waitForEvent = require('./util/waitForEvent')
 const timeout = require('./util/timeout')
@@ -11,7 +13,7 @@ const writeFile = promisify(fs.writeFile, fs)
 const unlink = promisify(fs.unlink, fs)
 const path = require('path')
 
-const isDepositEnough = require('./claimManager/deposit').isDepositEnough;
+const isDepositEnough = require('./claimManager/deposit').isDepositEnough
 
 const challengeCachePath = path.resolve(__dirname, '../../cache/challenges')
 
@@ -23,7 +25,7 @@ const saveChallengeData = async (data) => {
 const deleteChallengeData = async (data) => unlink(`${challengeCachePath}/${data.id}.json`)
 
 module.exports = (web3, api) => ({
-  run: async (cmd, claim, challenger) => new Promise(async (resolve, reject) => {
+  run: async (cmd, claim, challenger) => new Promise(async (globalResolve, reject) => {
     const getNewMedStep = async (session) => {
       let medStep = session.medStep.toNumber()
       let lowStep = session.lowStep.toNumber()
@@ -89,7 +91,7 @@ module.exports = (web3, api) => ({
 
             const waitForGame = async () => {
               const verificationGameStartedEvent = api.claimManager.VerificationGameStarted({ claimID: claim.id, challenger: challenger })
-              return new Promise(async (resolve, reject) => {
+              await new Promise(async (resolve, reject) => {
                 verificationGameStartedEvent.watch(async (err, result) => {
                   if (err) reject(err)
                   if (result) resolve()
@@ -103,18 +105,18 @@ module.exports = (web3, api) => ({
             let verificationOngoing = await api.claimManager.getVerificationOngoing.call(claim.id)
 
             // this if statement is complex because of caching state, we could refactor when db is put in
-            if (currentChallenger == challenger && !verificationOngoing) {
+            if (currentChallenger === challenger && !verificationOngoing) {
               console.log('... we are first challenger.')
               await api.claimManager.runNextVerificationGame(claim.id, { from: challenger })
               await sendQuery()
-            } else if (currentChallenger == challenger && verificationOngoing) {
+            } else if (currentChallenger === challenger && verificationOngoing) {
               // ^ should only happen if rebooting during game
               console.log('... resuming challenge.')
               let [
                 claimantLastStep, challengerLastStep,
               ] = await api.scryptVerifier.getLastSteps.call(claim.sessionId)
 
-              if (claimantLastStep.toNumber() == challengerLastStep.toNumber()) {
+              if (claimantLastStep.eq(challengerLastStep)) {
                 console.log('Querying step: ' + medStep)
                 await sendQuery()
               }
@@ -132,44 +134,35 @@ module.exports = (web3, api) => ({
             }
           },
           onBeforePlayGame: async (tsn) => {
-            const endGame = async () => {
-              let session = await api.getSession(sessionId)
-              // let step = session.medStep.toNumber()
-              let highStep = session.highStep.toNumber()
-              let lowStep = session.lowStep.toNumber()
-
-              let preState = (await api.getResult(session.input, lowStep)).state
-
-              let postStateAndProof = await api.getResult(session.input, highStep)
-
-              let postState = postStateAndProof.state
-              let proof = postStateAndProof.proof || '0x00'
-
-              await api.scryptVerifier.performStepVerification(
-                claim.sessionId,
-                claim.id,
-                preState,
-                postState,
-                proof,
-                api.claimManager.address,
-                { from: challenger, gas: 3000000 }
-              )
-            }
-
             // play game
-            let newResponseEvent = api.scryptVerifier.NewResponse({ sessionId: claim.sessionId, challenger: challenger })
+            let newResponseEvent = api.scryptVerifier.NewResponse({
+              sessionId: claim.sessionId, challenger: challenger,
+            })
             await new Promise(async (resolve, reject) => {
               newResponseEvent.watch(async (err, result) => {
-                if (err) reject(err)
+                if (err) return reject(err)
                 if (result) {
                   let session = await api.getSession(claim.sessionId)
                   let medStep = await getNewMedStep(session)
+                  console.log(
+                    'before',
+                    session.lowStep.toNumber(),
+                    session.medStep.toNumber(),
+                    session.highStep.toNumber()
+                  )
                   console.log('Querying step: ' + medStep)
-                  await api.query(claim.sessionId, medStep, { from: challenger })
+
+                  const queryTx = await api.query(claim.sessionId, medStep, { from: challenger })
 
                   session = await api.getSession(claim.sessionId)
+                  console.log(
+                    'after',
+                    session.lowStep.toNumber(),
+                    session.medStep.toNumber(),
+                    session.highStep.toNumber()
+                  )
 
-                  if (session.lowStep.toNumber() + 1 == session.highStep.toNumber()) {
+                  if (session.lowStep.add(1).eq(session.highStep)) {
                     console.log('Ending challenge')
                     resolve()
                   }
@@ -179,13 +172,8 @@ module.exports = (web3, api) => ({
             newResponseEvent.stopWatching()
           },
           onAfterPlayGame: async (tsn) => {
-            await timeout(5000)
-
             // Should use session from state before
-
-            session = await api.getSession(claim.sessionId)
-
-            // console.log(session)
+            const session = await api.getSession(claim.sessionId)
 
             // let step = session.medStep.toNumber()
             let highStep = session.highStep.toNumber()
@@ -209,7 +197,6 @@ module.exports = (web3, api) => ({
             )
 
             await deleteChallengeData(claim)
-            resolve()// global resolve
           },
           onCancel: (tsn, err) => { reject(err) },
         },
@@ -222,6 +209,7 @@ module.exports = (web3, api) => ({
         await m.challenge()
         await m.playGame()
       }
+      globalResolve()
     } catch (error) {
       reject(error)
     }

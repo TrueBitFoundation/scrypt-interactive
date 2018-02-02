@@ -11,6 +11,7 @@ module.exports = async (web3, _contracts = null) => {
 
   return {
     api,
+    claimManager,
     submitClaim: async (cmd, claimData, stopper) => {
       const fn = async () => {
         const claim = await db.Claim.create(claimData)
@@ -30,7 +31,6 @@ module.exports = async (web3, _contracts = null) => {
           cmd.log('Monitoring for claims...')
           const claimCreatedEvents = api.claimManager.ClaimCreated()
           claimCreatedEvents.watch(async (error, result) => {
-            debugger
             if (error) {
               console.log(error)
               throw error

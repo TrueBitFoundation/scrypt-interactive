@@ -1,6 +1,6 @@
 
 const BigNumber = require('bignumber.js')
-const { toSession, toResult } = require('./util/models')
+const { toSession, toResult, toClaim } = require('./util/models')
 
 module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay }, web3) => {
   return {
@@ -13,6 +13,14 @@ module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay 
     scryptVerifier,
     dogeRelay,
     /**
+     * @return Claim
+     */
+    getClaim: async (...args) => {
+      return toClaim(
+        await claimManager.getClaim.call(...args)
+      )
+    },
+    /**
      * @return BigNumber value of ether deposited
      */
     getDeposit: async (...args) => {
@@ -22,25 +30,25 @@ module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay 
      * @desc deposit ether to the ClaimManager
      */
     makeDeposit: async (...args) => {
-      return claimManager.makeDeposit.sendTransaction(...args)
+      return claimManager.makeDeposit(...args)
     },
     /**
      * @desc withdraw ether from the ClaimManager
      */
     withdraw: async (...args) => {
-      return claimManager.withdrawDeposit.sendTransaction(...args)
+      return claimManager.withdrawDeposit(...args)
     },
     /**
      * @desc challenges the provided claim
      */
     challengeClaim: async (...args) => {
-      return claimManager.challengeClaim.sendTransaction(...args)
+      return claimManager.challengeClaim(...args)
     },
     /**
      * This is only used for testing
      */
     createClaim: async (...args) => {
-      return dogeRelay.verifyScrypt.sendTransaction(...args)
+      return dogeRelay.verifyScrypt(...args)
     },
     /**
      * @return BigNumber number of blocks that represent challenge timeout
@@ -87,7 +95,7 @@ module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay 
      * @param stateHash
      */
     respond: async (...args) => {
-      return scryptVerifier.respond.sendTransaction(...args)
+      return scryptVerifier.respond(...args)
     },
     /**
      * @desc challenge a claimant to prove a stateHash for a step.
@@ -95,8 +103,8 @@ module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay 
      * @param sessionId
      * @param step
      */
-    query: async (sessionId, step, options) => {
-      return scryptVerifier.query.sendTransaction(sessionId, step, options)
+    query: async (...args) => {
+      return scryptVerifier.query(...args)
     },
     /**
      * @desc finalize the verification game by proving the final step's state
@@ -106,7 +114,7 @@ module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay 
      * @param proof
      */
     performStepVerification: async (...args) => {
-      return scryptVerifier.performStepVerification.sendTransaction(...args)
+      return scryptVerifier.performStepVerification(...args)
     },
     /**
      * @desc just test the connection

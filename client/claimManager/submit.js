@@ -1,8 +1,8 @@
-const isDepositEnough = require('./deposit').isDepositEnough;
+const isDepositEnough = require('./deposit').isDepositEnough
 
 module.exports = async (cmd, api, claim) => {
-
-  if (!isDepositEnough(api, claim.claimant)) {
+  const hasEnough = await isDepositEnough(api, claim.claimant)
+  if (!hasEnough) {
     throw new Error(`
       Your deposited ETH in ClaimManager is lower than minDeposit.`
     )
@@ -18,7 +18,6 @@ module.exports = async (cmd, api, claim) => {
     )
   } catch (error) {
     throw new Error(`Could not createClaim ${claim.proposalID} from ${claim.claimant}
-
       ${error.stack}
     `)
   }
