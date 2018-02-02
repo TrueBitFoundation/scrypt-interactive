@@ -36,27 +36,27 @@ module.exports = async (web3, _contracts = null) => {
               throw error
             }
 
-            const claim = {
-              id: result.args.claimID.toNumber(),
+            const claim = await db.Claim.create({
+              claimID: result.args.claimID.toNumber(),
               claimant: result.args.claimant,
-              plaintext: result.args.plaintext,
-              blockHash: result.args.blockHash,
-              createdAt: result.blockNumber,
-            }
+              input: result.args.plaintext,
+              hash: result.args.blockHash,
+              claimCreatedAt: result.blockNumber
+            })
 
             cmd.log(`
               ClaimCreated(
-                id: ${claim.id}
+                id: ${claim.claimID}
                 claimant: ${claim.claimant}
-                plaintext: ${claim.plaintext}
-                blockHash: ${claim.blockHash}
-                createdAt: ${claim.createdAt}
+                plaintext: ${claim.input}
+                blockHash: ${claim.hash}
+                createdAt: ${claim.claimCreatedAt}
               )
             `)
 
-            const output = web3.toHex((await contracts.scryptRunner.run.call(claim.plaintext, 2049)[4]))
+            const output = web3.toHex((await contracts.scryptRunner.run.call(claim.input, 2049)[4]))
 
-            if (output !== claim.blockHash) {
+            if (output !== claim.hash) {
               cmd.log('Proof of Work: INVALID')
 
               if (!autoChallenge) {
@@ -70,19 +70,21 @@ module.exports = async (web3, _contracts = null) => {
               // this promise also always resolves positively
               // so that Promise.all works correctly
               if (!(claim.id in inProgressClaims)) {
-                inProgressClaims[claim.id] = challengeClaim
-                  .run(cmd, claim, challenger)
-                  .then(() => {
-                    cmd.log(`Finished Challenging Claim: ${claim.id}`)
-                  })
-                  .catch((err) => {
-                    cmd.log('Bridge Error --------------------------')
-                    cmd.log(`Finished Challenging Claim: ${claim.id}`)
-                    cmd.log(err)
-                  })
-                  .then(() => {
-                    return Promise.resolve()
-                  })
+                claimManager.challenge(api, claim, challenger)
+
+                // inProgressClaims[claim.id] = challengeClaim
+                //   .run(cmd, claim, challenger)
+                //   .then(() => {
+                //     cmd.log(`Finished Challenging Claim: ${claim.id}`)
+                //   })
+                //   .catch((err) => {
+                //     cmd.log('Bridge Error --------------------------')
+                //     cmd.log(`Finished Challenging Claim: ${claim.id}`)
+                //     cmd.log(err)
+                //   })
+                //   .then(() => {
+                //     return Promise.resolve()
+                //   })
               }
             } else {
               cmd.log('Proof of Work: Valid')

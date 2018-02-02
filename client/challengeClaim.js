@@ -70,6 +70,9 @@ module.exports = (web3, api) => ({
               return false
             }
           },
+
+
+
           onBeforeChallenge: async (tsn) => {
             cmd.log('Challenging...')
             // console.log(claim.id)
@@ -133,6 +136,8 @@ module.exports = (web3, api) => ({
               await sendQuery()
             }
           },
+
+
           onBeforePlayGame: async (tsn) => {
             // play game
             let newResponseEvent = api.scryptVerifier.NewResponse({
