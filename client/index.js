@@ -15,7 +15,7 @@ module.exports = async (web3, _contracts = null) => {
     submitClaim: async (cmd, claimData, stopper) => {
       const fn = async () => {
         const claim = await db.Claim.create(claimData)
-        await claimManager.submit(cmd, api, claim)
+        await claimManager.submitClaim(cmd, api, claim)
         await claimManager.defend(cmd, api, claim)
       }
       await Promise.race([
