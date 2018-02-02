@@ -1,7 +1,7 @@
 {
   "development": {
     "username": "postgres",
-    "password": "asd",
+    "password": null,
     "database": "dogethereum_development",
     "host": "127.0.0.1",
     "port": 5432,
@@ -11,7 +11,7 @@
   },
   "test": {
     "username": "postgres",
-    "password": "asd",
+    "password": null,
     "database": "dogethereum_test",
     "host": "127.0.0.1",
     "port": 5432,
@@ -21,7 +21,7 @@
   },
   "production": {
     "username": "postgres",
-    "password": "asd",
+    "password": null,
     "database": "dogethereum_production",
     "host": "127.0.0.1",
     "port": 5432,

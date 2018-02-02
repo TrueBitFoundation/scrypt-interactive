@@ -110,7 +110,7 @@ contract ClaimManager is DepositsManager {
   // @param _blockHash – the blockHash.
   // @param claimant – the address of the Dogecoin block submitter.
   function calcId(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) public pure returns (uint) {
-    return uint(keccak256(claimant, _plaintext, _hash));
+    return uint(keccak256(claimant, _plaintext, _hash, proposalId));
   }
   
   function checkScrypt(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) onlyBy(dogeRelay) public payable {
@@ -128,8 +128,9 @@ contract ClaimManager is DepositsManager {
     require(deposits[claimant] >= minDeposit);
     // require(claimantClaims[claimant] == 0);//claimant can only do one claim at a time
     
-    uint claimId = numClaims;
+//    uint claimId = numClaims;
 //    uint claimId = uint(keccak256(claimant, _plaintext, _hash, numClaims));
+    uint claimId = uint(keccak256(claimant, _plaintext, _hash, proposalId));
     require(!claimExists(claims[claimId]));
 
     ScryptClaim storage claim = claims[claimId];
