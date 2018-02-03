@@ -6,7 +6,14 @@ const newStopper = require('./client/util/stopper')
 const makeDeposit = require('./client/primitives/deposit').makeDeposit
 
 const Web3 = require('web3')
-const web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER))
+const HDWalletProvider = require('truffle-hdwallet-provider')
+const provider = process.env.USE_LOCAL_SIGNER === 'true'
+  ? new HDWalletProvider(
+    process.env.MNEMONIC,
+    process.env.WEB3_HTTP_PROVIDER
+  )
+  : new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER)
+const web3 = new Web3(provider)
 
 const operator = process.env.OPERATOR_ADDRESS || web3.eth.defaultAccount || web3.eth.coinbase
 

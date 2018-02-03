@@ -3,7 +3,8 @@ const HDWalletProvider = require('truffle-hdwallet-provider')
 const defaultConfig = {
   // eslint-disable-next-line camelcase
   network_id: '*',
-  gas: 8000000,
+  gas: 5000000,
+  gasPrice: 4000000000, // gwei
 }
 
 module.exports = {
@@ -15,6 +16,7 @@ module.exports = {
           `https://${process.env.INFURA_CHAIN}.infura.io`
         )
       },
+      ...defaultConfig,
     },
     development: {
       host: 'localhost',
@@ -30,13 +32,11 @@ module.exports = {
       host: '127.0.0.1',
       port: 8545,
       ...defaultConfig,
-      gas: 6000000,
     },
     parity: {
       host: 'localhost',
       port: 4242,
       ...defaultConfig,
-      gas: 6000000,
     },
   },
 }
