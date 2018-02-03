@@ -82,7 +82,7 @@ describe('Challenger Client Integration Tests', function () {
         'foobar',
         { from: otherClaimant }
       )
-      await miner.mineBlocks(3)
+      await miner.mineBlocks(10)
     })
 
     for (let i = 0; i < 12; i++) {
