@@ -8,20 +8,53 @@
   },
   "scripts": {
     "start": "node cli.js",
+    "ganache": "bnr ganache",
+    "parity": "bnr parity",
+    "geth": "bnr geth",
+    "migrate:dev": "bnr migrate:dev",
+    "migrate:rinkeby": "bnr migrate:rinkeby",
+    "migrate:ropsten": "bnr migrate:ropsten",
+    "monitor": "bnr monitor",
+    "lint": "eslint .",
+    "test": "bnr test",
+    "test:geth": "bnr test:geth"
+  },
+  "betterScripts": {
     "ganache": "./bin/ganache.sh",
     "parity": "parity --config config.toml --geth",
     "geth": "geth --dev --dev.period 0 --rpc --targetgaslimit 8000000",
     "migrate:dev": "truffle migrate --network ganache",
-    "migrate:rinkeby": "INFURA_CHAIN=rinkeby truffle migrate --network infura",
-    "migrate:ropsten": "INFURA_CHAIN=ropsten truffle migrate --network infura",
+    "migrate:rinkeby": {
+      "command": "truffle migrate --network infura",
+      "env": {
+        "INFURA_CHAIN": "rinkeby"
+      }
+    },
+    "migrate:ropsten": {
+      "command": "truffle migrate --network infura",
+      "env": {
+        "INFURA_CHAIN": "ropsten"
+      }
+    },
     "monitor": "node cli.js monitor",
-    "lint": "eslint .",
-    "test": "NODE_ENV=test truffle test",
-    "test:geth": "NODE_ENV=test IS_GETH_TEST=true PERIOD=10 truffle test --network geth"
+    "test": {
+      "command": "truffle test",
+      "env": {
+        "NODE_ENV": "test"
+      }
+    },
+    "test:geth": {
+      "command": "bnr test --network geth",
+      "env": {
+        "IS_GETH_TEST": "true",
+        "PERIOD": "1"
+      }
+    }
   },
   "author": "chriseth",
   "license": "MIT",
   "dependencies": {
+    "better-npm-run": "^0.1.0",
     "bignumber.js": "^5.0.0",
     "commander": "^2.13.0",
     "dotenv": "^4.0.0",
@@ -42,6 +75,7 @@
     "zeppelin-solidity": "^1.5.0"
   },
   "devDependencies": {
+    "better-npm-run": "^0.1.0",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "chai-bignumber": "^2.0.2",
