@@ -155,7 +155,6 @@ describe('ClaimManager', function () {
       tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, 'foobar', { from: claimant, value: claimDeposit })
 
       const results = await getAllEvents(claimManager, 'ClaimCreated')
-
       results.length.should.be.gt(1)
 
       claimID = results[1].args.claimID.toNumber()

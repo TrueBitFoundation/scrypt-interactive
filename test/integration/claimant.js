@@ -25,10 +25,13 @@ describe('Claimant Client Integration Tests', function () {
   let bridge, claimant, challenger, claimID
   let sessionId = null
   let stopSubmitting, submit
+  let claimManager
 
   before(async () => {
     const contracts = await (await getContracts(web3)).deploy()
     bridge = await require('../../client')(web3, contracts)
+
+    claimManager = contracts.claimManager
 
     claimant = web3.eth.accounts[1]
     challenger = web3.eth.accounts[2]
@@ -68,7 +71,11 @@ describe('Claimant Client Integration Tests', function () {
     })
 
     it('should challenge claim and send initial query', async () => {
-      claimID = (await bridge.api.claimManager.claimantClaims(claimant)).toNumber()
+      const results = await getAllEvents(claimManager, 'ClaimCreated')
+
+      results.length.should.be.gt(0)
+
+      claimID = results[0].args.claimID.toNumber()
 
       await bridge.api.challengeClaim(claimID, { from: challenger })
 
