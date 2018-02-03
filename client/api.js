@@ -37,7 +37,7 @@ module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay 
     /**
      * @desc withdraw ether from the ClaimManager
      */
-    withdraw: async (...args) => {
+    withdrawDeposit: async (...args) => {
       return claimManager.withdrawDeposit(...args)
     },
     /**

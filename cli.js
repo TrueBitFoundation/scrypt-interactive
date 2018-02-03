@@ -4,7 +4,7 @@ const promisify = require('es6-promisify')
 const program = require('commander')
 const selfText = require('./client/util/selfText')
 const newStopper = require('./client/util/stopper')
-const makeDeposit = require('./client/primitives/deposit').makeDeposit
+const commands = require('./client/commands')
 
 const Web3 = require('web3')
 const HDWalletProvider = require('truffle-hdwallet-provider')
@@ -32,58 +32,13 @@ const connectToBridge = async function (cmd) {
   return this.bridge
 }
 
-const status = async (cmd, bridge, operator, claimId) => {
-  try {
-    const deposited = await bridge.api.getDeposit(operator)
-    const balance = await bridge.api.getBalance(operator)
-    const minDeposit = await bridge.api.getMinDeposit()
-
-    cmd.log(`I am: ${operator}`)
-    cmd.log(`I have: ${web3.fromWei(balance, 'ether')} ETH`)
-    cmd.log(`Deposited: ${web3.fromWei(deposited, 'ether')} ETH`)
-    cmd.log(`minDeposit: ${web3.fromWei(minDeposit, 'ether')} ETH`)
-
-    if (claimId) {
-      const bondedAmount = await bridge.api.claimManager.getBondedDeposit(claimId, operator)
-
-      cmd.log(`Bonded in Claim ${claimId}: ${web3.fromWei(bondedAmount, 'ether')} ETH`)
-    }
-  } catch (error) {
-    cmd.log(`Unable to connect to bridge: ${error.stack}`)
-  }
-}
-
-const deposit = async (cmd, bridge, operator, amount) => {
-  try {
-    await makeDeposit(
-      cmd,
-      bridge.api,
-      operator,
-      web3.toWei(amount, 'ether')
-    )
-
-    await status(cmd, bridge, operator)
-  } catch (error) {
-    cmd.log(`Unable to deposit to ClaimManager: ${error.stack}`)
-  }
-}
-
-const doThenExit = async (promise) => {
-  try {
-    await promise
-    process.exit(0)
-  } catch (error) {
-    console.error(error.stack)
-    process.exit(1)
-  }
-}
-
 const main = async () => {
   const cmd = { log: console.log.bind(console) }
-  const bridge = await connectToBridge(cmd)
   const operator = process.env.OPERATOR_ADDRESS || (await getDefaultAddress()) || (await getCoinbase())
 
   web3.eth.defaultAccount = operator
+
+  const bridge = await connectToBridge(cmd)
 
   const { stop, stopper } = newStopper()
   process.on('SIGINT', stop)
@@ -96,25 +51,28 @@ const main = async () => {
     .command('status [claimId]')
     .description('Display the status of the bridge.')
     .action(async function (claimId) {
-      await doThenExit(status(cmd, bridge, operator, claimId))
+      await commands.status(cmd, bridge, operator, claimId)
     })
 
   program
     .command('deposit <amount>')
     .description('Deposit <amount> into ClaimManager')
     .action(async function (amount) {
-      await doThenExit(deposit(cmd, bridge, operator, amount))
+      await commands.deposit(cmd, bridge, operator, amount)
+    })
+
+  program
+    .command('withdraw <amount>')
+    .description('Withdraw <amount> from ClaimManager. <amount> can be "all"')
+    .action(async function (amount) {
+      await commands.withdraw(cmd, bridge, operator, amount)
     })
 
   program
     .command('resume-claim <proposal-id>')
     .description('Resume defending a blockheader on the DogeRelay')
     .action(async function (proposalID, options) {
-      const claim = await bridge.api.getClaim(proposalID)
-
-      await doThenExit(
-        bridge.primitives.defend(cmd, bridge.api, claim)
-      )
+      await commands.resumeClaim(cmd, bridge, operator, proposalID)
     })
 
   program
@@ -128,9 +86,7 @@ const main = async () => {
         proposalID: proposalID,
       }
 
-      await doThenExit(
-        bridge.submitClaim(cmd, claim, stopper)
-      )
+      await commands.claim(cmd, bridge, operator, claim, stopper)
     })
 
   program
@@ -138,11 +94,13 @@ const main = async () => {
     .description('Monitors the Doge-Eth bridge and validates blockheader claims.')
     .option('-c, --auto-challenge', 'Automatically challenge incorrect claims.')
     .action(async function (options) {
-      await doThenExit(bridge.monitorClaims(cmd,
+      await commands.monitor(
+        cmd,
+        bridge,
         operator,
-        stopper,
-        !!options.autoChallenge
-      ))
+        !!options.autoChallenge,
+        stopper
+      )
     })
 
   program.parse(process.argv)
