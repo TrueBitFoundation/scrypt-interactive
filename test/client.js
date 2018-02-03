@@ -178,8 +178,8 @@ describe('ClaimManager', function () {
     })
 
     it('claimant makes two parallel claims', async () => {
-      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, claimant, 'foobar1', { from: claimant, value: claimDeposit })
-      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, claimant, 'foobar2', { from: claimant, value: claimDeposit })
+      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, 'foobar1', { from: claimant, value: claimDeposit })
+      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, 'foobar2', { from: claimant, value: claimDeposit })
 
       const results = await getAllEvents(claimManager, 'ClaimCreated')
       results.length.should.be.gt(3)
