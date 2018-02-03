@@ -67,6 +67,10 @@ vm.vfs_cache_pressure = 50
 
 #----------------------------------
 
+# installed sina's dotfiles :)
+# follow the directions
+git clone git@github.com:sinahab/dotfiles.git
+
 # install tmux
 sudo apt-get install tmux
 
@@ -78,6 +82,67 @@ sudo add-apt-repository -y ppa:ethereum/ethereum
 sudo apt-get update
 sudo apt-get install ethereum
 
-# boot Ropsten blockchain: https://github.com/ethereum/ropsten
+sudo apt install geth
+
+# to run on the Ropsten network: https://github.com/ethereum/ropsten
 geth --testnet --fast --bootnodes "enode://20c9ad97c081d63397d7b685a412227a40e23c8bdc6688c6f37e97cfbc22d2b4d1db1510d8f61e6a8866ad7f0e17c02b14182d37ea7c3c8b9c2683aeb6b733a1@52.169.14.227:30303,enode://6ce05930c72abc632c58e2e4324f7c7ea478cec0ed4fa2528982cf34483094e9cbc9216e7aa349691242576d552a2a56aaeae426c5303ded677ce455ba1acd9d@13.84.180.240:30303"
+
+# to run on teh Rinkeby network: https://gist.github.com/cryptogoth/10a98e8078cfd69f7ca892ddbdcf26bc
+geth --rinkeby
+
+#----------------------------------
+
+# install parity
+
+sudo apt-get install build-essential openssl libssl-dev libudev-dev
+
+# download the latest stable release:
+wget https://parity-downloads-mirror.parity.io/v1.8.8/x86_64-unknown-linux-gnu/parity_1.8.8_amd64.deb
+sudo apt install ./parity_1.8.8_amd64.deb
+
+# follow the README:
+parity --chain dev  # kill this after ~ 5 seconds, when the dev db is setup.
+
+#----------------------------------
+
+# install postgres
+sudo apt-get update
+sudo apt-get install postgresql postgresql-contrib
+
+# give your user the ability to execute commands as postgres user
+# by giving it the right permissions in pg_hba.conf
+sudo vim /etc/postgresql/9.5/main/pg_hba.conf
+# set METHOD to trust for all local connections – for now..
+
+# restart postgres
+sudo service postgresql restart
+
+#----------------------------------
+
+# clone the scrypt-interactive repo
+git clone git@github.com:TrueBitFoundation/scrypt-interactive.git
+
+# install node – @TODO: use nvm in the future
+curl -sL https://deb.nodesource.com/setup_9.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo apt-get install -y build-essential
+
+#----------------------------------
+
+# go through the README installation directions:
+cd scrypt-interactive
+
+# install node modules
+npm install
+sudo npm install -g sequelize-cli
+sudo npm install -g truffle
+
+# setup the dbs
+sequelize db:create
+sequelize db:migrate
+NODE_ENV=test sequelize db:create
+NODE_ENV=test sequelize db:migrate
+
+# compile the contracts – 
+truffle compile
 

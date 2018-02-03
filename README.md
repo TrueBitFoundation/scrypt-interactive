@@ -57,7 +57,7 @@ We also have a convenient `test.sh` script that does all that for you.
 
 ## Installing Dependencies
 
-Install the Parity Ethereum client. You can download binary release for your machine from [here](https://github.com/paritytech/parity/releases).
+Install the latest stable release of the Parity Ethereum client. You can look for the binary [here](https://github.com/paritytech/parity/releases).
 ```bash
 # make sure it's executable
 chmod 755 ./parity
@@ -82,6 +82,7 @@ Then install packages deps:
 ```bash
 npm install
 npm install -g sequelize-cli
+npm install -g truffle
 ```
 
 Install postgres and run it on the default port `5432`:
