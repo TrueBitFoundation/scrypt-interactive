@@ -23,9 +23,12 @@ describe('Claimant Client Integration Tests', function () {
   this.timeout(120000)
 
   let bridge, claimant, challenger, claimID
+  let claimID1, claimID2
   let sessionId = null
   let stopSubmitting, submit
   let claimManager
+  let stopSubmitting1, submit1
+  let stopSubmitting2, submit2
 
   before(async () => {
     const contracts = await (await getContracts(web3)).deploy()
@@ -71,6 +74,34 @@ describe('Claimant Client Integration Tests', function () {
       claimID = (await bridge.api.claimManager.calcId.call(claim.input, claim.hash, claim.claimant, claim.proposalID)).toString()
     })
 
+    it('should create two more claims', async () => {
+      const claim1 = {
+        claimant: claimant,
+        input: serializedBlockHeader,
+        hash: scryptHash,
+        proposalID: 'foobar1',
+      }
+
+      const { stop1, stopper1 } = newStopper()
+      stopSubmitting1 = stop1
+      submit1 = bridge.submitClaim(console, claim1, stopper1)
+      claimID2 = (await bridge.api.claimManager.calcId.call(claim1.input, claim1.hash, claim1.claimant, claim1.proposalID)).toString()
+      
+      const claim2 = {
+        claimant: claimant,
+        input: serializedBlockHeader,
+        hash: scryptHash,
+        proposalID: 'foobar2',
+      }
+
+      const { stop2, stopper2 } = newStopper()
+      stopSubmitting2 = stop2
+      submit2 = bridge.submitClaim(console, claim2, stopper2)
+
+      claimID2 = (await bridge.api.claimManager.calcId.call(claim2.input, claim2.hash, claim2.claimant, claim2.proposalID)).toString()
+      
+    })
+
     it('should challenge claim and send initial query', async () => {
       await timeout(5000)
 
@@ -110,5 +141,6 @@ describe('Claimant Client Integration Tests', function () {
         await miner.mineBlocks(4)
       })
     }
+
   })
 })
