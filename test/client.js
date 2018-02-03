@@ -176,5 +176,39 @@ describe('ClaimManager', function () {
       result = await getAllEvents(claimManager, 'ClaimSuccessful')
       result[1].args.claimID.should.be.bignumber.eq(claimID)
     })
+
+    it('claimant makes two parallel claims', async () => {
+      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, claimant, 'foobar1', { from: claimant, value: claimDeposit })
+      tx = await dogeRelay.verifyScrypt(serializedBlockHeader, scryptHash, claimant, 'foobar2', { from: claimant, value: claimDeposit })
+
+      const results = await getAllEvents(claimManager, 'ClaimCreated')
+      results.length.should.be.gt(3)
+
+      var claimID1 = results[2].args.claimID // .toNumber()
+      var claimID2 = results[3].args.claimID // .toNumber()
+
+      await miner.mineBlocks(21)
+
+      // trigger claim decided
+      await claimManager.runNextVerificationGame(claimID1, { from: claimant })
+      await claimManager.runNextVerificationGame(claimID2, { from: claimant })
+
+      let result = await getAllEvents(claimManager, 'ClaimVerificationGamesEnded')
+      result[2].args.claimID.should.be.bignumber.eq(claimID1)
+      result[3].args.claimID.should.be.bignumber.eq(claimID2)
+
+      const isReady1 = await claimManager.getClaimReady.call(claimID1)
+      isReady1.should.eq(true)
+
+      const isReady2 = await claimManager.getClaimReady.call(claimID2)
+      isReady2.should.eq(true)
+
+      await claimManager.checkClaimSuccessful(claimID1, { from: claimant })
+      await claimManager.checkClaimSuccessful(claimID2, { from: claimant })
+
+      result = await getAllEvents(claimManager, 'ClaimSuccessful')
+      result[2].args.claimID.should.be.bignumber.eq(claimID1)
+      result[3].args.claimID.should.be.bignumber.eq(claimID2)
+    })
   })
 })
