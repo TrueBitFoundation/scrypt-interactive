@@ -3,7 +3,7 @@ require('dotenv').config()
 const program = require('commander')
 const selfText = require('./client/util/selfText')
 const newStopper = require('./client/util/stopper')
-const makeDeposit = require('./client/claimManager/deposit').makeDeposit
+const makeDeposit = require('./client/primitives/deposit').makeDeposit
 
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER))
@@ -97,7 +97,7 @@ const main = async () => {
       const claim = await bridge.api.getClaim(proposalID)
 
       await doThenExit(
-        bridge.claimManager.defend(cmd, bridge.api, claim)
+        bridge.primitives.defend(cmd, bridge.api, claim)
       )
     })
 

@@ -6,8 +6,8 @@ web3.eth.defaultAccount = web3.eth.accounts[0]
 const getContracts = require('../client/util/getContracts')
 
 const miner = require('./helpers/miner')(web3)
-const makeDeposit = require('../client/claimManager/deposit').makeDeposit
-const isDepositEnough = require('../client/claimManager/deposit').isDepositEnough
+const makeDeposit = require('../client/primitives/deposit').makeDeposit
+const isDepositEnough = require('../client/primitives/deposit').isDepositEnough
 
 describe('Deposit', function () {
   this.timeout(30000)
