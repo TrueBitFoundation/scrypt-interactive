@@ -262,7 +262,6 @@ contract ClaimManager is DepositsManager {
     require(claim.decided);
 
     unbondDeposit(claimID, claim.claimant);
-    // claimantClaims[claim.claimant] = 0;
 
     dogeRelay.scryptVerified(claim.proposalId);
 
