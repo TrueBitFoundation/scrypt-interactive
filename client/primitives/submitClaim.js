@@ -12,7 +12,6 @@ module.exports = async (cmd, api, claim) => {
     await api.createClaim(
       claim.input,
       claim.hash,
-      claim.claimant,
       claim.proposalID,
       { from: claim.claimant }
     )
