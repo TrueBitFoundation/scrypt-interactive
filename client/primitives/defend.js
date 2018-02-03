@@ -9,7 +9,7 @@ module.exports = async (cmd, api, claim) => {
 
   const computeStep = require('./computeStep')
   const claimantConvictedEvent = api.scryptVerifier.ClaimantConvicted({ claimant: claim.claimant })
-  const queryEvent = api.scryptVerifier.NewQuery({ claimant: claim.claimant })
+  const queryEvent = api.scryptVerifier.NewQuery({ claimant: claim.claimant, sessionId: sessionId })
 
   await Promise.race([
 
