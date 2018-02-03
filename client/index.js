@@ -1,21 +1,20 @@
 const getContracts = require('./util/getContracts')
 
 const db = require('./db/models')
-const claimManager = require('./claimManager')
+const primitives = require('./primitives')
 
 module.exports = async (web3, _contracts = null) => {
   const contracts = _contracts || await (await getContracts(web3)).deployed()
-
   const api = await require('./api')(contracts, web3)
-  const challengeClaim = require('./challengeClaim')(web3, api)
 
   return {
     api,
+    primitives,
     submitClaim: async (cmd, claimData, stopper) => {
       const fn = async () => {
         const claim = await db.Claim.create(claimData)
-        await claimManager.submit(cmd, api, claim)
-        await claimManager.defend(cmd, api, claim)
+        await primitives.submitClaim(cmd, api, claim)
+        await primitives.defend(cmd, api, claim)
       }
       await Promise.race([
         stopper,
@@ -30,33 +29,32 @@ module.exports = async (web3, _contracts = null) => {
           cmd.log('Monitoring for claims...')
           const claimCreatedEvents = api.claimManager.ClaimCreated()
           claimCreatedEvents.watch(async (error, result) => {
-            debugger
             if (error) {
               console.log(error)
               throw error
             }
 
-            const claim = {
-              id: result.args.claimID.toString(), // .toNumber()
+            const claim = await db.Claim.create({
+              claimID: result.args.claimID.toString(),
               claimant: result.args.claimant,
-              plaintext: result.args.plaintext,
-              blockHash: result.args.blockHash,
-              createdAt: result.blockNumber,
-            }
+              input: result.args.plaintext,
+              hash: result.args.blockHash,
+              claimCreatedAt: result.blockNumber
+            })
 
             cmd.log(`
               ClaimCreated(
-                id: ${claim.id}
+                id: ${claim.claimID}
                 claimant: ${claim.claimant}
-                plaintext: ${claim.plaintext}
-                blockHash: ${claim.blockHash}
-                createdAt: ${claim.createdAt}
+                plaintext: ${claim.input}
+                blockHash: ${claim.hash}
+                createdAt: ${claim.claimCreatedAt}
               )
             `)
 
-            const output = web3.toHex((await contracts.scryptRunner.run.call(claim.plaintext, 2049)[4]))
+            const output = web3.toHex((await contracts.scryptRunner.run.call(claim.input, 2049)[4]))
 
-            if (output !== claim.blockHash) {
+            if (output !== claim.hash) {
               cmd.log('Proof of Work: INVALID')
 
               if (!autoChallenge) {
@@ -70,19 +68,21 @@ module.exports = async (web3, _contracts = null) => {
               // this promise also always resolves positively
               // so that Promise.all works correctly
               if (!(claim.id in inProgressClaims)) {
-                inProgressClaims[claim.id] = challengeClaim
-                  .run(cmd, claim, challenger)
-                  .then(() => {
-                    cmd.log(`Finished Challenging Claim: ${claim.id}`)
-                  })
-                  .catch((err) => {
-                    cmd.log('Bridge Error --------------------------')
-                    cmd.log(`Finished Challenging Claim: ${claim.id}`)
-                    cmd.log(err)
-                  })
-                  .then(() => {
-                    return Promise.resolve()
-                  })
+                primitives.challenge(api, claim, challenger)
+
+                // inProgressClaims[claim.id] = challengeClaim
+                //   .run(cmd, claim, challenger)
+                //   .then(() => {
+                //     cmd.log(`Finished Challenging Claim: ${claim.id}`)
+                //   })
+                //   .catch((err) => {
+                //     cmd.log('Bridge Error --------------------------')
+                //     cmd.log(`Finished Challenging Claim: ${claim.id}`)
+                //     cmd.log(err)
+                //   })
+                //   .then(() => {
+                //     return Promise.resolve()
+                //   })
               }
             } else {
               cmd.log('Proof of Work: Valid')

@@ -18,10 +18,10 @@ set -e
 #check_node_version $NODE_VERSION
 #if [[ $? == 1 ]]; then echo "node version is too old. please use v.7.6.0 or newer." && exit 1; fi
 
-ganache-cli > ./ganache-log 2>&1 &
-./bin/parity --config config.toml --geth > ./parity-log 2>&1 &
+npm run ganache 2>&1 &
+npm run parity > ./parity-log 2>&1 &
 truffle compile
-truffle test
+npm run test
 sleep 10
 kill -9 $(lsof -t -i:8545)
 kill -9 $(lsof -t -i:4242)

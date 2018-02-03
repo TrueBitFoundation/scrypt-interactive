@@ -4,7 +4,7 @@ const timeout = require('./timeout')
 const mineBlocks = (web3) => async (n) => {
   for (let i = 0; i < n; i++) {
     if (process.env.IS_GETH_TEST) {
-      await timeout(3000)
+      await timeout((parseInt(process.env.PERIOD || 1) * 1000))
     } else {
       await web3.currentProvider.send({
         jsonrpc: '2.0',

@@ -3,6 +3,7 @@ require('dotenv').config()
 const program = require('commander')
 const selfText = require('./client/util/selfText')
 const newStopper = require('./client/util/stopper')
+const makeDeposit = require('./client/primitives/deposit').makeDeposit
 
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER))
@@ -22,6 +23,36 @@ const connectToBridge = async function (cmd) {
   cmd.log('Connected!')
 
   return this.bridge
+}
+
+const status = async (cmd, bridge) => {
+  try {
+    const deposited = await bridge.api.getDeposit(operator)
+    const balance = await web3.eth.getBalance(operator)
+    const minDeposit = await bridge.api.getMinDeposit()
+
+    cmd.log(`I am: ${operator}`)
+    cmd.log(`I have: ${web3.fromWei(balance, 'ether')} ETH`)
+    cmd.log(`Deposited: ${web3.fromWei(deposited, 'ether')} ETH`)
+    cmd.log(`minDeposit: ${web3.fromWei(minDeposit, 'ether')} ETH`)
+  } catch (error) {
+    cmd.log(`Unable to connect to bridge: ${error.stack}`)
+  }
+}
+
+const deposit = async (cmd, bridge, amount) => {
+  try {
+    await makeDeposit(
+      cmd,
+      bridge.api,
+      operator,
+      web3.toWei(amount, 'ether')
+    )
+
+    await status(cmd, bridge)
+  } catch (error) {
+    cmd.log(`Unable to deposit to ClaimManager: ${error.stack}`)
+  }
 }
 
 const doThenExit = async (promise) => {
@@ -49,32 +80,36 @@ const main = async () => {
     .command('status')
     .description('Display the status of the bridge.')
     .action(async function () {
-      const status = async (cmd) => {
-        try {
-          const deposited = await bridge.api.getDeposit(operator)
-          const balance = await web3.eth.getBalance(operator)
-          const minDeposit = await bridge.api.getMinDeposit()
-
-          cmd.log(`I am: ${operator}`)
-          cmd.log(`I have: ${web3.fromWei(balance, 'ether')} ETH`)
-          cmd.log(`Deposited: ${web3.fromWei(deposited, 'ether')} ETH`)
-          cmd.log(`minDeposit: ${web3.fromWei(minDeposit, 'ether')} ETH`)
-        } catch (error) {
-          cmd.log(`Unable to connect to bridge: ${error.stack}`)
-        }
-      }
-      await doThenExit(status(cmd))
+      await doThenExit(status(cmd, bridge))
     })
 
   program
-    .command('claim <blockheader> <hash>')
+    .command('deposit <amount>')
+    .description('Deposit <amount> into ClaimManager')
+    .action(async function (amount) {
+      await doThenExit(deposit(cmd, bridge, amount))
+    })
+
+  program
+    .command('resume-claim <proposal-id>')
+    .description('Resume defending a blockheader on the DogeRelay')
+    .action(async function (proposalID, options) {
+      const claim = await bridge.api.getClaim(proposalID)
+
+      await doThenExit(
+        bridge.primitives.defend(cmd, bridge.api, claim)
+      )
+    })
+
+  program
+    .command('claim <blockheader> <hash> <proposal-id>')
     .description('Claim a blockheader on the DogeRelay')
-    .action(async function (blockheader, hash, options) {
+    .action(async function (blockheader, hash, proposalID, options) {
       const claim = {
         claimant: operator,
         input: blockheader,
         hash: hash,
-        proposalID: 'foobar',
+        proposalID: proposalID,
       }
 
       await doThenExit(

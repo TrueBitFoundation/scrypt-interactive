@@ -16,9 +16,9 @@ module.exports = async (cmd, api, claim) => {
     // if claimant loses the verification game
     new Promise((resolve, reject) => {
       claimantConvictedEvent.watch((err, result) => {
+        cmd.log('We lost the game.')
         claimantConvictedEvent.stopWatching()
         if (err) { return reject(err) }
-        console.log('first')
         resolve(result)
       })
     }),
@@ -33,6 +33,7 @@ module.exports = async (cmd, api, claim) => {
           ready = await api.claimManager.getClaimReady.call(claim.claimID)
         }
         await api.claimManager.checkClaimSuccessful(claim.claimID, { from: claim.claimant })
+        cmd.log('The claim was successful!')
         resolve()
       } catch (error) {
         cmd.log('Error while resolving defense.')
