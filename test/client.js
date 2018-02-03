@@ -44,9 +44,10 @@ describe('ClaimManager', function () {
       const results = await getAllEvents(claimManager, 'ClaimCreated')
       results.length.should.be.gt(0)
 
-      claimID = results[0].args.claimID.toNumber()
+      claimID = results[0].args.claimID /* .toNumber() */
 
       deposit = await claimManager.getBondedDeposit.call(claimID, claimant, { from: claimant })
+      
       assert.equal(deposit.toNumber(), claimDeposit)
     })
 
@@ -62,7 +63,7 @@ describe('ClaimManager', function () {
     it('begins verification game', async () => {
       tx = await claimManager.runNextVerificationGame(claimID, { from: claimant })
       log = tx.logs.find(l => l.event === 'VerificationGameStarted')
-      assert.equal(log.args.claimID.toNumber(), claimID)
+      assert.equal(log.args.claimID.toString(), claimID.toString())
       assert.equal(log.args.claimant, claimant)
       assert.equal(log.args.challenger, challenger)
       sessionId = await claimManager.getSession.call(claimID, challenger)
@@ -157,7 +158,7 @@ describe('ClaimManager', function () {
       const results = await getAllEvents(claimManager, 'ClaimCreated')
       results.length.should.be.gt(1)
 
-      claimID = results[1].args.claimID.toNumber()
+      claimID = results[1].args.claimID // .toNumber()
 
       await miner.mineBlocks(21)
 

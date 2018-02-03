@@ -35,7 +35,7 @@ module.exports = async (web3, _contracts = null) => {
             }
 
             const claim = await db.Claim.create({
-              claimID: result.args.claimID.toNumber(),
+              claimID: result.args.claimID.toString(),
               claimant: result.args.claimant,
               input: result.args.plaintext,
               hash: result.args.blockHash,

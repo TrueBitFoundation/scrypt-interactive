@@ -38,7 +38,7 @@ describe('Challenger Client Integration Tests', function () {
     await monitor
   })
 
-  describe('Challenger reacting to verificaiton game', () => {
+  describe('Challenger reacting to verification game', () => {
     it('should start monitoring claims', async () => {
       // eslint-disable-next-line
       const stopper = new Promise((resolve) => stopMonitor = resolve)
@@ -64,7 +64,7 @@ describe('Challenger Client Integration Tests', function () {
     // challenger sees proof of work is valid and does not challenge
     it('should be zero challengers', async () => {
       let result = await getAllEvents(bridge.api.claimManager, 'ClaimCreated')
-      assert.equal(0, (await bridge.api.claimManager.getChallengers(result[0].args.claimID.toNumber())).length)
+      assert.equal(0, (await bridge.api.claimManager.getChallengers(result[0].args.claimID /* .toNumber() */)).length)
     })
   })
 

@@ -3,7 +3,7 @@ chain ="dev"
 no_consensus = true
 
 [mining]
-gas_floor_target = "1"
+gas_floor_target = "8000000"
 tx_gas_limit="8000000"
 reseal_min_period = 0
 min_gas_price = 0
