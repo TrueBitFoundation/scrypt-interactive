@@ -1,5 +1,6 @@
 require('dotenv').config()
 
+const promisify = require('es6-promisify')
 const program = require('commander')
 const selfText = require('./client/util/selfText')
 const newStopper = require('./client/util/stopper')
@@ -15,9 +16,8 @@ const provider = process.env.USE_LOCAL_SIGNER === 'true'
   : new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER)
 const web3 = new Web3(provider)
 
-const operator = process.env.OPERATOR_ADDRESS || web3.eth.defaultAccount || web3.eth.coinbase
-
-// web3.eth.defaultAccount = operator
+const getDefaultAddress = promisify(web3.eth.getDefaultAddress, web3.eth)
+const getCoinbase = promisify(web3.eth.getCoinbase, web3.eth)
 
 // sets up bridge
 const connectToBridge = async function (cmd) {
@@ -32,22 +32,28 @@ const connectToBridge = async function (cmd) {
   return this.bridge
 }
 
-const status = async (cmd, bridge) => {
+const status = async (cmd, bridge, operator, claimId) => {
   try {
     const deposited = await bridge.api.getDeposit(operator)
-    const balance = await web3.eth.getBalance(operator)
+    const balance = await bridge.api.getBalance(operator)
     const minDeposit = await bridge.api.getMinDeposit()
 
     cmd.log(`I am: ${operator}`)
     cmd.log(`I have: ${web3.fromWei(balance, 'ether')} ETH`)
     cmd.log(`Deposited: ${web3.fromWei(deposited, 'ether')} ETH`)
     cmd.log(`minDeposit: ${web3.fromWei(minDeposit, 'ether')} ETH`)
+
+    if (claimId) {
+      const bondedAmount = await bridge.api.claimManager.getBondedDeposit(claimId, operator)
+
+      cmd.log(`Bonded in Claim ${claimId}: ${web3.fromWei(bondedAmount, 'ether')} ETH`)
+    }
   } catch (error) {
     cmd.log(`Unable to connect to bridge: ${error.stack}`)
   }
 }
 
-const deposit = async (cmd, bridge, amount) => {
+const deposit = async (cmd, bridge, operator, amount) => {
   try {
     await makeDeposit(
       cmd,
@@ -56,7 +62,7 @@ const deposit = async (cmd, bridge, amount) => {
       web3.toWei(amount, 'ether')
     )
 
-    await status(cmd, bridge)
+    await status(cmd, bridge, operator)
   } catch (error) {
     cmd.log(`Unable to deposit to ClaimManager: ${error.stack}`)
   }
@@ -75,6 +81,9 @@ const doThenExit = async (promise) => {
 const main = async () => {
   const cmd = { log: console.log.bind(console) }
   const bridge = await connectToBridge(cmd)
+  const operator = process.env.OPERATOR_ADDRESS || (await getDefaultAddress()) || (await getCoinbase())
+
+  web3.eth.defaultAccount = operator
 
   const { stop, stopper } = newStopper()
   process.on('SIGINT', stop)
@@ -84,17 +93,17 @@ const main = async () => {
     .description(selfText)
 
   program
-    .command('status')
+    .command('status [claimId]')
     .description('Display the status of the bridge.')
-    .action(async function () {
-      await doThenExit(status(cmd, bridge))
+    .action(async function (claimId) {
+      await doThenExit(status(cmd, bridge, operator, claimId))
     })
 
   program
     .command('deposit <amount>')
     .description('Deposit <amount> into ClaimManager')
     .action(async function (amount) {
-      await doThenExit(deposit(cmd, bridge, amount))
+      await doThenExit(deposit(cmd, bridge, operator, amount))
     })
 
   program

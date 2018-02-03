@@ -107,15 +107,15 @@ contract ClaimManager is DepositsManager, IScryptChecker {
   // only callable by the DogeRelay contract.
   // @param _plaintext – the plaintext blockHeader.
   // @param _blockHash – the blockHash.
-  // @param claimant – the address of the Dogecoin block submitter. 
+  // @param claimant – the address of the Dogecoin block submitter.
   function checkScrypt(bytes _data, bytes32 _hash, bytes32 _proposalId, IScryptDependent _scryptDependent) public payable {
     // dogeRelay can directly make a deposit on behalf of the claimant.
 
     bytes memory _blockHash = new bytes(32);
     assembly {
-        mstore(add(_blockHash, 0x20), _hash)
+      mstore(add(_blockHash, 0x20), _hash)
     }
-    
+
     address _submitter = tx.origin;
     if (msg.value != 0) {
       // only call if eth is included (to save gas)
@@ -123,7 +123,7 @@ contract ClaimManager is DepositsManager, IScryptChecker {
     }
 
     require(deposits[_submitter] >= minDeposit);
-    
+
 //    uint claimId = numClaims;
 //    uint claimId = uint(keccak256(_submitter, _plaintext, _hash, numClaims));
 
@@ -202,7 +202,7 @@ contract ClaimManager is DepositsManager, IScryptChecker {
   // @param sessionId – the sessionId.
   // @param winner – winner of the verification game.
   // @param loser – loser of the verification game.
-  
+
   function sessionDecided(uint sessionId, uint claimID, address winner, address loser) onlyBy(address(scryptVerifier)) public {
     ScryptClaim storage claim = claims[claimID];
 
@@ -213,8 +213,8 @@ contract ClaimManager is DepositsManager, IScryptChecker {
 
     // reward the winner, with the loser's bonded deposit.
     uint depositToTransfer = claim.bondedDeposits[loser];
-    delete claim.bondedDeposits[loser];
     claim.bondedDeposits[winner] = claim.bondedDeposits[winner].add(depositToTransfer);
+    delete claim.bondedDeposits[loser];
 
     if (claim.claimant == loser) {
       // the claim is over.

@@ -2,6 +2,7 @@ const getContracts = require('./util/getContracts')
 
 const db = require('./db/models')
 const primitives = require('./primitives')
+const events = require('./util/events')
 
 module.exports = async (web3, _contracts = null) => {
   const contracts = _contracts || await (await getContracts(web3)).deployed()
@@ -23,15 +24,15 @@ module.exports = async (web3, _contracts = null) => {
     },
     monitorClaims: async (cmd, challenger, stopper, autoChallenge = false) => {
       return new Promise(async (resolve, reject) => {
-        let inProgressClaims = {}
-
         try {
+          const inProgressClaims = {}
+
           cmd.log('Monitoring for claims...')
           const claimCreatedEvents = api.claimManager.ClaimCreated()
           claimCreatedEvents.watch(async (error, result) => {
             if (error) {
               console.log(error)
-              throw error
+              return reject(error)
             }
 
             const claim = await db.Claim.create({
@@ -68,21 +69,19 @@ module.exports = async (web3, _contracts = null) => {
               // this promise also always resolves positively
               // so that Promise.all works correctly
               if (!(claim.id in inProgressClaims)) {
-                primitives.challenge(api, claim, challenger)
-
-                // inProgressClaims[claim.id] = challengeClaim
-                //   .run(cmd, claim, challenger)
-                //   .then(() => {
-                //     cmd.log(`Finished Challenging Claim: ${claim.id}`)
-                //   })
-                //   .catch((err) => {
-                //     cmd.log('Bridge Error --------------------------')
-                //     cmd.log(`Finished Challenging Claim: ${claim.id}`)
-                //     cmd.log(err)
-                //   })
-                //   .then(() => {
-                //     return Promise.resolve()
-                //   })
+                inProgressClaims[claim.id] = primitives
+                  .challenge(api, claim, challenger)
+                  .then(() => {
+                    cmd.log(`Finished Challenging Claim: ${claim.id}`)
+                  })
+                  .catch((err) => {
+                    cmd.log('Bridge Error --------------------------')
+                    cmd.log(`Finished Challenging Claim: ${claim.id}`)
+                    cmd.log(err)
+                  })
+                  .then(() => {
+                    return Promise.resolve()
+                  })
               }
             } else {
               cmd.log('Proof of Work: Valid')
@@ -93,11 +92,12 @@ module.exports = async (web3, _contracts = null) => {
           await stopper
 
           // stop watching
-          claimCreatedEvents.stopWatching()
+          await events.tryStopWatching(claimCreatedEvents, 'ClaimCreated')
 
           // wait for exisiting claims to finish
           // TODO: inProgressClaims is an object not an array anymore
           // await Promise.all(inProgressClaims)
+          await Promise.all(Object.values(inProgressClaims))
 
           // resolve self
           resolve()
