@@ -53,6 +53,7 @@ contract Verifier {
         require(steps > 2);
 
         //ClaimManager constraints don't allow for sessionId 0
+        // check if there can be a replay attack with sessionId
         uint sessionId = sessionsCount+1;
         VerificationSession storage s = sessions[sessionId];
         s.id = sessionId;
