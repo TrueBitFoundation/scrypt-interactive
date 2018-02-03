@@ -39,7 +39,7 @@ module.exports = async (web3, _contracts = null) => {
               claimant: result.args.claimant,
               input: result.args.plaintext,
               hash: result.args.blockHash,
-              claimCreatedAt: result.blockNumber
+              claimCreatedAt: result.blockNumber,
             })
 
             cmd.log(`

@@ -27,10 +27,10 @@ module.exports = async (cmd, api, claim) => {
     // expected to resolve all times besides losing
     new Promise(async (resolve, reject) => {
       try {
-        let ready
+        let ready = false
         while (!ready) {
-          await timeout(120000)
-          ready = await api.claimManager.getClaimReady.call(claim.claimID)
+          await timeout(10000)
+          ready = await api.claimManager.getClaimReady(claim.claimID)
         }
         await api.claimManager.checkClaimSuccessful(claim.claimID, { from: claim.claimant })
         cmd.log('The claim was successful!')
