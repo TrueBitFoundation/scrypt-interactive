@@ -5,9 +5,7 @@ const claimManager = require('./claimManager')
 
 module.exports = async (web3, _contracts = null) => {
   const contracts = _contracts || await (await getContracts(web3)).deployed()
-
   const api = await require('./api')(contracts, web3)
-  const challengeClaim = require('./challengeClaim')(web3, api)
 
   return {
     api,
