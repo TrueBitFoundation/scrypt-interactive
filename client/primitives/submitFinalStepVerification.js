@@ -6,7 +6,7 @@ module.exports = async (api, claim, sessionID, session, challenger) => {
   const preState = (await api.getResult(session.input, lowStep)).state
   const postStateAndProof = await api.getResult(session.input, highStep)
 
-  // @TODO: postState needs to be session.highHash; 
+  // @TODO: postState needs to be session.highHash;
   // provide this in the solidity getter
 
   // const postState = postStateAndProof.state
@@ -21,6 +21,6 @@ module.exports = async (api, claim, sessionID, session, challenger) => {
     postState,
     proof,
     api.claimManager.address,
-    {from: challenger, gas: 3000000}
-  ) 
+    { from: challenger, gas: 3000000 }
+  )
 }

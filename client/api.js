@@ -1,8 +1,10 @@
-
+const promisify = require('es6-promisify')
 const BigNumber = require('bignumber.js')
 const { toSession, toResult, toClaim } = require('./util/models')
 
 module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay }, web3) => {
+  const ethGetBalance = promisify(web3.eth.getBalance, web3.eth)
+
   return {
     web3,
     /**
@@ -69,7 +71,7 @@ module.exports = async ({ claimManager, scryptVerifier, scryptRunner, dogeRelay 
      * @return BigNumber balance of the supplied addres
      */
     getBalance: async (addr) => {
-      return new BigNumber(await web3.eth.getBalance(addr))
+      return new BigNumber(await ethGetBalance(addr))
     },
     /**
      * @desc get the session info from scryptVerifier

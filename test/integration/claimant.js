@@ -69,7 +69,6 @@ describe('Claimant Client Integration Tests', function () {
       submit = bridge.submitClaim(console, claim, stopper)
 
       claimID = (await bridge.api.claimManager.calcId.call(claim.input, claim.hash, claim.claimant, claim.proposalID)).toString()
-      
     })
 
     it('should challenge claim and send initial query', async () => {

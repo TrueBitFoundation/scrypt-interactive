@@ -1,4 +1,5 @@
 const timeout = require('../util/timeout')
+const events = require('../util/events')
 const StepResponse = require('../db/models').StepResponse
 
 const HEX_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
@@ -15,9 +16,8 @@ module.exports = async (cmd, api, claim) => {
     // @TODO(shrugs) - fix this
     // if claimant loses the verification game
     new Promise((resolve, reject) => {
-      claimantConvictedEvent.watch((err, result) => {
-        cmd.log('We lost the game.')
-        claimantConvictedEvent.stopWatching()
+      claimantConvictedEvent.watch(async (err, result) => {
+        cmd.log('We lost the game :(')
         if (err) { return reject(err) }
         resolve(result)
       })
@@ -36,8 +36,8 @@ module.exports = async (cmd, api, claim) => {
         cmd.log('The claim was successful!')
         resolve()
       } catch (error) {
-        cmd.log('Error while resolving defense.')
-        reject(error)
+        cmd.log('Error while resolving defense. The claim didn\'t end in the state we expected.')
+        return reject(error)
       }
     }),
 
@@ -118,7 +118,7 @@ module.exports = async (cmd, api, claim) => {
 
   ])
 
-  claimantConvictedEvent.stopWatching()
-  queryEvent.stopWatching()
-  cmd.log('Finishing claim')
+  await events.tryStopWatching(claimantConvictedEvent, 'ClaimantConvicted')
+  await events.tryStopWatching(queryEvent, 'Query()')
+  cmd.log('Done with claim.')
 }

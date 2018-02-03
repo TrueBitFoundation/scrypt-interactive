@@ -47,7 +47,7 @@
       "command": "bnr test --network geth",
       "env": {
         "IS_GETH_TEST": "true",
-        "PERIOD": "10"
+        "PERIOD": "1"
       }
     }
   },
