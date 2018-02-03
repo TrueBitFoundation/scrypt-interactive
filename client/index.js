@@ -1,7 +1,7 @@
 const getContracts = require('./util/getContracts')
 
 const db = require('./db/models')
-const claimManager = require('./claimManager')
+const primitives = require('./primitives')
 
 module.exports = async (web3, _contracts = null) => {
   const contracts = _contracts || await (await getContracts(web3)).deployed()
@@ -9,12 +9,12 @@ module.exports = async (web3, _contracts = null) => {
 
   return {
     api,
-    claimManager,
+    primitives,
     submitClaim: async (cmd, claimData, stopper) => {
       const fn = async () => {
         const claim = await db.Claim.create(claimData)
-        await claimManager.submitClaim(cmd, api, claim)
-        await claimManager.defend(cmd, api, claim)
+        await primitives.submitClaim(cmd, api, claim)
+        await primitives.defend(cmd, api, claim)
       }
       await Promise.race([
         stopper,
@@ -68,7 +68,7 @@ module.exports = async (web3, _contracts = null) => {
               // this promise also always resolves positively
               // so that Promise.all works correctly
               if (!(claim.id in inProgressClaims)) {
-                claimManager.challenge(api, claim, challenger)
+                primitives.challenge(api, claim, challenger)
 
                 // inProgressClaims[claim.id] = challengeClaim
                 //   .run(cmd, claim, challenger)
