@@ -21,7 +21,6 @@ contract Verifier {
 
     struct VerificationSession {
         uint id;
-        // uint claimid;
         address claimant;
         address challenger;
         bytes input;
@@ -37,7 +36,7 @@ contract Verifier {
     }
 
     mapping(uint => VerificationSession) public sessions;
-    mapping(uint => uint) public sessions_claimid;
+    mapping(uint => uint) public sessionsClaimId;
     uint sessionsCount = 0;
 
     function claimComputation(
@@ -57,7 +56,7 @@ contract Verifier {
         uint sessionId = sessionsCount+1;
         VerificationSession storage s = sessions[sessionId];
         s.id = sessionId;
-        sessions_claimid[sessionId] = claimId;
+        sessionsClaimId[sessionId] = claimId;
         s.claimant = claimant;
         s.challenger = challenger;
         s.input = _input;
@@ -178,7 +177,7 @@ contract Verifier {
         require(s.lowStep + 1 == s.highStep);
         // ^ must be at the end of the binary search according to the smart contract
         
-        require(claimID == sessions_claimid[sessionId]);
+        require(claimID == sessionsClaimId[sessionId]);
 
         //prove game ended
         require(keccak256(preValue) == s.lowHash);

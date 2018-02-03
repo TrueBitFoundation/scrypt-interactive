@@ -109,8 +109,8 @@ contract ClaimManager is DepositsManager {
   // @param _plaintext – the plaintext blockHeader.
   // @param _blockHash – the blockHash.
   // @param claimant – the address of the Dogecoin block submitter.
-  function calcId(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) public pure returns (uint) {
-    return uint(keccak256(claimant, _plaintext, _hash, proposalId));
+  function calcId(bytes, bytes32 _hash, address claimant, bytes32 proposalId) public pure returns (uint) {
+    return uint(keccak256(claimant, _hash, proposalId));
   }
   
   function checkScrypt(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) onlyBy(dogeRelay) public payable {
@@ -126,12 +126,11 @@ contract ClaimManager is DepositsManager {
     }
 
     require(deposits[claimant] >= minDeposit);
-    // require(claimantClaims[claimant] == 0);//claimant can only do one claim at a time
     
 //    uint claimId = numClaims;
 //    uint claimId = uint(keccak256(claimant, _plaintext, _hash, numClaims));
 
-    uint claimId = uint(keccak256(claimant, _plaintext, _hash, proposalId));
+    uint claimId = uint(keccak256(claimant, _hash, proposalId));
     require(!claimExists(claims[claimId]));
 
     ScryptClaim storage claim = claims[claimId];
@@ -144,7 +143,6 @@ contract ClaimManager is DepositsManager {
     claim.createdAt = block.number;
     claim.decided = false;
     claim.proposalId = proposalId;
-    // claimantClaims[claimant] = claimId;
 
     bondDeposit(claimId, claimant, minDeposit);
     ClaimCreated(claimId, claim.claimant, claim.plaintext, claim.blockHash);
@@ -208,7 +206,6 @@ contract ClaimManager is DepositsManager {
   // @param winner – winner of the verification game.
   // @param loser – loser of the verification game.
   
-  // where does the claim id come from?
   function sessionDecided(uint sessionId, uint claimID, address winner, address loser) onlyBy(address(scryptVerifier)) public {
     ScryptClaim storage claim = claims[claimID];
 
