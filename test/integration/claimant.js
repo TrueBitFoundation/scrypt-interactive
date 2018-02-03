@@ -64,11 +64,15 @@ describe('Claimant Client Integration Tests', function () {
       const { stop, stopper } = newStopper()
       stopSubmitting = stop
       submit = bridge.submitClaim(console, claim, stopper)
-      await miner.mineBlocks(4)
+
+      claimID = (await bridge.api.claimManager.calcId.call(claim.input, claim.hash, claim.claimant, claim.proposalID)).toString()
+      
     })
 
     it('should challenge claim and send initial query', async () => {
-      claimID = (await bridge.api.claimManager.claimantClaims(claimant)).toNumber()
+      await timeout(5000)
+
+      await miner.mineBlocks(4)
 
       await bridge.api.challengeClaim(claimID, { from: challenger })
 

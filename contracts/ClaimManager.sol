@@ -4,6 +4,7 @@ import {DepositsManager} from './DepositsManager.sol';
 import {ScryptVerifier} from "./ScryptVerifier.sol";
 import {DogeRelay} from "./DogeRelay.sol";
 
+
 // ClaimManager: queues a sequence of challengers to play with a claimant.
 
 contract ClaimManager is DepositsManager {
@@ -32,7 +33,7 @@ contract ClaimManager is DepositsManager {
     uint createdAt;     // the block number at which the claim was created.
     address[] challengers;      // all current challengers.
     mapping(address => uint) sessions; //map challengers to sessionId's
-    uint numChallengers;
+    uint numChallengers; // is number of challengers always same as challengers.length ?
     uint currentChallenger;    // index of next challenger to play a verification game.
     bool verificationOngoing;   // is the claim waiting for results from an ongoing verificationg game.
     mapping (address => uint) bondedDeposits;   // all deposits bonded in this claim.
@@ -41,7 +42,7 @@ contract ClaimManager is DepositsManager {
     bytes32 proposalId;
   }
 
-  mapping(address => uint) public claimantClaims;
+//  mapping(address => uint) public claimantClaims;
   mapping(uint => ScryptClaim) private claims;
 
   modifier onlyBy(address _account) {
@@ -108,6 +109,10 @@ contract ClaimManager is DepositsManager {
   // @param _plaintext – the plaintext blockHeader.
   // @param _blockHash – the blockHash.
   // @param claimant – the address of the Dogecoin block submitter.
+  function calcId(bytes, bytes32 _hash, address claimant, bytes32 proposalId) public pure returns (uint) {
+    return uint(keccak256(claimant, _hash, proposalId));
+  }
+  
   function checkScrypt(bytes _plaintext, bytes32 _hash, address claimant, bytes32 proposalId) onlyBy(dogeRelay) public payable {
     // dogeRelay can directly make a deposit on behalf of the claimant.
     if (msg.value != 0) {
@@ -121,9 +126,14 @@ contract ClaimManager is DepositsManager {
     }
 
     require(deposits[claimant] >= minDeposit);
-    require(claimantClaims[claimant] == 0);//claimant can only do one claim at a time
+    
+//    uint claimId = numClaims;
+//    uint claimId = uint(keccak256(claimant, _plaintext, _hash, numClaims));
 
-    ScryptClaim storage claim = claims[numClaims];
+    uint claimId = uint(keccak256(claimant, _hash, proposalId));
+    require(!claimExists(claims[claimId]));
+
+    ScryptClaim storage claim = claims[claimId];
     claim.claimant = claimant;
     claim.plaintext = _plaintext;
     claim.blockHash = _blockHash;
@@ -133,10 +143,9 @@ contract ClaimManager is DepositsManager {
     claim.createdAt = block.number;
     claim.decided = false;
     claim.proposalId = proposalId;
-    claimantClaims[claimant] = numClaims;
 
-    bondDeposit(numClaims, claimant, minDeposit);
-    ClaimCreated(numClaims, claim.claimant, claim.plaintext, claim.blockHash);
+    bondDeposit(claimId, claimant, minDeposit);
+    ClaimCreated(claimId, claim.claimant, claim.plaintext, claim.blockHash);
     numClaims = numClaims + 1;
   }
 
@@ -146,7 +155,6 @@ contract ClaimManager is DepositsManager {
   //
   // @param claimID – the claim ID.
   function challengeClaim(uint claimID) public {
-    //ScryptClaim storage claim = claimantClaims[claimant][claimID]
     ScryptClaim storage claim = claims[claimID];
 
     require(claimExists(claim));
@@ -171,19 +179,19 @@ contract ClaimManager is DepositsManager {
     require(claimExists(claim));
     require(!claim.decided);
 
+    require(claim.verificationOngoing == false);
+
     // check if there is a challenger who has not the played verification game yet.
     if (claim.numChallengers > claim.currentChallenger) {
-      require(claim.verificationOngoing == false);
 
       // kick off a verification game.
-      uint sessionId = scryptVerifier.claimComputation(claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2049);
+      uint sessionId = scryptVerifier.claimComputation(claimID, claim.challengers[claim.currentChallenger], claim.claimant, claim.plaintext, claim.blockHash, 2049);
       claim.sessions[claim.challengers[claim.currentChallenger]] = sessionId;
       VerificationGameStarted(claimID, claim.claimant, claim.challengers[claim.currentChallenger], sessionId);
 
       claim.verificationOngoing = true;
       claim.currentChallenger = claim.currentChallenger.add(1);
     } else {
-      require(claim.verificationOngoing == false);
       if (block.number > claim.challengeTimeoutBlockNumber) {
         claim.decided = true;
         ClaimVerificationGamesEnded(claimID);
@@ -197,6 +205,7 @@ contract ClaimManager is DepositsManager {
   // @param sessionId – the sessionId.
   // @param winner – winner of the verification game.
   // @param loser – loser of the verification game.
+  
   function sessionDecided(uint sessionId, uint claimID, address winner, address loser) onlyBy(address(scryptVerifier)) public {
     ScryptClaim storage claim = claims[claimID];
 
@@ -253,7 +262,6 @@ contract ClaimManager is DepositsManager {
     require(claim.decided);
 
     unbondDeposit(claimID, claim.claimant);
-    claimantClaims[claim.claimant] = 0;
 
     dogeRelay.scryptVerified(claim.proposalId);
 

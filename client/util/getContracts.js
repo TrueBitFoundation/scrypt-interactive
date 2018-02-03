@@ -16,7 +16,7 @@ module.exports = async (web3) => {
     ContractInstance.setProvider(web3.currentProvider)
     ContractInstance.defaults({
       from: web3.eth.defaultAccount,
-      gas: 6000000,
+      gas: 5500000,
       // @TODO(shrugs) - whenever truffle stops being garbage software
       //  figure out why it's not estimating the god damn gas for creating
       //  this contract
@@ -29,12 +29,13 @@ module.exports = async (web3) => {
   const DogeRelay = await getContract('DogeRelay')
 
   return {
-    deployed: async () => ({
+    deployed: async () => {
+      return ({
       claimManager: await ClaimManager.at(process.env.CLAIM_MANAGER_ADDRESS),
       scryptVerifier: await ScryptVerifier.at(process.env.SCRYPT_VERIFIER_ADDRESS),
       dogeRelay: await DogeRelay.at(process.env.DOGE_RELAY_ADDRESS),
       scryptRunner: await offchain.scryptRunner(),
-    }),
+    }) },
     deploy: async () => {
       const scryptVerifier = await ScryptVerifier.new()
       const claimManager = await ClaimManager.new(scryptVerifier.address)

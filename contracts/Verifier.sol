@@ -36,9 +36,11 @@ contract Verifier {
     }
 
     mapping(uint => VerificationSession) public sessions;
+    mapping(uint => uint) public sessionsClaimId;
     uint sessionsCount = 0;
 
     function claimComputation(
+        uint claimId,
         address challenger,
         address claimant,
         bytes _input,
@@ -51,24 +53,25 @@ contract Verifier {
         require(steps > 2);
 
         //ClaimManager constraints don't allow for sessionId 0
+        // check if there can be a replay attack with sessionId
         uint sessionId = sessionsCount+1;
-        sessions[sessionId] = VerificationSession({
-            id: sessionId,
-            claimant: claimant,
-            challenger: challenger,
-            input: _input,
-            output: _output,
-            lastClaimantMessage: now,
-            lastChallengerMessage: now,
-            lowStep: 0,
-            lowHash: keccak256(_input),
-            medStep: 0,
-            medHash: 0,
-            highStep: steps,
-            highHash: keccak256(_output)
-        });
+        VerificationSession storage s = sessions[sessionId];
+        s.id = sessionId;
+        sessionsClaimId[sessionId] = claimId;
+        s.claimant = claimant;
+        s.challenger = challenger;
+        s.input = _input;
+        s.output = _output;
+        s.lastClaimantMessage = now;
+        s.lastChallengerMessage = now;
+        s.lowStep = 0;
+        s.lowHash = keccak256(_input);
+        s.medStep = 0;
+        s.medHash = bytes32(0);
+        s.highStep = steps;
+        s.highHash = keccak256(_output);
 
-        require(isInitiallyValid(sessions[sessionId]));
+        require(isInitiallyValid(s));
         sessionsCount+=1;
 
         NewSession(sessionId, claimant, challenger);
@@ -174,6 +177,8 @@ contract Verifier {
         VerificationSession storage s = sessions[sessionId];
         require(s.lowStep + 1 == s.highStep);
         // ^ must be at the end of the binary search according to the smart contract
+        
+        require(claimID == sessionsClaimId[sessionId]);
 
         //prove game ended
         require(keccak256(preValue) == s.lowHash);
