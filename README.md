@@ -199,6 +199,13 @@ docker run \
 docker logs -f :container-id
 ```
 
+## Helpful commands
+```bash
+# to remove the parity db
+parity --chain=dev db kill
+```
+
+
 ## Doge-Ethereum Bounty Split Contract
 
 We're splitting the bounty with additional developers via smart contract.

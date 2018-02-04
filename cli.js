@@ -8,12 +8,25 @@ const commands = require('./client/commands')
 
 const Web3 = require('web3')
 const HDWalletProvider = require('truffle-hdwallet-provider')
-const provider = process.env.USE_LOCAL_SIGNER === 'true'
-  ? new HDWalletProvider(
-    process.env.MNEMONIC,
-    process.env.WEB3_HTTP_PROVIDER
-  )
-  : new Web3.providers.HttpProvider(process.env.WEB3_HTTP_PROVIDER)
+
+const providerToUse = (useLocalSigner) => {
+  if (useLocalSigner === 'true') {
+    return (
+      new HDWalletProvider(
+          process.env.MNEMONIC,
+          process.env.WEB3_HTTP_PROVIDER
+        )
+    )
+  } else {
+    return (
+      new Web3.providers.HttpProvider(
+        process.env.WEB3_HTTP_PROVIDER
+      )
+    )
+  }
+}
+
+const provider = providerToUse(process.env.USE_LOCAL_SIGNER)
 const web3 = new Web3(provider)
 
 const getDefaultAddress = promisify(web3.eth.getDefaultAddress, web3.eth)
