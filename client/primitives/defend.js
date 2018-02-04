@@ -4,7 +4,10 @@ const StepResponse = require('../db/models').StepResponse
 
 const HEX_ZERO = '0x0000000000000000000000000000000000000000000000000000000000000000'
 
+
+
 module.exports = async (cmd, api, claim) => {
+
   cmd.log(`Waiting to defend claim ${claim.id}`)
 
   const computeStep = require('./computeStep')
@@ -32,6 +35,8 @@ module.exports = async (cmd, api, claim) => {
           await timeout(10000)
           ready = await api.claimManager.getClaimReady(claim.claimID)
         }
+
+        await api.claimManager.runNextVerificationGame(claim.claimID, { from: claim.claimant })
         await api.claimManager.checkClaimSuccessful(claim.claimID, { from: claim.claimant })
         cmd.log('The claim was successful!')
         resolve()
