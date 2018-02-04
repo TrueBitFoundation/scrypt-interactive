@@ -38,8 +38,12 @@ module.exports = async (cmd, api, claim) => {
 
         await api.claimManager.runNextVerificationGame(claim.claimID, { from: claim.claimant })
         await api.claimManager.checkClaimSuccessful(claim.claimID, { from: claim.claimant })
-        cmd.log('The claim was successful!')
-        resolve()
+        if(!(await api.claimManager.getClaimDecided.call(claim.claimID))) {
+          reject(new Error('claim is not decided'))
+        } else {
+          cmd.log('The claim was successful!')
+          resolve()
+        }
       } catch (error) {
         cmd.log('Error while resolving defense. The claim didn\'t end in the state we expected.')
         return reject(error)
