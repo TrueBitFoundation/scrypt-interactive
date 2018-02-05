@@ -17,7 +17,7 @@ const submitQuery = async (api, claim, sessionID, challenger) => {
   lowStep = session.lowStep.toNumber()
   medStep = session.medStep.toNumber()
   highStep = session.highStep.toNumber()
-  console.log(`\nSESSION: ${lowStep} ${medStep} ${highStep}`)
+  console.log(`\nSession steps: ${lowStep} ${medStep} ${highStep}`)
 
   // mid-game: decide whether to query the left or right half of the computation.
   toQueryStep = await getNewQueryStep(api, sessionID)
