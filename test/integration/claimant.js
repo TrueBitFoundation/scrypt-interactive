@@ -105,7 +105,7 @@ describe('Claimant Client Integration Tests', function () {
     it('should challenge claim and send initial query', async () => {
       await timeout(5000)
 
-      await miner.mineBlocks(4)
+      await miner.mineBlocks(3)
 
       await bridge.api.challengeClaim(claimID, { from: challenger })
 
@@ -138,7 +138,7 @@ describe('Claimant Client Integration Tests', function () {
         let medStep = calculateMidpoint(session.lowStep.toNumber(), session.medStep.toNumber())
         console.log('Querying: ' + medStep)
         await bridge.api.query(sessionId, medStep, { from: challenger })
-        await miner.mineBlocks(10)
+        await miner.mineBlocks(4)
       })
     }
 

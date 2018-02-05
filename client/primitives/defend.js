@@ -29,7 +29,7 @@ module.exports = async (cmd, api, claim) => {
       try {
         let ready = false
         while (!ready) {
-          await timeout(10000)
+          await timeout(2000)
           ready = await api.claimManager.getClaimReady(claim.claimID)
         }
         await api.claimManager.checkClaimSuccessful(claim.claimID, { from: claim.claimant })
