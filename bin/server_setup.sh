@@ -101,7 +101,8 @@ wget https://parity-downloads-mirror.parity.io/v1.8.8/x86_64-unknown-linux-gnu/p
 sudo apt install ./parity_1.8.8_amd64.deb
 
 # follow the README:
-parity --chain dev  # kill this after ~ 5 seconds, when the dev db is setup.
+# kill this after ~ 5 seconds, when the dev db is setup.
+parity --chain dev
 
 #----------------------------------
 
