@@ -12,8 +12,8 @@ contract ClaimManager is DepositsManager, IScryptChecker {
   uint private numClaims = 1;     // index as key for the claims mapping.
   uint public minDeposit = 1;    // TODO: what should the minimum deposit be?
 
-  //default initial amount of blocks for challenge timeout
-  uint public defaultChallengeTimeout = 20;
+  // default initial amount of blocks for challenge timeout
+  uint public defaultChallengeTimeout = 5;
 
   ScryptVerifier public scryptVerifier;
 

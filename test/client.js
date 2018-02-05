@@ -116,7 +116,7 @@ describe('ClaimManager', function () {
     })
 
     it('waits for timeout of block number when claim is decided', async () => {
-      await miner.mineBlocks(21)
+      await miner.mineBlocks(6)
       
       const isReady = await claimManager.getClaimReady.call(claimID)
       isReady.should.eq(true)
@@ -153,7 +153,7 @@ describe('ClaimManager', function () {
 
       claimID = results[1].args.claimID // .toNumber()
 
-      await miner.mineBlocks(21)
+      await miner.mineBlocks(6)
       
       const isReady = await claimManager.getClaimReady.call(claimID)
       isReady.should.eq(true)
@@ -175,7 +175,7 @@ describe('ClaimManager', function () {
       var claimID1 = results[2].args.claimID // .toNumber()
       var claimID2 = results[3].args.claimID // .toNumber()
 
-      await miner.mineBlocks(21)
+      await miner.mineBlocks(6)
 
       const isReady1 = await claimManager.getClaimReady.call(claimID1)
       isReady1.should.eq(true)

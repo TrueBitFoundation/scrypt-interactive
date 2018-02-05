@@ -18,7 +18,7 @@ const {
   scryptHash,
 } = require('../helpers/blockheader')
 
-describe('Claimant Client Integration Tests', function () {
+describe('Correct Client Integration Tests', function () {
   // set max timeout to 120 seconds
   this.timeout(120000)
 
@@ -75,7 +75,7 @@ describe('Claimant Client Integration Tests', function () {
     })
 
     it('should check if claim was successful', async () => {
-        await miner.mineBlocks(40)
+        await miner.mineBlocks(10)
 
         result = await getAllEvents(claimManager, 'ClaimSuccessful')
         result[0].args.claimID.should.be.bignumber.eq(claimID)
