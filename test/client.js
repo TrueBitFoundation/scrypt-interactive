@@ -117,18 +117,11 @@ describe('ClaimManager', function () {
 
     it('waits for timeout of block number when claim is decided', async () => {
       await miner.mineBlocks(21)
-
-      // trigger claim decided
-      await claimManager.runNextVerificationGame(claimID, { from: claimant })
-
+      
       const isReady = await claimManager.getClaimReady.call(claimID)
       isReady.should.eq(true)
 
-      const result = await getAllEvents(claimManager, 'ClaimVerificationGamesEnded')
-      result[0].args.claimID.should.be.bignumber.eq(claimID)
-    })
-
-    it('should check if claim successful', async () => {
+      // trigger claim decided
       await claimManager.checkClaimSuccessful(claimID, { from: claimant })
 
       const result = await getAllEvents(claimManager, 'ClaimSuccessful')
@@ -161,19 +154,14 @@ describe('ClaimManager', function () {
       claimID = results[1].args.claimID // .toNumber()
 
       await miner.mineBlocks(21)
-
-      // trigger claim decided
-      await claimManager.runNextVerificationGame(claimID, { from: claimant })
-
-      let result = await getAllEvents(claimManager, 'ClaimVerificationGamesEnded')
-      result[1].args.claimID.should.be.bignumber.eq(claimID)
-
+      
       const isReady = await claimManager.getClaimReady.call(claimID)
       isReady.should.eq(true)
 
+      // trigger claim decided
       await claimManager.checkClaimSuccessful(claimID, { from: claimant })
 
-      result = await getAllEvents(claimManager, 'ClaimSuccessful')
+      let result = await getAllEvents(claimManager, 'ClaimSuccessful')
       result[1].args.claimID.should.be.bignumber.eq(claimID)
     })
 
@@ -188,14 +176,6 @@ describe('ClaimManager', function () {
       var claimID2 = results[3].args.claimID // .toNumber()
 
       await miner.mineBlocks(21)
-
-      // trigger claim decided
-      await claimManager.runNextVerificationGame(claimID1, { from: claimant })
-      await claimManager.runNextVerificationGame(claimID2, { from: claimant })
-
-      let result = await getAllEvents(claimManager, 'ClaimVerificationGamesEnded')
-      result[2].args.claimID.should.be.bignumber.eq(claimID1)
-      result[3].args.claimID.should.be.bignumber.eq(claimID2)
 
       const isReady1 = await claimManager.getClaimReady.call(claimID1)
       isReady1.should.eq(true)

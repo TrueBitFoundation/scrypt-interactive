@@ -188,11 +188,6 @@ contract ClaimManager is DepositsManager, IScryptChecker {
 
       claim.verificationOngoing = true;
       claim.currentChallenger = claim.currentChallenger.add(1);
-    } else {
-      if (block.number > claim.challengeTimeoutBlockNumber) {
-        claim.decided = true;
-        ClaimVerificationGamesEnded(claimID);
-      }
     }
   }
 
@@ -202,7 +197,6 @@ contract ClaimManager is DepositsManager, IScryptChecker {
   // @param sessionId – the sessionId.
   // @param winner – winner of the verification game.
   // @param loser – loser of the verification game.
-
   function sessionDecided(uint sessionId, uint claimID, address winner, address loser) onlyBy(address(scryptVerifier)) public {
     ScryptClaim storage claim = claims[claimID];
 
@@ -241,8 +235,11 @@ contract ClaimManager is DepositsManager, IScryptChecker {
   // @param claimID – the claim ID.
   function checkClaimSuccessful(uint claimID) public {
     ScryptClaim storage claim = claims[claimID];
-
+    
     require(claimExists(claim));
+    
+    // check that there is no ongoing verification game.
+    require(claim.verificationOngoing == false);
 
     // check that the claim has exceeded the default challenge timeout.
     require(block.number.sub(claim.createdAt) > defaultChallengeTimeout);
@@ -250,13 +247,10 @@ contract ClaimManager is DepositsManager, IScryptChecker {
     //check that the claim has exceeded the claim's specific challenge timeout.
     require(block.number > claim.challengeTimeoutBlockNumber);
 
-    // check that there is no ongoing verification game.
-    require(claim.verificationOngoing == false);
-
     // check that all verification games have been played.
     require(claim.numChallengers == claim.currentChallenger);
 
-    require(claim.decided);
+    claim.decided = true;
 
     IScryptDependent(claim.scryptDependent).scryptVerified(claim.proposalId);
 
