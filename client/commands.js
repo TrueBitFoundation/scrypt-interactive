@@ -42,7 +42,7 @@ const deposit = async (cmd, bridge, operator, amount) => {
 
     await status(cmd, bridge, operator)
   } catch (error) {
-    cmd.log(`Unable to deposit to ClaimManager: ${error.stack}`)
+    cmd.log(`Unable to deposit to ClaimManager: ${error}`)
   }
 }
 
@@ -56,7 +56,7 @@ const withdraw = async (cmd, bridge, operator, amount) => {
     await bridge.api.withdrawDeposit(amountToWithdraw, { from: operator })
     await status(cmd, bridge, operator)
   } catch (error) {
-    cmd.log(`Unable to withdraw from ClaimManager: ${error.stack}`)
+    cmd.log(`Unable to withdraw from ClaimManager: ${error}`)
   }
 }
 

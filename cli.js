@@ -98,7 +98,7 @@ const main = async () => {
         cmd,
         bridge,
         operator,
-        !!options.autoChallenge,
+        true,
         stopper
       )
     })
