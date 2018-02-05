@@ -1,4 +1,3 @@
-[![Build Status](https://travis-ci.org/TrueBitFoundation/scrypt-interactive.svg?branch=master)](https://travis-ci.org/TrueBitFoundation/scrypt-interactive)
 
 # Truebit Verification for Scrypt.
 
@@ -19,31 +18,47 @@ The client relies on a local Parity instance to execute the ScryptRunner contrac
 
 The rest of the contracts can be deployed on any chain (currently ganache for local development, Rinkeby for staging, and mainnet for production).
 
-There are 3 actors in the system:
+There are 2 actors in the system:
 
-1. The claimant submitting doge block headers to the DogeRelay contract.
-    - The claimant must also defend their block headers in the event of a challenge.
-2. The challenger that has the option of challenging a claimant's block headers.
-3. The user who wishes to use the bridge to move dogecoins to Ethereum
-    - This user can be the same as the claimant, but it's not necessary.
-    - This user provides a merkle proof of a tx on dogecoin that is validated against the blockheader stored in DogeRelay.
-    - DogeRelay can trust the blockheader submissions due to the protocol described in this repo.
+1. The Claimant:
+    -  submits doge block headers to the DogeRelay contract.
+    -  must also defend their block headers in the event of a challenge.
+2. The Verifier:
+    -  monitors the Truebit contract and challenges incorrect claims.
 
+The address for the contracts as deployed on Rinkeby are in the [`.env`](https://github.com/TrueBitFoundation/scrypt-interactive/blob/master/.env) file.
 
-The addresses of the doge relay on mainnet are
+## Running the client
+
+The client software is open-source and available in this repo.
+
+Follow [these directions](https://github.com/TrueBitFoundation/scrypt-interactive/blob/master/docs/setup.md) to setup the client.
+
+Use the CLI tool to interact with the client:
+
+```bash
+# check the status
+npm start status
+
+# manage your deposits
+npm start deposit <amout_in_ether>
+npm start withdraw <amout_in_ether>
+
+# monitor the system as a Verifier.
+# note: you must have the required amount of eth deposited to stake per claim you want to challenge;
+# otherwise, it won't be able to do anything but watch.
+npm start monitor --auto-challenge
+
+# submit a claim as a Claimant.
+# note: you must defend your claim (scrypt hash and plaintext payload) against challenges. 
+# note: you must have the required amount of eth deposited to stake.
+npm start claim <input> <hash> <proposalID>
+
 ```
-# @TODO - update this once we deploy
-DOGE_RELAY_ADDRESS=0xd5cd4e3bede456d9e1da2582d7771fdbf6e28846
-SCRYPT_VERIFIER_ADDRESS=0xc4291fc3a35a66c993a47b96079e5439c5febe16
-SCRYPT_RUNNER_ADDRESS=0x75d860a49037082f1c96fe0c527f7cb9be3a3be6
-CLAIM_MANAGER_ADDRESS=0xff35220a6e4771b94bf1a92cf27f060d6598b1c7
-```
 
-For your convenience, they've been coded into `.env`, but if you're interested in running against a different chain, make sure to deploy and then update those values.
+## Running the tests
 
-## Running the Tests
-
-First, install the needed dependencies.
+First, install the needed dependencies as described in the [setup docs](https://github.com/TrueBitFoundation/scrypt-interactive/blob/master/docs/setup.md).
 
 Running the tests involves
 1. Running ganache `npm run ganache`
@@ -55,153 +70,19 @@ We also have a convenient `test.sh` script that does all that for you.
 ./bin/test.sh
 ```
 
-## Installing Dependencies
+## Deploying the contracts
 
-Install the latest stable release of the Parity Ethereum client. You can look for the binary [here](https://github.com/paritytech/parity/releases).
-```bash
-# make sure it's executable
-chmod 755 ./parity
-# add it to your PATH if you want to use our scripts for launching it
-```
-
-Initialize the parity development chain database with
-```bash
-parity --chain dev
-```
-
-Let that run for 5 seconds or whatever and then kill it. In the future, run parity with
-```bash
-npm run parity
-# or
-parity --config config.toml --geth
-```
-
-Ensure you have the latest version of node installed (currently v9.4.0).
-
-Then install packages deps:
-```bash
-npm install
-npm install -g sequelize-cli
-npm install -g truffle
-```
-
-Install postgres and run it on the default port `5432`:
-
-```
-# Ubuntu instructions for installing psql
-
-sudo apt-get update
-sudo apt-get install postgresql postgresql-contrib
-
-# Switch over to postgres account
-sudo -i -u postgres
-
-# create a new role
-createuser --interactive
-
-# enter user name
-# then select yes for superuser
-
-# give you user the ability to execute commands as postgres user
-# by giving it the right permissions in pg_hba.conf
-
-```
-
-Bootstrap your database with:
+To deploy the contracts to your favorite chain:
 
 ```bash
-sequelize db:create
-sequelize db:migrate
-NODE_ENV=test sequelize db:create
-NODE_ENV=test sequelize db:migrate
-```
+# first:
+# update the .env file.
 
-Configure your client by updating the `.env` file:
+# then
+npm run migrate:rinkeby  # or target another chain.
 
-```bash
-export WEB3_HTTP_PROVIDER=http://localhost:8545
-export WEB3_PARITY_PROVIDER=http://localhost:4242
-export DOGE_RELAY_ADDRESS=0x0
-export SCRYPT_VERIFIER_ADDRESS=0x0
-export SCRYPT_RUNNER_ADDRESS=0x0
-export CLAIM_MANAGER_ADDRESS=0x0
-```
-
-## The CLI
-
-```bash
-bridge --help
-
-# run the cli as a challenger
-# The `challenge` and `deposit` flags configure how the bridge behaves.
-# note: as a challenger, your account must have the required amount of Ether to stake per claim you want to challenge;
-# otherwise, it won't be able to do anything but watch.
-bridge monitor [-c, --auto-challenge]
-
-# run the cli as a claimant
-# note: your job is to submit doge block headers and defend them against challenges. 
-# if you never submit an invalid doge header (who would do that??), you'll never have to play the verification game.
-# note: you must have enough Ether deposited within the ClaimManager in order to submit blocks.
-# @TODO
-bridge claim <block_header> <block_header_hash>
-
-# manage your deposits
-# @TODO
-bridge deposit <amout_in_ether>
-bridge withdraw <amout_in_ether>
-
-# show the status of the bridge
-# @TODO
-bridge status
-```
-
-## Deploying the Contracts
-
-To deploy the contracts to your favorite dev chain,
-```bash
-npm run migrate:dev
-# or
-truffle migrate --network :your-chain-here
-
-# use `npm run migrate:dev -- --reset` for force-migrate
-```
-
-To deploy the contracts to your favorite infura chain, do something like
-```bash
-MNEMONIC="your mnemonic here do not put this in a file keep it in the interpreter" \
-npm run migrate:rinkeby
-# or
-MNEMONIC="your mnemonic here do not put this in a file keep it in the interpreter" \
-INFURA_CHAIN=ropsten \
-truffle migrate --network infura
-```
-
-And note the addresses for configuring your env when actually running the code.
-
-## Geth Docker Image Testing
-
-Want to test against a more reasonable test chain?
+# then
+# update the resulting contract addresses in .env
 
 ```
-git clone git@github.com:livepeer/docker-livepeer.git
-cd docker-livepeer/geth-dev
-
-# replace the latest tag with v1.7.3
-s/latest/v1.7.3/g Dockerfile
-
-docker build . -t geth-dev
-
-docker run \
-    --name geth-dev --rm -d \
-    -p 8545:8545 \
-    geth-dev
-
-docker logs -f :container-id
-```
-
-## Doge-Ethereum Bounty Split Contract
-
-We're splitting the bounty with additional developers via smart contract.
-
-The bounty contract is deployed at: `0x1ed3e252dcb6d540947d2d63a911f56733d55681`
 
