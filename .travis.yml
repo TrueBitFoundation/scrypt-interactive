@@ -13,9 +13,14 @@ matrix:
       - sudo apt-get update
       - sudo apt-get install build-essential -y
       - sudo apt-get install gcc g++ libssl-dev libudev-dev pkg-config
+      services:
+        - postgresql
 
 install:
   - bash ./bin/travis-install.sh
+
+before_script:
+  - NODE_ENV=test sequelize db:create
 
 script:
   - bash ./bin/test.sh
